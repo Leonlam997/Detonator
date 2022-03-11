@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground">
+
+    <Button
+        android:id="@+id/btn_decrease"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="10dp"
+        android:text="-"
+        android:textSize="26sp" />
+
+    <Button
+        android:id="@+id/btn_increase"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="50dp"
+        android:text="+"
+        android:textSize="26sp" />
+
+    <EditText
+        android:id="@+id/etSerialNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:layout_toStartOf="@id/btn_increase"
+        android:layout_toEndOf="@id/btn_decrease"
+        android:hint="请输入序列号"
+        android:imeOptions="actionDone"
+        android:text="4410126100001"
+        android:textColor="@android:color/black"
+        android:textSize="30sp" />
+
+    <com.leon.detonator.Base.MyButton
+        android:id="@+id/btn_write"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_columnWeight="1"
+        android:layout_below="@id/etSerialNumber"
+        android:layout_centerHorizontal="true"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:padding="0dp"
+        android:text="@string/button_write_sn"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true" />
+
+    <TextView
+        android:id="@+id/tvDelay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_write"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="30dp"
+        android:text="延时："
+        android:textColor="@android:color/black"
+        android:textSize="30sp" />
+
+    <EditText
+        android:id="@+id/etDelay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_write"
+        android:layout_marginTop="25dp"
+        android:layout_toEndOf="@id/tvDelay"
+        android:hint="请输入延时"
+        android:imeOptions="actionDone"
+        android:inputType="numberDecimal"
+        android:text="0"
+        android:textColor="@android:color/black"
+        android:textSize="30sp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_write"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="30dp"
+        android:layout_toEndOf="@id/etDelay"
+        android:text="ms"
+        android:textColor="@android:color/black"
+        android:textSize="30sp" />
+
+    <TextView
+        android:id="@+id/tvPeriod"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_write"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="30dp"
+        android:layout_toStartOf="@id/etPeriod"
+        android:text="间隔："
+        android:textColor="@android:color/black"
+        android:textSize="30sp" />
+
+    <EditText
+        android:id="@+id/etPeriod"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_write"
+        android:layout_marginTop="25dp"
+        android:layout_toStartOf="@id/tvMS"
+        android:hint="请输入间隔"
+        android:imeOptions="actionDone"
+        android:inputType="numberDecimal"
+        android:text="0"
+        android:textColor="@android:color/black"
+        android:textSize="30sp" />
+
+    <TextView
+        android:id="@+id/tvMS"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_write"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="30dp"
+        android:text="ms"
+        android:textColor="@android:color/black"
+        android:textSize="30sp" />
+
+    <com.leon.detonator.Base.MyButton
+        android:id="@+id/btn_delay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_columnWeight="1"
+        android:layout_below="@id/etDelay"
+        android:layout_centerHorizontal="true"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:padding="0dp"
+        android:text="@string/button_set_delay"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true" />
+
+    <TextView
+        android:id="@+id/tv_autoHints"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_delay"
+        android:textSize="26sp" />
+</RelativeLayout>

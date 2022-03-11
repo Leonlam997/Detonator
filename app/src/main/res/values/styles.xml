@@ -1,0 +1,62 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowAnimationStyle">@style/translationStyle</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="translationStyle">
+        <item name="android:activityOpenEnterAnimation">@anim/default_fromleft_in</item>
+        <item name="android:activityOpenExitAnimation">@anim/default_toright_out</item>
+        <item name="android:activityCloseEnterAnimation">@anim/default_fromright_in</item>
+        <item name="android:activityCloseExitAnimation">@anim/default_toleft_out</item>
+    </style>
+
+    <style name="AlertDialog" parent="@android:style/Theme.Holo.Light.Dialog">
+        <item name="android:textColor">@color/colorLabelText</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="NormalCheckBoxTheme" parent="@android:style/Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/cb_normal</item>
+    </style>
+
+    <style name="SettingsCheckBoxTheme" parent="@android:style/Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/cb_settings</item>
+    </style>
+
+    <style name="PasswordCheckBoxTheme" parent="@android:style/Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/cb_display_password</item>
+    </style>
+
+    <style name="popup_window_anim">
+        <item name="android:windowEnterAnimation">@anim/popupwindow_in</item>
+        <item name="android:windowExitAnimation">@anim/popupwindow_out</item>
+    </style>
+
+    <style name="StyleProgressBarMini" parent="@android:style/Widget.ProgressBar.Horizontal">
+        <item name="android:maxHeight">50dip</item>
+        <item name="android:minHeight">20dip</item>
+        <item name="android:indeterminateOnly">false</item>
+        <item name="android:indeterminateDrawable">
+            @android:drawable/progress_indeterminate_horizontal
+        </item>
+        <item name="android:progressDrawable">@drawable/shape_progressbar_mini</item>
+    </style>
+
+    <style name="SemiProductDialog" parent="android:Theme.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.5</item>
+    </style>
+</resources>

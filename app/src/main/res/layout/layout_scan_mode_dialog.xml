@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <RadioGroup
+        android:id="@+id/rg_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="20dp">
+
+        <RadioButton
+            android:id="@+id/rb_scan_line"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/scan_line"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_register_line"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:checked="false"
+            android:gravity="center"
+            android:text="@string/register_line"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_manual_line"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:checked="false"
+            android:text="@string/manual_line"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+    </RadioGroup>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="150dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="20dp"
+        android:layout_toEndOf="@id/rg_mode"
+        android:background="@color/colorTableLine" />
+
+    <RadioGroup
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="20dp"
+        android:layout_toEndOf="@id/rg_mode">
+
+        <RadioButton
+            android:id="@+id/rb_insert_up"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/insert_up"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_insert_down"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:checked="false"
+            android:gravity="center"
+            android:text="@string/insert_down"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+    </RadioGroup>
+
+</RelativeLayout>

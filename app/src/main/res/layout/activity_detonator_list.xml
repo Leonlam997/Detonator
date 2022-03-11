@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/ll_table"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
+        android:orientation="vertical">
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorTableLine" />
+
+        <include
+            android:id="@+id/table_title"
+            layout="@layout/layout_delay_list" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorTableLine" />
+
+        <ListView
+            android:id="@+id/lv_delaylist"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:cacheColorHint="@android:color/transparent"
+            android:divider="@color/colorTableLine"
+            android:dividerHeight="1dp"
+            android:fadingEdge="none"
+            android:footerDividersEnabled="true"
+            android:listSelector="@color/colorListSelector"
+            android:scrollbars="vertical" />
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_scan_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp">
+
+        <TextView
+            android:id="@+id/txt_delay1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/tv_clickable"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="@string/txt_row_delay"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <TextView
+            android:id="@+id/tv_row_delay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/txt_delay1"
+            android:background="@drawable/tv_clickable"
+            android:clickable="true"
+            android:focusable="true"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="@dimen/common_text_size" />
+
+        <LinearLayout
+            android:id="@+id/ll_hole_delay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true">
+
+            <TextView
+                android:id="@+id/txt_delay2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/tv_clickable"
+                android:clickable="true"
+                android:focusable="true"
+                android:text="@string/txt_hole_delay"
+                android:textColor="@android:color/black"
+                android:textSize="@dimen/common_text_size" />
+
+            <TextView
+                android:id="@+id/tv_hole_delay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/tv_clickable"
+                android:clickable="true"
+                android:focusable="true"
+                android:textColor="@android:color/holo_red_dark"
+                android:textSize="@dimen/common_text_size" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txt_delay3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toStartOf="@id/tv_inside_delay"
+            android:background="@drawable/tv_clickable"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="@string/txt_inside_delay"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size"
+            tools:ignore="RelativeOverlap" />
+
+        <TextView
+            android:id="@+id/tv_inside_delay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_marginEnd="5dp"
+            android:background="@drawable/tv_clickable"
+            android:clickable="true"
+            android:focusable="true"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="@dimen/common_text_size" />
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/txt_delay1"
+            android:layout_gravity="center_vertical"
+            android:columnCount="3"
+            android:orientation="horizontal">
+
+            <com.leon.detonator.Base.MyButton
+                android:id="@+id/btn_scan"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:layout_gravity="center"
+                android:padding="0dp"
+                android:text="@string/button_scan"
+                android:textColor="@color/colorButtonEnabled"
+                android:textSize="@dimen/button_text_size"
+                button:bigButton="false"
+                button:keyCode="1" />
+
+            <com.leon.detonator.Base.MyButton
+                android:id="@+id/btn_register"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:layout_gravity="center"
+                android:padding="0dp"
+                android:text="@string/button_register"
+                android:textColor="@color/colorButtonEnabled"
+                android:textSize="@dimen/button_text_size"
+                button:bigButton="false"
+                button:keyCode="2" />
+
+            <com.leon.detonator.Base.MyButton
+                android:id="@+id/btn_manual"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_rowWeight="1"
+                android:layout_columnWeight="1"
+                android:layout_gravity="center"
+                android:padding="0dp"
+                android:text="@string/button_manual"
+                android:textColor="@color/colorButtonEnabled"
+                android:textSize="@dimen/button_text_size"
+                button:bigButton="false"
+                button:keyCode="3" />
+        </GridLayout>
+    </RelativeLayout>
+
+    <GridLayout
+        android:id="@+id/rl_modify_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginTop="5dp"
+        android:columnCount="3"
+        android:orientation="horizontal">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_modify_delay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_modify_delay"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="false"
+            button:keyCode="1" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_modify_interval"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_modify_interval"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="false"
+            button:keyCode="2" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_delete_detonator"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="false"
+            button:keyCode="3" />
+    </GridLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_disp_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp">
+
+        <TextView
+            android:id="@+id/txt_disp1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:text="@string/txt_total_line"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <TextView
+            android:id="@+id/tv_disp1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/txt_disp1"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="@dimen/common_text_size" />
+
+        <TextView
+            android:id="@+id/txt_disp2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="30dp"
+            android:layout_toEndOf="@id/tv_disp1"
+            android:text="@string/txt_total_delay"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <TextView
+            android:id="@+id/tv_disp2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/txt_disp2"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="@dimen/common_text_size" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_restore"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_gravity="center"
+            android:layout_marginEnd="5dp"
+            android:padding="0dp"
+            android:text="@string/button_restore_list"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="false"
+            button:keyCode="1"
+            tools:ignore="RelativeOverlap" />
+    </RelativeLayout>
+
+</LinearLayout>

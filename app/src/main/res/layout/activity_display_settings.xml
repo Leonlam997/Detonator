@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground">
+
+    <TextView
+        android:id="@+id/tvlight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/display_light"
+        android:textColor="@android:color/black"
+        android:textSize="20sp" />
+
+    <View
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/tvlight"
+        android:background="@color/colorTableLine" />
+
+    <RelativeLayout
+        android:id="@+id/rl1"
+        android:layout_width="match_parent"
+        android:layout_height="57dp"
+        android:layout_below="@id/tvlight">
+
+        <ImageView
+            android:id="@+id/ivlight1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="24dp"
+            android:src="@mipmap/ic_light_small" />
+
+        <SeekBar
+            android:id="@+id/sbLight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_toStartOf="@id/ivlight2"
+            android:layout_toEndOf="@id/ivlight1" />
+
+        <ImageView
+            android:id="@+id/ivlight2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/sbLight"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="24dp"
+            android:src="@mipmap/ic_light_large" />
+    </RelativeLayout>
+
+    <View
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/rl1"
+        android:layout_marginStart="46dp"
+        android:background="@color/colorTableLine" />
+
+    <RelativeLayout
+        android:id="@+id/rl2"
+        android:layout_width="match_parent"
+        android:layout_height="57dp"
+        android:layout_below="@id/rl1">
+
+        <TextView
+            android:id="@+id/tvAuto"
+            android:layout_width="wrap_content"
+            android:layout_height="53dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="50dp"
+            android:gravity="center_vertical"
+            android:text="@string/display_auto_light"
+            android:textColor="@android:color/black"
+            android:textSize="22sp" />
+
+        <CheckBox
+            android:id="@+id/cbAuto"
+            style="@style/SettingsCheckBoxTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="40dp"
+            android:gravity="center_vertical" />
+
+    </RelativeLayout>
+
+    <View
+        android:id="@+id/v1"
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/rl2"
+        android:background="@color/colorTableLine" />
+
+    <View
+        android:id="@+id/v2"
+        android:layout_width="wrap_content"
+        android:layout_height="46dp"
+        android:layout_below="@id/v1"
+        android:background="@color/colorCommonBackground" />
+
+    <View
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/v2"
+        android:background="@color/colorTableLine" />
+
+    <RelativeLayout
+        android:id="@+id/rlSleepTime"
+        android:layout_width="match_parent"
+        android:layout_height="57dp"
+        android:layout_below="@id/v2"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/tvSleep"
+            android:layout_width="wrap_content"
+            android:layout_height="53dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="50dp"
+            android:gravity="center_vertical"
+            android:text="@string/display_sleep_time"
+            android:textColor="@android:color/black"
+            android:textSize="22sp" />
+
+        <ImageView
+            android:id="@+id/ivMenuRight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="20dp"
+            android:src="@mipmap/ic_right_arrow" />
+
+        <TextView
+            android:id="@+id/tvSleepTime"
+            android:layout_width="wrap_content"
+            android:layout_height="53dp"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="20dp"
+            android:layout_toStartOf="@id/ivMenuRight"
+            android:gravity="center_vertical"
+            android:text="@string/display_sleep_time"
+            android:textColor="@color/colorHintText"
+            android:textSize="20sp" />
+
+    </RelativeLayout>
+
+    <View
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/rlSleepTime"
+        android:background="@color/colorTableLine" />
+
+    <RelativeLayout
+        android:id="@+id/rlFontScale"
+        android:layout_width="match_parent"
+        android:layout_height="57dp"
+        android:layout_below="@id/rlSleepTime"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/tvFont"
+            android:layout_width="wrap_content"
+            android:layout_height="53dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="50dp"
+            android:gravity="center_vertical"
+            android:text="@string/display_font_scale"
+            android:textColor="@android:color/black"
+            android:textSize="22sp" />
+
+        <ImageView
+            android:id="@+id/ivMenu2Right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="20dp"
+            android:src="@mipmap/ic_right_arrow" />
+
+        <TextView
+            android:id="@+id/tvFontScale"
+            android:layout_width="wrap_content"
+            android:layout_height="53dp"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="20dp"
+            android:layout_toStartOf="@id/ivMenu2Right"
+            android:gravity="center_vertical"
+            android:text="@string/display_sleep_time"
+            android:textColor="@color/colorHintText"
+            android:textSize="20sp" />
+
+    </RelativeLayout>
+
+    <View
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/rlFontScale"
+        android:background="@color/colorTableLine" />
+</RelativeLayout>

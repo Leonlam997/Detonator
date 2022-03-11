@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_hints"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="@string/explode_progress"
+        android:textAlignment="center"
+        android:textColor="@android:color/black"
+        android:textSize="@dimen/label_text_size" />
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp">
+
+        <ProgressBar
+            android:id="@+id/pb_download"
+            style="@style/StyleProgressBarMini"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:layout_marginStart="50dp"
+            android:layout_marginEnd="100dp"
+            android:background="@drawable/shape_progressbar_mini"
+            android:max="100" />
+
+        <TextView
+            android:id="@+id/tv_percentage"
+            android:layout_width="100dp"
+            android:layout_height="30dp"
+            android:layout_alignParentEnd="true"
+            android:text="0%"
+            android:textAlignment="center"
+            android:textColor="@color/colorRescanText"
+            android:textSize="@dimen/common_text_size" />
+    </RelativeLayout>
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginTop="100dp"
+        android:columnCount="2"
+        android:orientation="horizontal">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_update"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_update"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="1" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_version"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="2" />
+    </GridLayout>
+</LinearLayout>

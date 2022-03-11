@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/tv_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:text="@string/add_start"
+        android:textColor="@color/colorLabelText"
+        android:textSize="28sp" />
+
+    <EditText
+        android:id="@+id/et_start"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="10dp"
+        android:layout_toEndOf="@id/tv_start"
+        android:hint="@string/offline_hint"
+        android:inputType="text"
+        android:maxLength="13"
+        android:textColor="@android:color/black"
+        android:textColorHint="@color/colorHintText"
+        android:textSize="28sp" />
+
+    <TextView
+        android:id="@+id/tv_amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_start"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="10dp"
+        android:text="@string/offline_amount"
+        android:textColor="@color/colorLabelText"
+        android:textSize="28sp" />
+
+    <EditText
+        android:id="@+id/et_amount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_start"
+        android:layout_marginEnd="50dp"
+        android:layout_marginBottom="10dp"
+        android:layout_toEndOf="@id/tv_amount"
+        android:hint="1"
+        android:inputType="number"
+        android:maxLength="3"
+        android:textColor="@android:color/black"
+        android:textColorHint="@color/colorHintText"
+        android:textSize="28sp" />
+
+</RelativeLayout>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
+
+    <RelativeLayout
+        android:id="@+id/rl1"
+        android:layout_width="match_parent"
+        android:layout_height="57dp"
+        android:layout_below="@id/tv_sound">
+
+        <ImageView
+            android:id="@+id/iv_sound1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="24dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:src="@mipmap/ic_sound_mute" />
+
+        <ImageView
+            android:id="@+id/iv_sound2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/sb_sound"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="24dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:src="@mipmap/ic_sound_large" />
+
+        <SeekBar
+            android:id="@+id/sb_sound"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_toStartOf="@id/iv_sound2"
+            android:layout_toEndOf="@id/iv_sound1" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl2"
+        android:layout_width="match_parent"
+        android:layout_height="57dp"
+        android:layout_below="@id/rl1">
+
+        <CheckBox
+            android:id="@+id/cb_vibrate"
+            style="@style/SettingsCheckBoxTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="40dp"
+            android:gravity="center_vertical" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="53dp"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="50dp"
+            android:gravity="center_vertical"
+            android:text="@string/sound_vibrate"
+            android:textColor="@android:color/black"
+            android:textSize="22sp" />
+
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/tv_sound"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/sound_volume"
+        android:textColor="@android:color/black"
+        android:textSize="20sp" />
+
+    <View
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/rl1"
+        android:layout_marginStart="46dp"
+        android:background="@color/colorTableLine" />
+
+    <View
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_sound"
+        android:background="@color/colorTableLine" />
+
+    <View
+        android:id="@+id/v1"
+        android:layout_width="wrap_content"
+        android:layout_height="1dp"
+        android:layout_below="@id/rl2"
+        android:background="@color/colorTableLine" />
+</RelativeLayout>

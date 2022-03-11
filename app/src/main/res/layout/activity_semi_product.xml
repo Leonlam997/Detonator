@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground">
+
+    <TextView
+        android:id="@+id/tv_select"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="78dp"
+        android:layout_marginTop="30dp"
+        android:text="@string/select_type"
+        android:textColor="@color/colorSemiProductCommonText"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Spinner
+        android:id="@+id/spinner"
+        android:layout_width="277dp"
+        android:layout_height="43dp"
+        android:layout_marginTop="28dp"
+        app:layout_constraintLeft_toRightOf="@id/tv_select"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tv_code_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="78dp"
+        android:layout_marginTop="30dp"
+        android:text="@string/code_text"
+        android:textColor="@color/colorSemiProductCommonText"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_select" />
+
+    <TextView
+        android:id="@+id/tv_code"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="172dp"
+        android:layout_marginTop="28dp"
+        android:textColor="@color/colorSemiProductCommonText"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintLeft_toLeftOf="@id/tv_code_text"
+        app:layout_constraintTop_toBottomOf="@id/tv_select" />
+
+    <TextView
+        android:id="@+id/tv_voltage_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="43dp"
+        android:layout_marginTop="22dp"
+        android:text="@string/voltage_text"
+        android:textColor="@color/colorSemiProductCommonText"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_code_text" />
+
+    <TextView
+        android:id="@+id/tv_voltage"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:textColor="@color/colorSemiProductCommonText"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintLeft_toLeftOf="@id/tv_voltage_text"
+        app:layout_constraintTop_toBottomOf="@id/tv_code_text" />
+
+    <TextView
+        android:id="@+id/tv_current_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:layout_marginEnd="43dp"
+        android:text="@string/current_text"
+        android:textColor="@color/colorSemiProductCommonText"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_code_text" />
+
+    <TextView
+        android:id="@+id/tv_current"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:textColor="@color/colorSemiProductCommonText"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintLeft_toLeftOf="@id/tv_current_text"
+        app:layout_constraintTop_toBottomOf="@id/tv_code_text" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_marginBottom="50dp"
+        android:columnCount="2"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_test"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_self_test"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="1" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_scan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_scan"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="2" />
+    </GridLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

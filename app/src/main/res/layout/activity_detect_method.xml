@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginTop="80dp"
+    android:background="@color/colorCommonBackground"
+    android:columnCount="2"
+    android:orientation="horizontal">
+
+    <ImageButton
+        android:id="@+id/btn_detect_barcode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_detect_barcode_style" />
+
+    <ImageButton
+        android:id="@+id/btn_detect_line"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_detect_line_style" />
+
+    <TextView
+        android:id="@+id/tv_detect_barcode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_marginTop="10dp"
+        android:text="@string/detect_barcode_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/tv_detect_line"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_marginTop="10dp"
+        android:text="@string/detect_line_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+</GridLayout>

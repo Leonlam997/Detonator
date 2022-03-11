@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/txt_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="30dp"
+        android:text="@string/offline_start"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <EditText
+        android:id="@+id/et_start"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_toEndOf="@id/txt_start"
+        android:hint="@string/offline_hint"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLength="13"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/txt_amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txt_start"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/offline_amount"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <EditText
+        android:id="@+id/et_amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txt_start"
+        android:layout_marginTop="10dp"
+        android:layout_toEndOf="@id/txt_amount"
+        android:hint="100"
+        android:imeOptions="actionDone"
+        android:importantForAutofill="no"
+        android:inputType="number"
+        android:maxLength="3"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/txt_end"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txt_amount"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="20dp"
+        android:text="@string/offline_end"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/tv_end"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txt_amount"
+        android:layout_marginTop="20dp"
+        android:layout_toEndOf="@id/txt_end"
+        android:textColor="@color/colorHintText"
+        android:textSize="@dimen/label_text_size" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:columnCount="2"
+        android:orientation="horizontal">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_add_list"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_new"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_new_list"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true" />
+    </GridLayout>
+</RelativeLayout>

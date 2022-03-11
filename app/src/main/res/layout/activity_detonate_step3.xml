@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/fl_charge"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/progress_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/charge_progress"
+            android:textAlignment="center"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/label_text_size" />
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp">
+
+            <ProgressBar
+                android:id="@+id/pb_charge"
+                style="@style/StyleProgressBarMini"
+                android:layout_width="match_parent"
+                android:layout_height="30dp"
+                android:layout_marginStart="50dp"
+                android:layout_marginEnd="100dp"
+                android:background="@drawable/shape_progressbar_mini"
+                android:max="100" />
+
+            <TextView
+                android:id="@+id/tv_charge_percentage"
+                android:layout_width="100dp"
+                android:layout_height="30dp"
+                android:layout_alignParentEnd="true"
+                android:textAlignment="center"
+                android:textColor="@color/colorRescanText"
+                android:textSize="@dimen/common_text_size" />
+        </RelativeLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/fl_slide"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/iv_slide_bg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="80dp"
+                android:src="@mipmap/ic_slide_bg" />
+
+            <TextView
+                android:id="@+id/tv_hint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="118dp"
+                android:text="@string/det_slide_hint"
+                android:textColor="@color/colorAccent"
+                android:textSize="23sp" />
+
+            <TextView
+                android:id="@+id/tv_percentage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/tv_hint"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="100dp"
+                android:textColor="@android:color/black"
+                android:textSize="20sp" />
+
+            <ProgressBar
+                android:id="@+id/pbCountDown"
+                style="@style/StyleProgressBarMini"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/tv_percentage"
+                android:layout_marginStart="50dp"
+                android:layout_marginTop="5dp"
+                android:layout_marginEnd="50dp"
+                android:background="@drawable/shape_progressbar_mini"
+                android:max="100" />
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <com.leon.detonator.Base.SliderImageView
+                android:id="@+id/iv_slider"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="79dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:src="@mipmap/ic_slider" />
+        </RelativeLayout>
+    </FrameLayout>
+</LinearLayout>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/txt_connect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="50dp"
+            android:layout_marginTop="50dp"
+            android:text="@string/connect_status"
+            android:textColor="@color/colorLabelText"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/tv_connect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="50dp"
+            android:layout_toEndOf="@id/txt_connect"
+            android:textColor="@color/colorLabelText"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/tv_ellipsis1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="50dp"
+            android:layout_toEndOf="@id/tv_connect"
+            android:textColor="@color/colorLabelText"
+            android:textSize="30sp" />
+
+        <ImageView
+            android:id="@+id/iv_status1"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="45dp"
+            android:layout_marginEnd="50dp"
+            android:src="@mipmap/ic_right" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_unite"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/txt_unite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="50dp"
+            android:layout_marginTop="50dp"
+            android:text="@string/unite_status"
+            android:textColor="@color/colorLabelText"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/tv_unite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="50dp"
+            android:layout_toEndOf="@id/txt_unite"
+            android:textColor="@color/colorLabelText"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/tv_ellipsis2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="50dp"
+            android:layout_toEndOf="@id/tv_unite"
+            android:textColor="@color/colorLabelText"
+            android:textSize="30sp" />
+
+        <ImageView
+            android:id="@+id/iv_status2"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="45dp"
+            android:layout_marginEnd="50dp"
+            android:src="@mipmap/ic_right" />
+    </RelativeLayout>
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="50dp"
+        android:columnCount="2"
+        android:orientation="horizontal">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_rescan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_rescan"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="1" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_reconnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_reconnect"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="2" />
+    </GridLayout>
+</LinearLayout>

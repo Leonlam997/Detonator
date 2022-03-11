@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Detonator/app/src/main/res/drawable/bitmap_login_status_bar_background.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/btn_auth_style.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/btn_back_style.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/btn_big_button_style.xml" value="0.2165" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/btn_small_button_style.xml" value="0.2165" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/popupwindow_bg.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/popupwindow_divider.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/shape_progressbar_bg.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/shape_selected.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/status_bar_background.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/tv_clickable.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/drawable/tv_selected.xml" value="0.2185" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_bluetooth.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_camera.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_charge.xml" value="0.17806484295845998" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_check_line.xml" value="0.190625" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_delay_schedule.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_detect.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_detect_method.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_detonate_step1.xml" value="0.21770833333333334" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_detonate_step2.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_detonate_step3.xml" value="0.21354166666666666" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_detonate_step4.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_detonator_list.xml" value="0.23489583333333333" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_display_settings.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_enterprise.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_error_detonator_list.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_explode_record.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_login.xml" value="0.2203125" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_main.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_server_select.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_settings.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_sound_settings.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_test.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_unite_explode.xml" value="0.21770833333333334" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_update_app.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_version_manage.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_welcome.xml" value="0.21770833333333334" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_wifi.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_wifi_connect.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_write_sn.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/fragment_action_bar.xml" value="0.23489583333333333" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/fragment_offline_list.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/fragment_status_bar.xml" value="0.190625" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_authorization_list.xml" value="0.19895833333333332" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_delay_list.xml" value="0.18430335097001763" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_dialog.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_enterprise_info_dialog.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_info_list.xml" value="0.19895833333333332" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_list_dialog.xml" value="0.19895833333333332" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_list_table.xml" value="0.21770833333333334" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_mtmodule_dialog.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_mtmodule_list.xml" value="0.19895833333333332" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_offline_list.xml" value="0.19895833333333332" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_popupwindow.xml" value="0.21145833333333333" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_status_bar.xml" value="0.1875" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground">
+
+    <com.baidu.mapapi.map.MapView
+        android:id="@+id/map_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/tv_coordinate1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="21dp"
+        android:layout_marginTop="21dp"
+        android:textColor="@android:color/black"
+        android:textSize="@dimen/common_text_size"
+        tools:ignore="RelativeOverlap" />
+
+    <TextView
+        android:id="@+id/tv_coordinate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:textColor="@color/colorCoordinateText"
+        android:textSize="@dimen/common_text_size"
+        tools:ignore="RelativeOverlap" />
+
+    <GridLayout
+        android:id="@+id/gl_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_gravity="center_vertical"
+        android:layout_marginBottom="8dp"
+        android:columnCount="2"
+        android:orientation="horizontal">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_online_auth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_online_auth"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="1" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_offline_auth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_offline_auth"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="2" />
+    </GridLayout>
+
+    <GridLayout
+        android:id="@+id/gl_btn2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_gravity="center_vertical"
+        android:layout_marginBottom="8dp"
+        android:columnCount="1"
+        android:orientation="horizontal">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_detect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_online_detect"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true"
+            button:keyCode="1" />
+    </GridLayout>
+</RelativeLayout>

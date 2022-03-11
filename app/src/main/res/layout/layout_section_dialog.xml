@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <RelativeLayout
+        android:id="@+id/rl1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true">
+
+        <TextView
+            android:id="@+id/tv1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:text="@string/section_delay"
+            android:textColor="@color/colorLabelText"
+            android:textSize="@dimen/common_text_size" />
+
+        <EditText
+            android:id="@+id/et_section"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/tv1"
+            android:gravity="center"
+            android:inputType="numberDecimal"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/colorHintText"
+            android:textSize="@dimen/common_text_size" />
+
+        <TextView
+            android:id="@+id/tv2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/et_section"
+            android:text="@string/delay_unit"
+            android:textColor="@color/colorLabelText"
+            android:textSize="@dimen/common_text_size" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/rl1"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp">
+
+        <TextView
+            android:id="@+id/tv3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:text="@string/section_inside_delay"
+            android:textColor="@color/colorLabelText"
+            android:textSize="@dimen/common_text_size" />
+
+        <EditText
+            android:id="@+id/et_inside"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/tv3"
+            android:gravity="center"
+            android:inputType="numberDecimal"
+            android:textColor="@android:color/black"
+            android:textColorHint="@color/colorHintText"
+            android:textSize="@dimen/common_text_size" />
+
+        <TextView
+            android:id="@+id/tv4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/et_inside"
+            android:text="@string/delay_unit"
+            android:textColor="@color/colorLabelText"
+            android:textSize="@dimen/common_text_size" />
+    </RelativeLayout>
+</RelativeLayout>

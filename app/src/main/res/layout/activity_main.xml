@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center_vertical"
+    android:layout_marginTop="5dp"
+    android:background="@color/colorCommonBackground"
+    android:columnCount="3"
+    android:orientation="horizontal">
+
+
+    <ImageButton
+        android:id="@+id/btn_delay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_delay_style" />
+
+    <ImageButton
+        android:id="@+id/btn_control"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_control_style" />
+
+    <ImageButton
+        android:id="@+id/btn_authorize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_auth_style" />
+
+
+    <TextView
+        android:id="@+id/tv_delay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/delay_scheme_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/tv_control"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/detonate_ctrl_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/tv_auth"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/detonate_auth_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+
+    <ImageButton
+        android:id="@+id/btn_log"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_record_style" />
+
+    <ImageButton
+        android:id="@+id/btn_cooperate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_cooperate_style" />
+
+    <ImageButton
+        android:id="@+id/btn_settings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_settings_style" />
+
+    <TextView
+        android:id="@+id/tv_log"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/detonate_rec_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+
+    <TextView
+        android:id="@+id/tv_cooperate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/detonate_cooperate_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/tv_settings"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/txt_settings_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+</GridLayout>
+

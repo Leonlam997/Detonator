@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <View
+        android:id="@+id/line_row"
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_name"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.8"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/dialog_device_name"
+        android:textColor="#000000"
+        android:textSize="@dimen/small_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_address"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.1"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/dialog_device_address"
+        android:textColor="#000000"
+        android:textSize="@dimen/small_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_signal"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="0.6"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/dialog_device_signal"
+        android:textColor="#000000"
+        android:textSize="@dimen/small_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+</LinearLayout>
+

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cl_dialog"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@android:color/transparent">
+
+    <ImageView
+        android:id="@+id/iv_dialog_background"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@mipmap/dialog_back"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/iv_dialog_text_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:src="@mipmap/back_unqualified"
+        app:layout_constraintBottom_toBottomOf="@id/iv_dialog_background"
+        app:layout_constraintLeft_toLeftOf="@id/iv_dialog_background"
+        app:layout_constraintRight_toRightOf="@id/iv_dialog_background"
+        app:layout_constraintTop_toTopOf="@id/iv_dialog_background" />
+
+    <TextView
+        android:id="@+id/tv_dialog_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:textColor="@color/colorDialogText"
+        android:textSize="@dimen/dialog_text"
+        app:layout_constraintBottom_toBottomOf="@id/iv_dialog_background"
+        app:layout_constraintLeft_toLeftOf="@id/iv_dialog_background"
+        app:layout_constraintRight_toRightOf="@id/iv_dialog_background"
+        app:layout_constraintTop_toTopOf="@id/iv_dialog_background" />
+
+    <TextView
+        android:id="@+id/tv_dialog_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorDialogText"
+        android:textSize="@dimen/dialog_text"
+        app:layout_constraintBottom_toBottomOf="@id/iv_dialog_background"
+        app:layout_constraintLeft_toLeftOf="@id/iv_dialog_background"
+        app:layout_constraintRight_toRightOf="@id/iv_dialog_background"
+        app:layout_constraintTop_toTopOf="@id/iv_dialog_background" />
+
+
+    <TextView
+        android:id="@+id/tv_dialog_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="90dp"
+        android:text="@string/dialog_unqualified_hint"
+        android:textColor="@color/colorDialogText"
+        android:textSize="@dimen/dialog_sub_text"
+        app:layout_constraintBottom_toBottomOf="@id/iv_dialog_background"
+        app:layout_constraintLeft_toLeftOf="@id/iv_dialog_background"
+        app:layout_constraintRight_toRightOf="@id/iv_dialog_background"
+        app:layout_constraintTop_toTopOf="@id/iv_dialog_background" />
+
+    <TextView
+        android:id="@+id/tv_dialog_code"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="130dp"
+        android:layout_marginTop="88dp"
+        android:gravity="center"
+        android:textColor="@color/colorDialogText"
+        android:textSize="@dimen/dialog_sub_text"
+        app:layout_constraintBottom_toBottomOf="@id/iv_dialog_background"
+        app:layout_constraintLeft_toLeftOf="@id/tv_dialog_subtitle"
+        app:layout_constraintTop_toTopOf="@id/iv_dialog_background" />
+
+    <com.leon.detonator.Base.MyButton
+        android:id="@+id/btn_dialog_confirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="10dp"
+        android:padding="0dp"
+        android:text="@string/button_confirm"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@id/iv_dialog_background"
+        app:layout_constraintRight_toRightOf="@id/iv_dialog_background"
+        button:bigButton="true"
+        button:keyCode="1" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

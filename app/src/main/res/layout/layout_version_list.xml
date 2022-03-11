@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_serialNo"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_serialNo"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_download_date"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="4.2"
+        android:ellipsize="start"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_download_date"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_version"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.8"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_version"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_size"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1.8"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_size"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <RelativeLayout
+        android:id="@+id/rl_cb"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="0.8">
+
+        <CheckBox
+            android:id="@+id/cb_selected"
+            style="@style/NormalCheckBoxTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:layout_gravity="center"
+            android:clickable="false"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:text="" />
+    </RelativeLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+</LinearLayout>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.leon.detonator"
+    android:installLocation="internalOnly"
+    android:sharedUserId="android.uid.system">
+
+    <uses-permission
+        android:name="android.permission.BATTERY_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_PRIVILEGED"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission
+        android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
+    <uses-permission
+        android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission
+        android:name="android.permission.MODIFY_PHONE_STATE"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission
+        android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.bluetooth_le"
+        android:required="true" />
+
+    <application
+        android:name=".Base.BaseApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity android:name=".Activity.ChargeActivity"></activity>
+        <activity android:name=".Activity.VersionManageActivity" />
+        <activity android:name=".Activity.CapacityTestActivity" />
+        <activity android:name=".Activity.WelcomeActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".Activity.ServerSelectActivity" />
+        <activity android:name=".Activity.UniteExplodeActivity" />
+        <activity android:name=".Activity.ErrorDetonatorListActivity" />
+        <activity android:name=".Activity.EnterpriseActivity" />
+        <activity android:name=".Activity.LoginActivity" />
+        <activity android:name=".Activity.MainActivity" />
+        <activity android:name=".Activity.DelayScheduleActivity" />
+        <activity android:name=".Activity.SerialTestActivity" />
+        <activity android:name=".Activity.DetonatorListActivity" />
+        <activity android:name=".Activity.DetectMethodActivity" />
+        <activity android:name=".Activity.AuthorizationListActivity" />
+        <activity android:name=".Activity.ExplosionRecordActivity" />
+        <activity android:name=".Activity.SettingsActivity" />
+        <activity android:name=".Activity.WifiActivity" />
+        <activity android:name=".Activity.WifiConnectActivity" />
+        <activity android:name=".Activity.DisplaySettingsActivity" />
+        <activity android:name=".Activity.DetectActivity" />
+        <activity android:name=".Activity.CheckLineActivity" />
+        <activity android:name=".Activity.VoltageTestActivity" />
+        <activity android:name=".Activity.BluetoothActivity" />
+        <activity android:name=".Activity.DetonateStep1Activity" />
+        <activity android:name=".Activity.DetonateStep2Activity" />
+        <activity android:name=".Activity.DetonateStep3Activity" />
+        <activity android:name=".Activity.DetonateStep4Activity" />
+        <activity android:name=".Activity.WriteSNActivity" />
+        <activity android:name=".Activity.SelectModeActivity" />
+        <activity android:name=".Activity.UpdateAppActivity" />
+        <activity android:name=".Activity.SoundSettingsActivity" />
+        <activity android:name=".Activity.SystemInfoActivity" />
+        <activity android:name=".Activity.CameraActivity" />
+        <activity android:name=".Activity.SemiProductActivity" />
+
+        <service
+            android:name=".BluetoothTool.BluetoothLeService"
+            android:enabled="true"
+            android:exported="false" />
+
+        <meta-data
+            android:name="com.baidu.lbsapi.API_KEY"
+            android:value="xac7ckQV364AQ9l6agKwAZAEczgWOILp" />
+
+        <service
+            android:name="com.baidu.location.f"
+            android:enabled="true"
+            android:process=":remote" />
+    </application>
+
+</manifest>

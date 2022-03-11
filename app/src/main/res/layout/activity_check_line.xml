@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/ll1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:gravity="center_horizontal"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/txt_tube"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/text_tube_num"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/big_text_size" />
+
+        <TextView
+            android:id="@+id/tv_tube"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:ellipsize="middle"
+            android:singleLine="true"
+            android:textColor="@color/colorPopupTitleText"
+            android:textSize="@dimen/big_text_size" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/txt_delay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/text_current_delay"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/big_text_size" />
+
+        <TextView
+            android:id="@+id/tv_delay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="50dp"
+            android:textColor="@color/colorPopupTitleText"
+            android:textSize="@dimen/big_text_size" />
+    </LinearLayout>
+
+    <com.leon.detonator.Base.MyButton
+        android:id="@+id/btn_detect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="50dp"
+        android:padding="0dp"
+        android:text="@string/button_start_detect"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true"
+        button:keyCode="1" />
+</LinearLayout>

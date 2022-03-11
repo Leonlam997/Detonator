@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303f9f</color>
+    <color name="colorHintText">#bbbbbb</color>
+    <color name="colorAccent">#1f9ad5</color>
+    <color name="colorLabelText">#000000</color>
+    <color name="colorListTitleText">#ff0000</color>
+    <color name="colorListSelector">#551f9ad5</color>
+    <color name="colorActionbarBackground">#1f9ad5</color>
+    <color name="colorCommonBackground">#f5f5f5</color>
+    <color name="colorRescanText">#1e9cdd</color>
+    <color name="colorTableTitleBackground">#ddebf8</color>
+    <color name="colorTableLine">#d5d5d5</color>
+    <color name="colorPopupText">#333333</color>
+    <color name="colorPopupTitleText">#1f9ad4</color>
+    <color name="colorSlideText">#efefef</color>
+    <color name="colorToastText">#f5f5f5</color>
+    <color name="colorOpenAirBackground">#f6b88c</color>
+    <color name="colorTunnelBackground">#97c9e2</color>
+    <color name="colorPitBackground">#9bdaa5</color>
+    <color name="colorSemiProductCommonText">#363a3d</color>
+    <color name="colorNormalText">#288d3a</color>
+    <color name="colorAbnormalText">#a62124</color>
+    <color name="colorDialogText">#FFFFFF</color>
+    <color name="colorInfoTitle">#000000</color>
+    <color name="colorINfoSubtitle">#666666</color>
+    <color name="colorNotNull">#ff0000</color>
+    <color name="colorAuthorized">#288d3a</color>
+    <color name="colorNotAuthorized">#a62124</color>
+    <color name="colorLastConnected">#8700b3</color>
+    <color name="colorCoordinateText">#1f9ad5</color>
+    <color name="colorButtonEnabled">#ffffff</color>
+    <color name="colorButtonDisabled">#333333</color>
+</resources>

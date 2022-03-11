@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@mipmap/login_bg"
+    android:orientation="vertical">
+
+    <ImageButton
+        android:id="@+id/btn_face"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="60dp"
+        android:layout_marginTop="160dp"
+        android:background="@drawable/btn_face_style" />
+
+    <EditText
+        android:id="@+id/et_username"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="190dp"
+        android:layout_marginTop="170dp"
+        android:autofillHints=""
+        android:hint="@string/hint_inputUsername"
+        android:inputType="textPersonName"
+        android:textColor="@color/colorLabelText"
+        android:textColorHint="@color/colorHintText"
+        android:textSize="@dimen/common_text_size" />
+
+    <TextView
+        android:id="@+id/tv_register_user"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_toEndOf="@id/et_username"
+        android:text="@string/txt_RegisterUser"
+        android:textColor="#1F9AD4"
+        android:textSize="@dimen/common_text_size"
+        android:visibility="gone" />
+
+    <EditText
+        android:id="@+id/et_password"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_username"
+        android:layout_marginStart="190dp"
+        android:layout_marginTop="10dp"
+        android:autofillHints=""
+        android:hint="@string/hint_inputPassword"
+        android:inputType="textPassword"
+        android:textColor="@color/colorLabelText"
+        android:textColorHint="@color/colorHintText"
+        android:textSize="@dimen/common_text_size" />
+
+    <CheckBox
+        android:id="@+id/cb_show_psw"
+        style="@style/PasswordCheckBoxTheme"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_username"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_toEndOf="@id/et_password" />
+
+    <ImageButton
+        android:id="@+id/btn_login"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_password"
+        android:layout_marginStart="180dp"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/btn_login_style" />
+</RelativeLayout>

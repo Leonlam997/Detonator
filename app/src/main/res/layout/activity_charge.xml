@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="100dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="50dp"
+            android:text="@string/text_time_count"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/big_text_size" />
+
+        <EditText
+            android:id="@+id/et_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:autofillHints="5"
+            android:hint="@string/hint_input_time"
+            android:inputType="number"
+            android:maxLength="2"
+            android:textSize="@dimen/big_text_size" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/text_time_unit"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/big_text_size" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="350dp"
+        android:layout_marginTop="100dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/txt_voltage"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/big_text_size" />
+
+        <EditText
+            android:id="@+id/et_voltage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:autofillHints="24"
+            android:hint="@string/hint_input_voltage_value"
+            android:inputType="numberDecimal"
+            android:maxLength="4"
+            android:textSize="@dimen/big_text_size" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/text_voltage_unit"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/big_text_size" />
+    </LinearLayout>
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="50dp"
+        android:columnCount="2">
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_charge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_start_charge"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btn_voltage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_modify_voltage"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true" />
+    </GridLayout>
+</RelativeLayout>

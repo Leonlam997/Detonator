@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:columnCount="3">
+
+    <ImageButton
+        android:id="@+id/btn_new_schedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_resume_schedule_style" />
+
+    <ImageButton
+        android:id="@+id/btn_check_schedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_new_schedule_style" />
+
+    <ImageButton
+        android:id="@+id/btn_check_detonator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:background="@drawable/btn_check_detonator_style" />
+
+    <TextView
+        android:id="@+id/tv_new_schedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/add_detonator_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/tv_check_schedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/check_schedule_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+
+    <TextView
+        android:id="@+id/tv_single_detect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:text="@string/check_detonator_1"
+        android:textAlignment="center"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/label_text_size" />
+</GridLayout>

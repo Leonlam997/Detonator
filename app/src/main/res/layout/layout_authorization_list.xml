@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_serialNo"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_serialNo"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_project_name"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="3"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_project_name"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_amount"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_amount"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_valid_date"
+        android:layout_width="0dip"
+        android:layout_height="wrap_content"
+        android:layout_weight="3"
+        android:gravity="center"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:singleLine="true"
+        android:text="@string/table_valid_date"
+        android:textColor="#000000"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="fill_parent"
+        android:background="@color/colorTableLine" />
+</LinearLayout>
