@@ -8,7 +8,6 @@ import android.os.Message;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.method.NumberKeyListener;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -77,18 +76,26 @@ public class SemiProductActivity extends BaseActivity {
         }
     };
     private final boolean newLG = BaseApplication.readSettings().isNewLG();
-    private int defaultVoltage = 2790;
-    private SerialPortUtil serial;
-    private int detonatorType, flowStep, readCurrentCount, writeSNCount, ldoVoltage, boostVoltage = 1950, chargeTime = 200, soundSuccess, soundFail, soundAlert;
+    private int defaultVoltage = newLG ? 80 : 2790;
+    private SerialPortUtil serialPortUtil;
+    private int detonatorType, flowStep, readCurrentCount, writeSNCount, ldoVoltage, boostVoltage = 1950, chargeTime = newLG ? 1000 : 200, soundSuccess, soundFail, soundAlert;
     private SerialDataReceiveListener serialListener;
-    private float resistance;
-    private boolean autoDetect = false, scanCode = false, finishWriting, autoStart = false, startWaitingScan;
+    private boolean autoDetect = false, scanCode = false, finishWriting, autoStart = false;
     private TextView textViewCurrent, textViewVoltage, textViewCode;
     private SoundPool soundPool;
-    private boolean fastTest = false;
     private long timeCounter;
     private float lastCurrent;
     private BaseApplication myApp;
+
+    private void changeMode(boolean auto, boolean scan) {
+        readCurrentCount = 0;
+        autoDetect = auto;
+        scanCode = scan;
+        serialListener.setStartAutoDetect(auto);
+        serialListener.setFeedback(auto);
+        serialListener.setScanMode(scan);
+    }
+
     private Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
@@ -111,32 +118,20 @@ public class SemiProductActivity extends BaseActivity {
                     startScan();
                     break;
                 case CMD_TIMEOUT:
-                    if (newLG) {
-                        finishedDetect(FAIL_TIME_OUT);
-                    } else if (flowStep > 11)
+                    if (flowStep > (newLG ? 12 : 11))
                         finishedDetect(FAIL_BRIDGE_BROKE);
-                    else if (flowStep == 4 && !finishWriting && writeSNCount > 1)
+                    else if (flowStep == (newLG ? 3 : 4) && !finishWriting && writeSNCount > 1)
                         finishedDetect(FAIL_WRITE_ERROR);
                     else
                         startFlow();
                     break;
-//                case FINISHED_CHARGING://Finish charging
-//                    if (finishWriting) {
-//                        flowStep++;
-//                        startFlow();
-//                    } else if (flowStep == 2)
-//                        myHandler.sendEmptyMessageDelayed(FINISHED_CHARGING, 500);
-//                    break;
-                case GET_RESULT:
-                    serial.sendCmd("", SerialCommand.ACTION_TYPE.TEST_RESULT, 0);
-                    myHandler.sendEmptyMessageDelayed(GET_RESULT, 100);
-                    break;
                 case SCAN_TIMEOUT:
                     changeMode(true, false);
-                    myApp.myToast(SemiProductActivity.this, "扫描超时！");
+                    enabledButton(true);
+                    myApp.myToast(SemiProductActivity.this, R.string.message_scan_timeout);
                     break;
                 case RESTORE_VOLTAGE:
-                    serial.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
+                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
                     //changeMode(true, false);
                     flowStep++;
                     myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.BOOST_TIME);
@@ -145,15 +140,6 @@ public class SemiProductActivity extends BaseActivity {
             return false;
         }
     });
-
-    private void changeMode(boolean auto, boolean scan) {
-        readCurrentCount = 0;
-        autoDetect = auto;
-        scanCode = scan;
-        serialListener.setStartAutoDetect(auto);
-        serialListener.setFeedback(auto);
-        serialListener.setScanMode(scan);
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,13 +150,13 @@ public class SemiProductActivity extends BaseActivity {
         myApp = (BaseApplication) getApplication();
         try {
             initSound();
-            serial = SerialPortUtil.getInstance();
+            serialPortUtil = SerialPortUtil.getInstance();
             serialListener = new SerialDataReceiveListener(this, () -> {
                 String data = serialListener.getRcvData();
                 if (data.contains(SerialCommand.ALERT_SHORT_CIRCUIT)) {
-                    if (serial != null) {
-                        serial.closeSerialPort();
-                        serial = null;
+                    if (serialPortUtil != null) {
+                        serialPortUtil.closeSerialPort();
+                        serialPortUtil = null;
                     }
                     runOnUiThread(() -> new AlertDialog.Builder(SemiProductActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_warning)
@@ -184,15 +170,11 @@ public class SemiProductActivity extends BaseActivity {
                     finish();
                 } else if (data.contains(SerialCommand.INITIAL_FINISHED)) {
                     serialListener.setRcvData("");
-                    if (newLG)
-                        serial.sendCmd("", SerialCommand.ACTION_TYPE.SET_VOLTAGE, 60);
                 } else if (data.equals(SerialCommand.RESPOND_CONNECTED)) {
                     if (flowStep == 0) {
                         myHandler.removeMessages(START_SCAN);
                         myHandler.removeMessages(CMD_TIMEOUT);
-                        setProgressVisibility(true);
-                        findViewById(R.id.btn_scan).setEnabled(false);
-                        findViewById(R.id.btn_test).setEnabled(false);
+                        enabledButton(false);
                         flowStep = 1;
                         startFlow();
                         autoStart = true;
@@ -203,9 +185,12 @@ public class SemiProductActivity extends BaseActivity {
                     if (data.length() > 1 && data.startsWith("V")) {
                         m.what = REFRESH_VOLTAGE;
                         try {
-                            float v = Integer.parseInt(data.substring(1)) / 100.0f;
-                            if (v >= 0.13f)
-                                v -= 0.13f;
+                            float v = Float.parseFloat(data.substring(1));
+                            if (!newLG) {
+                                v /= 100f;
+                                if (v >= 0.13f)
+                                    v -= 0.13f;
+                            }
                             m.obj = String.format(Locale.CHINA, "%.2f", v);
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -262,115 +247,37 @@ public class SemiProductActivity extends BaseActivity {
 //                                    startFlow();
 //                                }
                                 break;
+                            case 6:
+                                if (newLG)
+                                    lastCurrent = current;
+                                break;
                         }
                     }
                     myHandler.sendMessage(m);
                 } else if (scanCode) {
-                    if (newLG) {
-                        if (!startWaitingScan && data.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SCAN_CODE)))) {
-                            myHandler.removeMessages(START_SCAN);
-                            startWaitingScan = true;
-                            myHandler.sendEmptyMessageDelayed(SCAN_TIMEOUT, ConstantUtils.SCAN_TIMEOUT);
-                            serialListener.setRcvData("");
-                        } else if (startWaitingScan) {
-                            byte[] t = new byte[data.length() / 2];
-                            for (int i = 0; i < data.length(); i += 2) {
-                                t[i / 2] = (byte) Integer.parseInt(data.substring(i, i + 2), 16);
-                            }
-                            analyzeCode(new String(t));
-
-                        }
-                    } else if (data.contains(SerialCommand.RESPOND_SUCCESS) && !data.equals(SerialCommand.RESPOND_SUCCESS)) {
+                    if ((newLG && data.contains(SerialCommand.SCAN_RESPOND) && data.length() > 10) || (!newLG && data.contains(SerialCommand.RESPOND_SUCCESS) && !data.equals(SerialCommand.RESPOND_SUCCESS))) {
                         analyzeCode(data);
                     }
                 } else if (newLG) {
                     serialListener.setRcvData("");
-                    if (data.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SET_VOLTAGE)))) {
-                        changeMode(true, false);
-                    } else if (data.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.WRITE_SN)))) {
-                        myHandler.removeMessages(GET_RESULT);
-                        serial.sendCmd("", fastTest ? SerialCommand.ACTION_TYPE.FAST_TEST : SerialCommand.ACTION_TYPE.SELF_TEST, 0);
-                        myHandler.sendEmptyMessageDelayed(fastTest ? GET_RESULT : CMD_TIMEOUT, fastTest ? 2500 : ConstantUtils.SELF_TEST_TIME);
-                    } else if (data.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.RELEASE_CAPACITOR)))) {
-                        changeMode(true, false);
-                        myApp.myToast(SemiProductActivity.this, "放电成功！");
-                    } else if (data.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.FAST_TEST)))) {
-                        myHandler.removeMessages(GET_RESULT);
-                        try {
-                            data = data.substring(data.indexOf(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.FAST_TEST))) + 2, data.indexOf(SerialCommand.STRING_DATA_END));
-                            int cs = 0, j = 0;
-                            int[] adc = new int[3];
-                            for (int i = 0; i < data.length() - 2; i += 2) {
-                                byte a = (byte) Integer.parseInt(data.substring(i, i + 2), 16);
-                                cs += a;
-                                if (i > 4 && j < adc.length) {
-                                    a ^= SerialCommand.XOR_DATA;
-                                    if (0 == (i - 4) % 4) {
-                                        adc[j] = a;
-                                    } else {
-                                        adc[j++] += a * 0x100;
-                                        Log.d("ZBEST", j + ":" + adc[j - 1]);
-                                    }
-                                }
-                            }
-                            if (String.format("%02X", cs).endsWith(data.substring(data.length() - 2))) {
-                                if (data.charAt(3) == '6') {
-                                    float c = (float) (adc[1] + adc[0]) / ((0 != adc[1] - adc[0]) ? (adc[1] - adc[0]) : 1) * 25 / 13f;
-                                    Log.d("ZBEST", "C=" + c);
-                                    resistance = (float) (adc[1] + adc[2]) / ((0 != adc[1] - adc[2]) ? (adc[1] - adc[2]) : 1) * 17 / 200f;
-                                    if (resistance >= 0 && resistance < 0.8)
-                                        finishedDetect(FAIL_BRIDGE_SHORT);
-                                    else if (resistance > 6 || resistance < 0)
-                                        finishedDetect(FAIL_BRIDGE_BROKE);
-                                    else
-                                        finishedDetect(3);
-                                } else
-                                    finishedDetect(FAIL_CAPACITY_FULL);
-                            } else
-                                finishedDetect(FAIL_DATA_ERROR);
-                        } catch (Exception e) {
-                            BaseApplication.writeErrorLog(e);
+                    if (data.contains(SerialCommand.AT_CMD_RESPOND)) {
+                        if ((flowStep > 0 && flowStep < 3) || (flowStep > 5 && flowStep < 11)) {
+                            flowStep++;
+                            startFlow();
                         }
-                    } else if (data.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.TEST_RESULT)))) {
-                        myHandler.removeMessages(GET_RESULT);
-                        data = data.substring(data.indexOf(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.TEST_RESULT))) + 2);
-                        try {
-                            int cs = 0, j = 0;
-                            int[] adc = new int[12];
-                            for (int i = 0; i < data.length() - 2; i += 2) {
-                                final int i1 = Integer.parseInt(data.substring(i, i + 2), 16);
-                                cs += i1;
-                                if (i > 4 && j < adc.length) {
-                                    if (0 == (i - 4) % 4) {
-                                        adc[j] = ((byte) i1 & 0xFF);
-                                    } else {
-                                        adc[j++] += ((byte) i1 & 0xFF) * 0x100;
-                                        Log.d("ZBEST", j + ":" + adc[j - 1]);
-                                    }
+                    } else if (data.startsWith(SerialCommand.DATA_PREFIX) && data.length() > 6) {
+                        if (data.substring(4).startsWith(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.WRITE_SN)))) {
+                            flowStep++;
+                            finishWriting = true;
+                            startFlow();
+                        } else if (data.substring(4).startsWith(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.READ_TEST_TIMES)))) {
+                            try {
+                                if (serialPortUtil.checkData(data)) {
+                                    finishedDetect(Integer.parseInt(data.substring(6, 8), 16));
                                 }
+                            } catch (Exception e) {
+                                BaseApplication.writeErrorLog(e);
                             }
-                            if (String.format("%02X", cs).endsWith(data.substring(data.length() - 2))) {
-//                                float fx = adc[0];
-//                                if (fx == 0)
-//                                    fx = 0.000001f;
-//                                fx = 2.45f / fx;
-                                resistance = (float) (adc[9] + adc[10]) / ((0 != adc[9] - adc[10]) ? (adc[9] - adc[10]) : 1) * 17 / 200f;
-                                ldoVoltage = adc[0];
-                                if (adc[0] > 3237)
-                                    finishedDetect(FAIL_LOW_VOLTAGE);
-                                else if (adc[5] - adc[4] < 30)
-                                    finishedDetect(FAIL_CAPACITY_ERROR);
-                                else if (resistance >= 0 && resistance < 0.8)
-                                    finishedDetect(FAIL_BRIDGE_SHORT);
-                                else if (resistance > 6 || resistance < 0)
-                                    finishedDetect(FAIL_BRIDGE_BROKE);
-                                else
-                                    finishedDetect(3);
-                            } else
-                                finishedDetect(FAIL_DATA_ERROR);
-                        } catch (Exception e) {
-                            BaseApplication.writeErrorLog(e);
-                            finishedDetect(FAIL_DATA_ERROR);
                         }
                     }
                 } else {
@@ -399,7 +306,7 @@ public class SemiProductActivity extends BaseActivity {
                 }
             });
             serialListener.setSemiDetect(true);
-            serial.setOnDataReceiveListener(serialListener);
+            serialPortUtil.setOnDataReceiveListener(serialListener);
             flowStep = -1;
 
             textViewCurrent = findViewById(R.id.tv_current);
@@ -444,6 +351,10 @@ public class SemiProductActivity extends BaseActivity {
         serialListener.setRcvData("");
         if (!newLG)
             data = data.substring(0, data.indexOf(SerialCommand.RESPOND_SUCCESS));
+        else {
+            data = data.split("\\+")[1];
+            data = data.substring(data.indexOf(SerialCommand.SCAN_RESPOND) + SerialCommand.SCAN_RESPOND.length());
+        }
         data = data.replace("\1", "")
                 .replace("\r", "")
                 .replace("\n", "")
@@ -454,7 +365,8 @@ public class SemiProductActivity extends BaseActivity {
             if (data.length() == 13 && Integer.parseInt(data.substring(0, 2)) > 0) {
                 m.obj = data;
                 myHandler.removeCallbacksAndMessages(null);
-                serial.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
+                if (!newLG)
+                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
                 changeMode(true, false);
                 flowStep = 0;
             }
@@ -462,26 +374,16 @@ public class SemiProductActivity extends BaseActivity {
             BaseApplication.writeErrorLog(e);
         }
         myHandler.sendMessage(m);
+        enabledButton(true);
     }
 
     private void doTest() {
         if (!textViewCode.getText().toString().isEmpty()) {
             textViewCode.setText(textViewCode.getText().toString().toUpperCase());
             myHandler.removeCallbacksAndMessages(null);
-            setProgressVisibility(true);
-            if (newLG) {
-                timeCounter = System.currentTimeMillis();
-                findViewById(R.id.btn_scan).setEnabled(false);
-                findViewById(R.id.btn_test).setEnabled(false);
-                changeMode(false, false);
-                serialListener.setRcvData("");
-//                        serial.sendCmd("", SerialCommand.ACTION_TYPE.FAST_TEST, 0);
-                serial.sendCmd(textViewCode.getText().toString(), SerialCommand.ACTION_TYPE.WRITE_SN, 0);
-                myHandler.sendEmptyMessageDelayed(GET_RESULT, 500);
-            } else {
-                flowStep = 1;
-                startFlow();
-            }
+            enabledButton(false);
+            flowStep = 1;
+            startFlow();
         } else {
             SemiProductDialog dialog = new SemiProductDialog(SemiProductActivity.this);
             dialog.setTitleId(R.string.dialog_scan_first);
@@ -498,18 +400,13 @@ public class SemiProductActivity extends BaseActivity {
         flowStep = -1;
         autoStart = false;
         SemiProductDialog myDialog = new SemiProductDialog(SemiProductActivity.this);
-        if (newLG && FAIL_TIME_OUT != times) {
-            myApp.myToast(SemiProductActivity.this,
-                    String.format(Locale.CHINA, "桥丝电阻：%.2f欧\nLDO:%.2fV(%dms)", resistance, 4096f / ldoVoltage * 2.45f, System.currentTimeMillis() - timeCounter));
-        }
         if (!newLG) {
-            serial.sendCmd(SerialCommand.CMD_BOOST + "9999###");
+            serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "9999###");
         }
+        if (times < 100)
+            myApp.myToast(SemiProductActivity.this, "自检" + times + "次(" + (System.currentTimeMillis() - timeCounter) + "ms," + lastCurrent + "μA)");
         if (((detonatorType == 0 || detonatorType == 2) && times >= TYPE1_TIMES_RANGE_DOWN && times <= TYPE1_TIMES_RANGE_UP)
                 || ((detonatorType == 1 || detonatorType == 3) && times >= TYPE2_TIMES_RANGE_DOWN && times <= TYPE2_TIMES_RANGE_UP)) {
-            if (!newLG) {
-                myApp.myToast(SemiProductActivity.this, "自检" + times + "次(" + (System.currentTimeMillis() - timeCounter) + "ms," + lastCurrent + "μA)");
-            }
             myDialog.setStyle(3);
             myDialog.setTitleId(R.string.dialog_qualified);
             myDialog.setCode("");
@@ -533,86 +430,130 @@ public class SemiProductActivity extends BaseActivity {
         }
         changeMode(true, false);
         myDialog.show();
-        setProgressVisibility(false);
-        findViewById(R.id.btn_scan).setEnabled(true);
-        findViewById(R.id.btn_test).setEnabled(true);
+        enabledButton(true);
     }
 
     private void startScan() {
         myHandler.removeCallbacksAndMessages(null);
         changeMode(false, true);
+        enabledButton(false);
         serialListener.setRcvData("");
-        if (newLG) {
-            serial.sendCmd("", SerialCommand.ACTION_TYPE.SCAN_CODE, 0);
-            startWaitingScan = false;
-            myHandler.sendEmptyMessageDelayed(START_SCAN, 300);
-        } else {
-            serial.sendCmd(SerialCommand.CMD_SCAN);
-            myHandler.sendEmptyMessageDelayed(START_SCAN, 2000);
-        }
+        serialPortUtil.sendCmd(SerialCommand.CMD_SCAN);
+        myHandler.sendEmptyMessageDelayed(START_SCAN, ConstantUtils.SCAN_TIMEOUT);
+    }
+
+    private void enabledButton(boolean enabled) {
+        setProgressVisibility(!enabled);
+        findViewById(R.id.btn_scan).setEnabled(enabled);
+        findViewById(R.id.btn_test).setEnabled(enabled);
     }
 
     private void startFlow() {
         if (!textViewCode.getText().toString().isEmpty()) {
-            findViewById(R.id.btn_scan).setEnabled(false);
-            findViewById(R.id.btn_test).setEnabled(false);
-            myApp.myToast(SemiProductActivity.this, "第" + flowStep + "步");
             myHandler.removeCallbacksAndMessages(null);
-
             changeMode(false, false);
+
             serialListener.setRcvData("");
-            switch (flowStep) {
-                case 1:
-                    timeCounter = System.currentTimeMillis();
-                    serial.sendCmd(SerialCommand.CMD_BOOST + boostVoltage + "###");
-                    myHandler.sendEmptyMessageDelayed(RESTORE_VOLTAGE, ConstantUtils.BOOST_TIME);
-                    break;
-                case 2:
-                    serial.sendCmd("", SerialCommand.ACTION_TYPE.INSTANT_OPEN_CAPACITOR, 0);
-                    finishWriting = false;
-                    flowStep++;
-                    writeSNCount = 0;
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 500);
-                    break;
-                case 3:
-                    serial.sendCmd("", SerialCommand.ACTION_TYPE.INSTANT_OPEN_CAPACITOR, 0);
-                    flowStep++;
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 3500);
-                    break;
-                case 4:
-                    writeSNCount++;
-                    serial.sendCmd(textViewCode.getText().toString(), SerialCommand.ACTION_TYPE.WRITE_SN, 0);
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.RESEND_CMD_TIMEOUT);
-                    break;
-                case 5:
-                    changeMode(true, false);
-                    break;
-                case 6:
-                    serial.sendCmd("", SerialCommand.ACTION_TYPE.SELF_TEST, 0);
-                    flowStep++;
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, chargeTime);
-                    break;
-                case 7:
-                    serial.sendCmd(SerialCommand.CMD_BOOST + "9999###");
-                    flowStep++;
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 2000);
-                    break;
-                case 8:
-                    serial.sendCmd(SerialCommand.CMD_BOOST + boostVoltage + "###");
-                    flowStep++;
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 500);
-                    break;
-                case 9:
-                    serial.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
-                    flowStep++;
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 500);
-                    break;
-                case 10:
-                case 11:
-                    flowStep++;
-                    serial.sendCmd("", SerialCommand.ACTION_TYPE.READ_TEST_TIMES, 0);
-                    myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.RESEND_CMD_TIMEOUT);
-                    break;
+            if (newLG) {
+                if (flowStep < 10)
+                    myApp.myToast(SemiProductActivity.this, "第" + flowStep + "步");
+                switch (flowStep) {
+                    case 1:
+                        timeCounter = System.currentTimeMillis();
+                    case 9:
+                        serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_INITIAL_VOLTAGE, defaultVoltage, defaultVoltage));
+                        break;
+                    case 2:
+                        writeSNCount = 0;
+                    case 6:
+                    case 10:
+                        serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 1));
+                        break;
+                    case 3:
+                        writeSNCount++;
+                        serialPortUtil.sendCmd(textViewCode.getText().toString(), SerialCommand.ACTION_TYPE.WRITE_SN, 0);
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.RESEND_CMD_TIMEOUT);
+                        break;
+                    case 4:
+                        flowStep++;
+                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.OPEN_CAPACITOR, 1, defaultVoltage);
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.RESEND_CMD_TIMEOUT);
+                        break;
+                    case 5:
+                        flowStep++;
+                        changeMode(true, false);
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 3000);
+                        break;
+                    case 7:
+                        flowStep++;
+                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.SELF_TEST, 0);
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, chargeTime);
+                        break;
+                    case 8:
+                        serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 0));
+                        break;
+                    case 11:
+                    case 12:
+                        flowStep++;
+                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.READ_TEST_TIMES, 0);
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.RESEND_CMD_TIMEOUT);
+                        break;
+                }
+            } else {
+                myApp.myToast(SemiProductActivity.this, "第" + flowStep + "步");
+                switch (flowStep) {
+                    case 1:
+                        timeCounter = System.currentTimeMillis();
+                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + boostVoltage + "###");
+                        myHandler.sendEmptyMessageDelayed(RESTORE_VOLTAGE, ConstantUtils.BOOST_TIME);
+                        break;
+                    case 2:
+                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.INSTANT_OPEN_CAPACITOR, 0);
+                        finishWriting = false;
+                        flowStep++;
+                        writeSNCount = 0;
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 500);
+                        break;
+                    case 3:
+                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.INSTANT_OPEN_CAPACITOR, 0);
+                        flowStep++;
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 3500);
+                        break;
+                    case 4:
+                        writeSNCount++;
+                        serialPortUtil.sendCmd(textViewCode.getText().toString(), SerialCommand.ACTION_TYPE.WRITE_SN, 0);
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.RESEND_CMD_TIMEOUT);
+                        break;
+                    case 5:
+                        changeMode(true, false);
+                        break;
+                    case 6:
+                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.SELF_TEST, 0);
+                        flowStep++;
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, chargeTime);
+                        break;
+                    case 7:
+                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "9999###");
+                        flowStep++;
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 2000);
+                        break;
+                    case 8:
+                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + boostVoltage + "###");
+                        flowStep++;
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 500);
+                        break;
+                    case 9:
+                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
+                        flowStep++;
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, 500);
+                        break;
+                    case 10:
+                    case 11:
+                        flowStep++;
+                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.READ_TEST_TIMES, 0);
+                        myHandler.sendEmptyMessageDelayed(CMD_TIMEOUT, ConstantUtils.RESEND_CMD_TIMEOUT);
+                        break;
+                }
             }
         } else {
             SemiProductDialog dialog = new SemiProductDialog(SemiProductActivity.this);
@@ -632,15 +573,6 @@ public class SemiProductActivity extends BaseActivity {
                     startScan();
                 }
                 break;
-            case KeyEvent.KEYCODE_3:
-                if (findViewById(R.id.btn_test).isEnabled()) {
-                    if (!textViewCode.getText().toString().isEmpty()) {
-                        textViewCode.setText(textViewCode.getText().toString().toUpperCase());
-                        changeMode(false, false);
-                        serial.sendCmd(textViewCode.getText().toString(), SerialCommand.ACTION_TYPE.RELEASE_CAPACITOR, 0);
-                    }
-                }
-                break;
             case KeyEvent.KEYCODE_4:
                 final View view = LayoutInflater.from(SemiProductActivity.this).inflate(R.layout.layout_edit_dialog, null);
                 final EditText etDelay = view.findViewById(R.id.et_dialog);
@@ -655,7 +587,7 @@ public class SemiProductActivity extends BaseActivity {
                         .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> {
                             try {
                                 boostVoltage = Integer.parseInt(etDelay.getText().toString());
-                                serial.sendCmd(SerialCommand.CMD_BOOST + boostVoltage + "###");
+                                serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + boostVoltage + "###");
                                 changeMode(true, false);
                                 myApp.myToast(SemiProductActivity.this, "修改成功！");
                                 return;
@@ -682,7 +614,7 @@ public class SemiProductActivity extends BaseActivity {
                         .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> {
                             try {
                                 defaultVoltage = Integer.parseInt(etDelay1.getText().toString());
-                                serial.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
+                                serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
                                 changeMode(true, false);
                                 myApp.myToast(SemiProductActivity.this, "修改成功！");
                                 return;
@@ -745,17 +677,13 @@ public class SemiProductActivity extends BaseActivity {
                                 Message m = myHandler.obtainMessage(REFRESH_CODE);
                                 m.obj = code.getText().toString();
                                 myHandler.sendMessage(m);
-                                serial.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
+                                serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + defaultVoltage + "###");
                             } else {
                                 myApp.myToast(SemiProductActivity.this, R.string.message_detonator_input_error);
                             }
                         })
                         .setNegativeButton(R.string.btn_cancel, null)
                         .create().show();
-                break;
-            case KeyEvent.KEYCODE_STAR:
-                fastTest = !fastTest;
-                myApp.myToast(SemiProductActivity.this, fastTest ? "切换到快速检测模式！" : "切换到全面检测模式！");
                 break;
             case KeyEvent.KEYCODE_R:
                 if (!textViewCode.getText().toString().isEmpty()) {
@@ -807,9 +735,9 @@ public class SemiProductActivity extends BaseActivity {
             myHandler.removeCallbacksAndMessages(null);
             myHandler = null;
         }
-        if (null != serial) {
-            serial.closeSerialPort();
-            serial = null;
+        if (null != serialPortUtil) {
+            serialPortUtil.closeSerialPort();
+            serialPortUtil = null;
         }
         if (null != soundPool) {
             soundPool.autoPause();
@@ -821,4 +749,6 @@ public class SemiProductActivity extends BaseActivity {
         }
         super.onDestroy();
     }
+
+
 }

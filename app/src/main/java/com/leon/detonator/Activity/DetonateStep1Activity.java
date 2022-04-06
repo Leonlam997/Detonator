@@ -76,52 +76,6 @@ public class DetonateStep1Activity extends BaseActivity {
     private DownloadDetonatorBean offlineBean;
     private LocalSettingBean settingBean;
     private BaseApplication myApp;
-    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message message) {
-            switch (message.what) {
-                case 1:
-                    enabledButton(true);
-                    break;
-                case 2:
-                    if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
-                        showMessage(R.string.message_fill_enterprise);
-                        startActivity(new Intent(DetonateStep1Activity.this, EnterpriseActivity.class));
-                    } else {
-                        new AlertDialog.Builder(DetonateStep1Activity.this, R.style.AlertDialog)
-                                .setTitle(R.string.dialog_title_download)
-                                .setMessage(R.string.dialog_confirm_online_download)
-                                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> onlineDownload())
-                                .setNegativeButton(R.string.btn_cancel, null)
-                                .create().show();
-                    }
-                    break;
-                case 3:
-                    String coordinate;
-                    if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0) {
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
-                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(getColor(R.color.colorCoordinateText));
-                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLUE);
-                    } else if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0) {
-                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.BLACK);
-                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.GRAY);
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastKnownLocation.getLongitude(), lastKnownLocation.getLatitude());
-                    } else if ((int) settingBean.getLatitude() != 0 && (int) settingBean.getLongitude() != 0) {
-                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.RED);
-                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLACK);
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), settingBean.getLongitude(), settingBean.getLatitude());
-                    } else
-                        coordinate = getResources().getString(R.string.map_position_init);
-                    ((TextView) findViewById(R.id.tv_coordinate)).setText(coordinate);
-                    ((TextView) findViewById(R.id.tv_coordinate1)).setText(coordinate);
-                    break;
-                default:
-                    myApp.myToast(DetonateStep1Activity.this, (String) message.obj);
-                    break;
-            }
-            return false;
-        }
-    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -197,20 +151,70 @@ public class DetonateStep1Activity extends BaseActivity {
         btnOnline.requestFocus();
     }
 
+    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message message) {
+            switch (message.what) {
+                case 1:
+                    enabledButton(true);
+                    break;
+                case 2:
+                    if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
+                        showMessage(R.string.message_fill_enterprise);
+                        startActivity(new Intent(DetonateStep1Activity.this, EnterpriseActivity.class));
+                    } else {
+                        new AlertDialog.Builder(DetonateStep1Activity.this, R.style.AlertDialog)
+                                .setTitle(R.string.dialog_title_download)
+                                .setMessage(R.string.dialog_confirm_online_download)
+                                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> onlineDownload())
+                                .setNegativeButton(R.string.btn_cancel, null)
+                                .create().show();
+                    }
+                    break;
+                case 3:
+                    String coordinate;
+                    if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0) {
+                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
+                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(getColor(R.color.colorCoordinateText));
+                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLUE);
+                    } else if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0) {
+                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.BLACK);
+                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.GRAY);
+                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastKnownLocation.getLongitude(), lastKnownLocation.getLatitude());
+                    } else if ((int) settingBean.getLatitude() != 0 && (int) settingBean.getLongitude() != 0) {
+                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.RED);
+                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLACK);
+                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), settingBean.getLongitude(), settingBean.getLatitude());
+                    } else
+                        coordinate = getResources().getString(R.string.map_position_init);
+                    ((TextView) findViewById(R.id.tv_coordinate)).setText(coordinate);
+                    ((TextView) findViewById(R.id.tv_coordinate1)).setText(coordinate);
+                    break;
+                default:
+                    myApp.myToast(DetonateStep1Activity.this, (String) message.obj);
+                    break;
+            }
+            return false;
+        }
+    });
+
     private void initLocation() {
-        LocationManager lm = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-        List<String> providers = lm.getAllProviders();
-        for (String provider : providers) {
-            lastKnownLocation = lm.getLastKnownLocation(provider);
-            if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0)
-                break;
-        }
-        checkExploderHandler.sendEmptyMessage(3);
+        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(DetonateStep1Activity.this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                && PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(DetonateStep1Activity.this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            LocationManager lm = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                    && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+            List<String> providers = lm.getAllProviders();
+            for (String provider : providers) {
+                lastKnownLocation = lm.getLastKnownLocation(provider);
+                if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0)
+                    break;
+            }
+            checkExploderHandler.sendEmptyMessage(3);
 //            myApp.myToast(DetonateStep1Activity.this, lastKnownLocation.getLatitude() + "," + lastKnownLocation.getLongitude());
+        }
     }
 
     private void launchWhich(int which) {
@@ -346,53 +350,53 @@ public class DetonateStep1Activity extends BaseActivity {
                         .url(ConstantUtils.HOST_URL)
                         .params(params)
                         .build().execute(new Callback<DownloadDetonatorBean>() {
-                    @Override
-                    public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
-                        if (response.body() != null) {
-                            String string = Objects.requireNonNull(response.body()).string();
-                            return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
-                        }
-                        return null;
-                    }
+                            @Override
+                            public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
+                                if (response.body() != null) {
+                                    String string = Objects.requireNonNull(response.body()).string();
+                                    return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
+                                }
+                                return null;
+                            }
 
-                    @Override
-                    public void onError(Call call, Exception e, int i) {
-                        showMessage(R.string.message_check_network);
-                        enabledButton(true);
-                    }
+                            @Override
+                            public void onError(Call call, Exception e, int i) {
+                                showMessage(R.string.message_check_network);
+                                enabledButton(true);
+                            }
 
-                    @Override
-                    public void onResponse(DownloadDetonatorBean onlineBean, int i) {
-                        enabledButton(true);
-                        if (null != onlineBean) {
-                            if (onlineBean.getToken().equals(token)) {
-                                if (onlineBean.isStatus()) {
-                                    if (null != onlineBean.getResult()) {
-                                        if (onlineBean.getResult().getCwxx().equals("0")) {
-                                            List<LgBean> detonators = onlineBean.getResult().getLgs().getLg();
-                                            if (null != detonators) {
-                                                myApp.saveDownloadList(onlineBean, true);
-                                                checkList(detonators, true);
+                            @Override
+                            public void onResponse(DownloadDetonatorBean onlineBean, int i) {
+                                enabledButton(true);
+                                if (null != onlineBean) {
+                                    if (onlineBean.getToken().equals(token)) {
+                                        if (onlineBean.isStatus()) {
+                                            if (null != onlineBean.getResult()) {
+                                                if (onlineBean.getResult().getCwxx().equals("0")) {
+                                                    List<LgBean> detonators = onlineBean.getResult().getLgs().getLg();
+                                                    if (null != detonators) {
+                                                        myApp.saveDownloadList(onlineBean, true);
+                                                        checkList(detonators, true);
+                                                    }
+                                                } else {
+                                                    String error = ErrorCode.downloadErrorCode.get(onlineBean.getResult().getCwxx());
+                                                    if (null == error) {
+                                                        error = getResources().getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
+                                                    }
+                                                    showMessage(error);
+                                                }
                                             }
                                         } else {
-                                            String error = ErrorCode.downloadErrorCode.get(onlineBean.getResult().getCwxx());
-                                            if (null == error) {
-                                                error = getResources().getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
-                                            }
-                                            showMessage(error);
+                                            showMessage(onlineBean.getDescription());
                                         }
+                                    } else {
+                                        showMessage(R.string.message_token_error);
                                     }
                                 } else {
-                                    showMessage(onlineBean.getDescription());
+                                    showMessage(R.string.message_return_data_error);
                                 }
-                            } else {
-                                showMessage(R.string.message_token_error);
                             }
-                        } else {
-                            showMessage(R.string.message_return_data_error);
-                        }
-                    }
-                });
+                        });
             }
         });
         enterpriseDialog.setClickModify(view -> {
@@ -485,4 +489,6 @@ public class DetonateStep1Activity extends BaseActivity {
             }
         }
     }
+
+
 }

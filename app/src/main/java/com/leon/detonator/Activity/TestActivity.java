@@ -27,22 +27,6 @@ public class TestActivity extends BaseActivity {
     private SeekBar sbVoltage;
     private boolean successMsg;
     private BaseApplication myApp;
-    private Handler refreshStatusBar = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NonNull Message msg) {
-            switch (msg.what) {
-                case 1:
-                    serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
-                    refreshStatusBar.removeMessages(1);
-                    refreshStatusBar.sendEmptyMessageDelayed(1, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
-                    break;
-                case 2:
-                    enabledButton(true);
-                    break;
-            }
-            return false;
-        }
-    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -189,7 +173,22 @@ public class TestActivity extends BaseActivity {
             if (sbVoltage.getProgress() > 0)
                 sbVoltage.setProgress(sbVoltage.getProgress() - 1);
         });
-    }
+    }    private Handler refreshStatusBar = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message msg) {
+            switch (msg.what) {
+                case 1:
+                    serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
+                    refreshStatusBar.removeMessages(1);
+                    refreshStatusBar.sendEmptyMessageDelayed(1, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
+                    break;
+                case 2:
+                    enabledButton(true);
+                    break;
+            }
+            return false;
+        }
+    });
 
     private void enabledButton(boolean enabled) {
         refreshStatusBar.removeMessages(1);
@@ -209,5 +208,7 @@ public class TestActivity extends BaseActivity {
         serialPortUtil.closeSerialPort();
         super.onDestroy();
     }
+
+
 
 }

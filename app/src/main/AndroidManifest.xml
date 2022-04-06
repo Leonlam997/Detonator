@@ -57,10 +57,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".Activity.ChargeActivity"></activity>
+        <activity android:name=".Activity.ChargeActivity" />
         <activity android:name=".Activity.VersionManageActivity" />
         <activity android:name=".Activity.CapacityTestActivity" />
-        <activity android:name=".Activity.WelcomeActivity">
+        <activity android:name=".Activity.WelcomeActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -100,6 +100,8 @@
         <activity android:name=".Activity.SystemInfoActivity" />
         <activity android:name=".Activity.CameraActivity" />
         <activity android:name=".Activity.SemiProductActivity" />
+        <activity android:name=".Activity.PropsSettingsActivity" />
+        <activity android:name=".Activity.WaveformActivity" />
 
         <service
             android:name=".BluetoothTool.BluetoothLeService"

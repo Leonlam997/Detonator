@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="20dp"
+        android:layout_toStartOf="@id/et_lpw"
+        android:text="@string/title_text_lpw"
+        android:textColor="@android:color/black"
+        android:textSize="@dimen/small_text_size" />
+
+    <EditText
+        android:id="@+id/et_lpw"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="350dp"
+        android:autofillHints=""
+        android:imeOptions="actionDone"
+        android:inputType="number"
+        android:maxLength="4"
+        android:textAlignment="center"
+        android:textSize="@dimen/common_text_size" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_set_lpw"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:layout_toStartOf="@id/btn_get_lpw"
+        android:backgroundTint="@color/colorAccent"
+        android:text="@string/button_set"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/common_text_size" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_get_lpw"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:backgroundTint="@color/colorAccent"
+        android:text="@string/button_get"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/common_text_size" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_lpw"
+        android:layout_marginTop="20dp"
+        android:layout_toStartOf="@id/et_bit0r"
+        android:text="@string/title_text_bit0r"
+        android:textColor="@android:color/black"
+        android:textSize="@dimen/small_text_size" />
+
+    <EditText
+        android:id="@+id/et_bit0r"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_lpw"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="350dp"
+        android:autofillHints=""
+        android:imeOptions="actionDone"
+        android:inputType="numberDecimal"
+        android:maxLength="3"
+        android:textAlignment="center"
+        android:textSize="@dimen/common_text_size" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_set_bit0r"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_set_lpw"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:layout_toStartOf="@id/btn_get_bit0r"
+        android:backgroundTint="@color/colorAccent"
+        android:text="@string/button_set"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/common_text_size" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_get_bit0r"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_get_lpw"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:backgroundTint="@color/colorAccent"
+        android:text="@string/button_get"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/common_text_size" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_bit0r"
+        android:layout_marginTop="20dp"
+        android:layout_toStartOf="@id/et_bit1r"
+        android:text="@string/title_text_bit1r"
+        android:textColor="@android:color/black"
+        android:textSize="@dimen/small_text_size" />
+
+    <EditText
+        android:id="@+id/et_bit1r"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/et_bit0r"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="350dp"
+        android:autofillHints=""
+        android:imeOptions="actionDone"
+        android:inputType="numberDecimal"
+        android:maxLength="3"
+        android:textAlignment="center"
+        android:textSize="@dimen/common_text_size" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_set_bit1r"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_set_bit0r"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="20dp"
+        android:layout_toStartOf="@id/btn_get_bit1r"
+        android:backgroundTint="@color/colorAccent"
+        android:text="@string/button_set"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/common_text_size" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_get_bit1r"
+        android:layout_width="120dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_get_bit0r"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:backgroundTint="@color/colorAccent"
+        android:text="@string/button_get"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/common_text_size" />
+</RelativeLayout>

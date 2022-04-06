@@ -109,7 +109,16 @@ public class DetonatorListActivity extends BaseActivity {
             tvInsideDelay.setText(String.format(Locale.CHINA, "%dms", settings.getSectionInside()));
         }
     });
-    private final Handler myHandler = new Handler(new Handler.Callback() {
+
+    private int searchIndex(String address) {
+        int i = 0;
+        for (DetonatorInfoBean bean : list) {
+            if (bean.getAddress().equals(address))
+                break;
+            i++;
+        }
+        return i + 3;
+    }    private final Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             switch (msg.what) {
@@ -183,10 +192,7 @@ public class DetonatorListActivity extends BaseActivity {
                                 if (null == serialPortUtil)
                                     return false;
                                 myReceiveListener.setMaxCurrent(ConstantUtils.MAXIMUM_CURRENT);
-                                if (myApp.isNewClock())
-                                    serialPortUtil.sendCmd(changedList.get(0).getAddress(), changedList.get(0).getDelayTime(), searchIndex(changedList.get(0).getAddress()));
-                                else
-                                    serialPortUtil.sendCmd(changedList.get(0).getAddress(), SerialCommand.ACTION_TYPE.SET_DELAY, changedList.get(0).getDelayTime());
+                                serialPortUtil.sendCmd(changedList.get(0).getAddress(), SerialCommand.ACTION_TYPE.SET_DELAY, changedList.get(0).getDelayTime());
                                 myHandler.sendEmptyMessageDelayed(RESEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
                                 if (0 == timeout)
                                     timeout = 1;
@@ -214,16 +220,6 @@ public class DetonatorListActivity extends BaseActivity {
             return false;
         }
     });
-
-    private int searchIndex(String address) {
-        int i = 0;
-        for (DetonatorInfoBean bean : list) {
-            if (bean.getAddress().equals(address))
-                break;
-            i++;
-        }
-        return i + 3;
-    }
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -532,17 +528,6 @@ public class DetonatorListActivity extends BaseActivity {
         return super.onKeyUp(keyCode, event);
     }
 
-//    @SuppressLint("RestrictedApi")
-//    @Override
-//    public boolean dispatchKeyEvent(KeyEvent event) {
-//        if (event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER && (null == popupMenu || !popupMenu.isShowing())) {
-//            if (!tableListView.hasFocus()) {
-//                tableListView.requestFocus();
-//            }
-//        }
-//        return super.dispatchKeyEvent(event);
-//    }
-
     private void launchMenu(int which, ViewGroup viewGroup) {
         if (MODE_MENU2 == keyMode) {
             if (which == 0) {
@@ -599,6 +584,17 @@ public class DetonatorListActivity extends BaseActivity {
         }
         popupMenu.dismiss();
     }
+
+//    @SuppressLint("RestrictedApi")
+//    @Override
+//    public boolean dispatchKeyEvent(KeyEvent event) {
+//        if (event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER && (null == popupMenu || !popupMenu.isShowing())) {
+//            if (!tableListView.hasFocus()) {
+//                tableListView.requestFocus();
+//            }
+//        }
+//        return super.dispatchKeyEvent(event);
+//    }
 
     private void deleteDetonators(final boolean single) {
         runOnUiThread(() -> new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
@@ -1049,122 +1045,124 @@ public class DetonatorListActivity extends BaseActivity {
                 myApp.myToast(DetonatorListActivity.this, R.string.message_select_list);
                 break;
             case KeyEvent.KEYCODE_8:
-                changedList = new ArrayList<>();
-                for (DetonatorInfoBean item : list) {
-                    if (item.isSelected()) {
-                        changedList.add(item);
+                if (!settings.isNewLG()) {
+                    changedList = new ArrayList<>();
+                    for (DetonatorInfoBean item : list) {
+                        if (item.isSelected()) {
+                            changedList.add(item);
+                        }
                     }
-                }
-                if (changedList.size() < 1) {
-                    myApp.myToast(DetonatorListActivity.this, R.string.message_select_list);
-                } else {
-                    try {
-                        resendCount = 0;
-                        pDialog = new MyProgressDialog(this);
-                        pDialog.setInverseBackgroundForced(false);
-                        pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-                        pDialog.setTitle(R.string.progress_title);
-                        pDialog.setMessage(getResources().getString(R.string.progress_set_delay));
-                        pDialog.setCanceledOnTouchOutside(false);
-                        pDialog.setMax(changedList.size());
-                        pDialog.setProgress(0);
-                        if (null == serialPortUtil) {
-                            serialPortUtil = SerialPortUtil.getInstance();
-                            myReceiveListener = new SerialDataReceiveListener(DetonatorListActivity.this, () -> {
-                                String received = myReceiveListener.getRcvData();
-                                if (received.contains(SerialCommand.ALERT_SHORT_CIRCUIT)) {
-                                    if (myReceiveListener != null) {
-                                        myReceiveListener.closeAllHandler();
-                                        myReceiveListener = null;
-                                    }
-                                    myHandler.removeMessages(RESEND_COMMAND);
-                                    if (serialPortUtil != null) {
-                                        serialPortUtil.closeSerialPort();
-                                        serialPortUtil = null;
-                                    }
-                                    runOnUiThread(() -> new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
-                                            .setTitle(R.string.dialog_title_warning)
-                                            .setMessage(R.string.dialog_short_circuit)
-                                            .setCancelable(false)
-                                            .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
-                                            .create().show());
-                                    myApp.playSoundVibrate(soundPool, soundAlert);
-                                    btnModifyDelay.setEnabled(true);
-                                } else if (received.contains(SerialCommand.INITIAL_FAIL)) {
-                                    myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
-                                    finish();
-                                } else if (received.contains(SerialCommand.INITIAL_FINISHED)) {
-                                    pDialog.show();
-                                    myReceiveListener.setRcvData("");
-                                    timeout = 0;
-                                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "1000###");
-                                    myHandler.sendEmptyMessageDelayed(RESTORE_VOLTAGE, 500);
-                                } else if (received.contains(Objects.requireNonNull(SerialCommand.RESPOND_CONFIRM.get(myApp.isNewClock() ? SerialCommand.ACTION_TYPE.SET_NUMBER : SerialCommand.ACTION_TYPE.SET_DELAY)))) {
-                                    if (changedList.size() > 0) {
-                                        for (DetonatorInfoBean item : list) {
-                                            if (item.isSelected()) {
-                                                item.setSelected(false);
-                                                item.setDownloaded(true);
-                                                break;
-                                            }
+                    if (changedList.size() < 1) {
+                        myApp.myToast(DetonatorListActivity.this, R.string.message_select_list);
+                    } else {
+                        try {
+                            resendCount = 0;
+                            pDialog = new MyProgressDialog(this);
+                            pDialog.setInverseBackgroundForced(false);
+                            pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                            pDialog.setTitle(R.string.progress_title);
+                            pDialog.setMessage(getResources().getString(R.string.progress_set_delay));
+                            pDialog.setCanceledOnTouchOutside(false);
+                            pDialog.setMax(changedList.size());
+                            pDialog.setProgress(0);
+                            if (null == serialPortUtil) {
+                                serialPortUtil = SerialPortUtil.getInstance();
+                                myReceiveListener = new SerialDataReceiveListener(DetonatorListActivity.this, () -> {
+                                    String received = myReceiveListener.getRcvData();
+                                    if (received.contains(SerialCommand.ALERT_SHORT_CIRCUIT)) {
+                                        if (myReceiveListener != null) {
+                                            myReceiveListener.closeAllHandler();
+                                            myReceiveListener = null;
                                         }
-                                        myHandler.sendEmptyMessage(PROGRESS_HANDLER);
-
-                                        myHandler.sendEmptyMessage(SET_DELAY_REFRESH);
-                                        changedList.remove(0);
-                                        resendCount = 0;
+                                        myHandler.removeMessages(RESEND_COMMAND);
+                                        if (serialPortUtil != null) {
+                                            serialPortUtil.closeSerialPort();
+                                            serialPortUtil = null;
+                                        }
+                                        runOnUiThread(() -> new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
+                                                .setTitle(R.string.dialog_title_warning)
+                                                .setMessage(R.string.dialog_short_circuit)
+                                                .setCancelable(false)
+                                                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
+                                                .create().show());
+                                        myApp.playSoundVibrate(soundPool, soundAlert);
+                                        btnModifyDelay.setEnabled(true);
+                                    } else if (received.contains(SerialCommand.INITIAL_FAIL)) {
+                                        myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
+                                        finish();
+                                    } else if (received.contains(SerialCommand.INITIAL_FINISHED)) {
+                                        pDialog.show();
                                         myReceiveListener.setRcvData("");
-                                    }
-                                    myHandler.removeMessages(RESEND_COMMAND);
-                                    if (1 == timeout)
                                         timeout = 0;
-                                    myHandler.sendEmptyMessage(RESEND_COMMAND);
-                                } else if (received.contains(SerialCommand.RESPOND_FAIL)) {
-                                    myReceiveListener.setRcvData("");
-                                    myHandler.sendEmptyMessage(PROGRESS_HANDLER);
-                                    if (changedList.size() > 0) {
-                                        if (myApp.isTunnel())
-                                            myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_tunnel_download_fail), changedList.get(0).getHole(), changedList.get(0).getInside()));
-                                        else
-                                            myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_open_air_download_fail), changedList.get(0).getRow(), changedList.get(0).getHole(), changedList.get(0).getInside()));
-                                        resendCount = 0;
-                                        changedList.remove(0);
-                                        for (DetonatorInfoBean item : list) {
-                                            if (item.isSelected()) {
-                                                item.setSelected(false);
-                                                break;
+                                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "1000###");
+                                        myHandler.sendEmptyMessageDelayed(RESTORE_VOLTAGE, 500);
+                                    } else if (received.contains(Objects.requireNonNull(SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SET_DELAY)))) {
+                                        if (changedList.size() > 0) {
+                                            for (DetonatorInfoBean item : list) {
+                                                if (item.isSelected()) {
+                                                    item.setSelected(false);
+                                                    item.setDownloaded(true);
+                                                    break;
+                                                }
                                             }
+                                            myHandler.sendEmptyMessage(PROGRESS_HANDLER);
+
+                                            myHandler.sendEmptyMessage(SET_DELAY_REFRESH);
+                                            changedList.remove(0);
+                                            resendCount = 0;
+                                            myReceiveListener.setRcvData("");
                                         }
                                         myHandler.removeMessages(RESEND_COMMAND);
                                         if (1 == timeout)
                                             timeout = 0;
                                         myHandler.sendEmptyMessage(RESEND_COMMAND);
-                                    } else {
-                                        myApp.myToast(DetonatorListActivity.this, R.string.message_modify_finished);
-                                        myHandler.sendEmptyMessage(SET_DELAY_SUCCESS);
+                                    } else if (received.contains(SerialCommand.RESPOND_FAIL)) {
+                                        myReceiveListener.setRcvData("");
+                                        myHandler.sendEmptyMessage(PROGRESS_HANDLER);
+                                        if (changedList.size() > 0) {
+                                            if (myApp.isTunnel())
+                                                myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_tunnel_download_fail), changedList.get(0).getHole(), changedList.get(0).getInside()));
+                                            else
+                                                myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_open_air_download_fail), changedList.get(0).getRow(), changedList.get(0).getHole(), changedList.get(0).getInside()));
+                                            resendCount = 0;
+                                            changedList.remove(0);
+                                            for (DetonatorInfoBean item : list) {
+                                                if (item.isSelected()) {
+                                                    item.setSelected(false);
+                                                    break;
+                                                }
+                                            }
+                                            myHandler.removeMessages(RESEND_COMMAND);
+                                            if (1 == timeout)
+                                                timeout = 0;
+                                            myHandler.sendEmptyMessage(RESEND_COMMAND);
+                                        } else {
+                                            myApp.myToast(DetonatorListActivity.this, R.string.message_modify_finished);
+                                            myHandler.sendEmptyMessage(SET_DELAY_SUCCESS);
+                                        }
                                     }
-                                }
-                            });
-                            serialPortUtil.setOnDataReceiveListener(myReceiveListener);
-                        } else {
-                            pDialog.show();
-                            myReceiveListener.setRcvData("");
-                            myHandler.removeMessages(RESEND_COMMAND);
-                            timeout = 0;
-                            myHandler.sendEmptyMessage(RESEND_COMMAND);
+                                });
+                                serialPortUtil.setOnDataReceiveListener(myReceiveListener);
+                            } else {
+                                pDialog.show();
+                                myReceiveListener.setRcvData("");
+                                myHandler.removeMessages(RESEND_COMMAND);
+                                timeout = 0;
+                                myHandler.sendEmptyMessage(RESEND_COMMAND);
+                            }
+                            setProgressVisibility(true);
+                            btnModifyDelay.setEnabled(false);
+                            btnModifyInterval.setEnabled(false);
+                            btnDelete.setEnabled(false);
+                            cbSelected.setChecked(false);
+                            cbSelected.setEnabled(false);
+                            adapter.setEnabled(false);
+                        } catch (IOException e) {
+                            BaseApplication.writeErrorLog(e);
+                            myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
+                            setResult(0, null);
+                            finish();
                         }
-                        setProgressVisibility(true);
-                        btnModifyDelay.setEnabled(false);
-                        btnModifyInterval.setEnabled(false);
-                        btnDelete.setEnabled(false);
-                        cbSelected.setChecked(false);
-                        cbSelected.setEnabled(false);
-                        adapter.setEnabled(false);
-                    } catch (IOException e) {
-                        BaseApplication.writeErrorLog(e);
-                        myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
-                        setResult(0, null);
-                        finish();
                     }
                 }
                 break;
@@ -1297,4 +1295,6 @@ public class DetonatorListActivity extends BaseActivity {
             serialPortUtil.closeSerialPort();
         super.onDestroy();
     }
+
+
 }

@@ -10,7 +10,9 @@ public class SliderImageView extends AppCompatImageView {
     private final Handler moveSliderHandler = new Handler();
     private int lastX;
     private OnSliderTouchListener onSliderTouchListener;
-    private final Runnable moveSliderRunnable = new Runnable() {
+    public SliderImageView(Context context) {
+        super(context);
+    }    private final Runnable moveSliderRunnable = new Runnable() {
         @Override
         public void run() {
             int moveX = 25;
@@ -29,16 +31,16 @@ public class SliderImageView extends AppCompatImageView {
         }
     };
 
-    public SliderImageView(Context context) {
-        super(context);
-    }
-
     public SliderImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
     public SliderImageView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+    }
+
+    public void setOnSliderTouchListener(OnSliderTouchListener onSliderTouchListener) {
+        this.onSliderTouchListener = onSliderTouchListener;
     }
 //
 //    @Override
@@ -81,10 +83,6 @@ public class SliderImageView extends AppCompatImageView {
 //        return super.onTouchEvent(event);
 //    }
 
-    public void setOnSliderTouchListener(OnSliderTouchListener onSliderTouchListener) {
-        this.onSliderTouchListener = onSliderTouchListener;
-    }
-
     public void startMove(boolean start) {
 //        if (!touchMoving) {
         if (start) {
@@ -107,4 +105,6 @@ public class SliderImageView extends AppCompatImageView {
 
         void OnStopMove();
     }
+
+
 }

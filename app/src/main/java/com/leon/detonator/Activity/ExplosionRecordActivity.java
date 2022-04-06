@@ -64,7 +64,59 @@ public class ExplosionRecordActivity extends BaseActivity {
     private LocalSettingBean settingBean;
     private MyProgressDialog pDialog;
     private BaseApplication myApp;
-    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_explode_record);
+
+        setTitle(R.string.detonate_rec);
+
+        myApp = (BaseApplication) getApplication();
+        findViewById(R.id.table_title).setBackgroundColor(getColor(R.color.colorTableTitleBackground));
+
+        initData();
+
+        tableListView = findViewById(R.id.lv_record_list);
+
+        adapter = new ExplosionRecordAdapter(this, list);
+        tableListView.setAdapter(adapter);
+        cbSelected = findViewById(R.id.cb_selected);
+        cbSelected.setOnClickListener(v -> {
+            for (ExplosionRecordBean item : list) {
+                item.setSelected(cbSelected.isChecked());
+            }
+            adapter.updateList(list);
+        });
+
+        tableListView.setOnItemClickListener((parent, view, position, id) -> {
+            list.get(position).setSelected(!list.get(position).isSelected());
+            checkboxStatus();
+            adapter.updateList(list);
+        });
+
+        tableListView.setOnItemLongClickListener((parent, view, position, id) -> {
+            Intent intent = new Intent();
+            intent.setClass(ExplosionRecordActivity.this, DetonatorListActivity.class);
+            intent.putExtra(KeyUtils.KEY_CREATE_DELAY_LIST, ConstantUtils.HISTORY_LIST);
+            try {
+                ArrayList<DetonatorInfoBean> temp = new ArrayList<>();
+                myApp.readFromFile(list.get(position).getRecordPath(), temp, DetonatorInfoBean.class);
+                intent.putExtra(KeyUtils.KEY_RECORD_LIST, temp);
+                intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, list.get(position).getLat());
+                intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, list.get(position).getLng());
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
+            }
+            startActivity(intent);
+            return false;
+        });
+        tableListView.requestFocus();
+
+        findViewById(R.id.btn_upload).setOnClickListener(v -> launchWhich(KeyEvent.KEYCODE_1));
+
+        findViewById(R.id.btn_delete).setOnClickListener(v -> launchWhich(KeyEvent.KEYCODE_2));
+    }    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
             switch (message.what) {
@@ -120,7 +172,16 @@ public class ExplosionRecordActivity extends BaseActivity {
             return false;
         }
     });
-    private final Handler msgHandler = new Handler(new Handler.Callback() {
+
+    private void checkboxStatus() {
+        cbSelected.setChecked(true);
+        for (ExplosionRecordBean item : list) {
+            if (!item.isSelected()) {
+                cbSelected.setChecked(false);
+                break;
+            }
+        }
+    }    private final Handler msgHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
             switch (message.what) {
@@ -155,69 +216,6 @@ public class ExplosionRecordActivity extends BaseActivity {
             return false;
         }
     });
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_explode_record);
-
-        setTitle(R.string.detonate_rec);
-
-        myApp = (BaseApplication) getApplication();
-        findViewById(R.id.table_title).setBackgroundColor(getColor(R.color.colorTableTitleBackground));
-
-        initData();
-
-        tableListView = findViewById(R.id.lv_record_list);
-
-        adapter = new ExplosionRecordAdapter(this, list);
-        tableListView.setAdapter(adapter);
-        cbSelected = findViewById(R.id.cb_selected);
-        cbSelected.setOnClickListener(v -> {
-            for (ExplosionRecordBean item : list) {
-                item.setSelected(cbSelected.isChecked());
-            }
-            adapter.updateList(list);
-        });
-
-        tableListView.setOnItemClickListener((parent, view, position, id) -> {
-            list.get(position).setSelected(!list.get(position).isSelected());
-            checkboxStatus();
-            adapter.updateList(list);
-        });
-
-        tableListView.setOnItemLongClickListener((parent, view, position, id) -> {
-            Intent intent = new Intent();
-            intent.setClass(ExplosionRecordActivity.this, DetonatorListActivity.class);
-            intent.putExtra(KeyUtils.KEY_CREATE_DELAY_LIST, ConstantUtils.HISTORY_LIST);
-            try {
-                ArrayList<DetonatorInfoBean> temp = new ArrayList<>();
-                myApp.readFromFile(list.get(position).getRecordPath(), temp, DetonatorInfoBean.class);
-                intent.putExtra(KeyUtils.KEY_RECORD_LIST, temp);
-                intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, list.get(position).getLat());
-                intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, list.get(position).getLng());
-            } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
-            }
-            startActivity(intent);
-            return false;
-        });
-        tableListView.requestFocus();
-
-        findViewById(R.id.btn_upload).setOnClickListener(v -> launchWhich(KeyEvent.KEYCODE_1));
-
-        findViewById(R.id.btn_delete).setOnClickListener(v -> launchWhich(KeyEvent.KEYCODE_2));
-    }
-
-    private void checkboxStatus() {
-        cbSelected.setChecked(true);
-        for (ExplosionRecordBean item : list) {
-            if (!item.isSelected()) {
-                cbSelected.setChecked(false);
-                break;
-            }
-        }
-    }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -435,52 +433,52 @@ public class ExplosionRecordActivity extends BaseActivity {
                     .url(ConstantUtils.HOST_URL)
                     .params(params)
                     .build().execute(new Callback<UploadExplodeRecordsBean>() {
-                @Override
-                public UploadExplodeRecordsBean parseNetworkResponse(Response response, int i) throws Exception {
-                    if (response.body() != null) {
-                        String string = Objects.requireNonNull(response.body()).string();
-                        return BaseApplication.jsonFromString(string, UploadExplodeRecordsBean.class);
-                    }
-                    return null;
-                }
-
-                @Override
-                public void onError(Call call, Exception e, int i) {
-                    showMessage(R.string.message_check_network);
-                    disableButton(false);
-                }
-
-                @Override
-                public void onResponse(UploadExplodeRecordsBean uploadExplodeRecordsBean, int i) {
-                    if (null != uploadExplodeRecordsBean) {
-                        if (uploadExplodeRecordsBean.getToken().equals(token)) {
-                            if (uploadExplodeRecordsBean.isStatus()) {
-                                if (null != uploadExplodeRecordsBean.getResult()) {
-                                    if (!uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                        showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1));
-                                    } else {
-                                        moveFile();
-                                    }
-                                }
-                            } else {
-                                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1)
-                                        + uploadExplodeRecordsBean.getDescription());
+                        @Override
+                        public UploadExplodeRecordsBean parseNetworkResponse(Response response, int i) throws Exception {
+                            if (response.body() != null) {
+                                String string = Objects.requireNonNull(response.body()).string();
+                                return BaseApplication.jsonFromString(string, UploadExplodeRecordsBean.class);
                             }
-                            if (-1 != getNextIndex()) {
-                                startUpload();
-                            } else {
-                                disableButton(false);
-                            }
-                        } else {
-                            showMessage(R.string.message_token_error);
+                            return null;
+                        }
+
+                        @Override
+                        public void onError(Call call, Exception e, int i) {
+                            showMessage(R.string.message_check_network);
                             disableButton(false);
                         }
-                    } else {
-                        showMessage(R.string.message_return_data_error);
-                        disableButton(false);
-                    }
-                }
-            });
+
+                        @Override
+                        public void onResponse(UploadExplodeRecordsBean uploadExplodeRecordsBean, int i) {
+                            if (null != uploadExplodeRecordsBean) {
+                                if (uploadExplodeRecordsBean.getToken().equals(token)) {
+                                    if (uploadExplodeRecordsBean.isStatus()) {
+                                        if (null != uploadExplodeRecordsBean.getResult()) {
+                                            if (!uploadExplodeRecordsBean.getResult().isSuccess()) {
+                                                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1));
+                                            } else {
+                                                moveFile();
+                                            }
+                                        }
+                                    } else {
+                                        showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1)
+                                                + uploadExplodeRecordsBean.getDescription());
+                                    }
+                                    if (-1 != getNextIndex()) {
+                                        startUpload();
+                                    } else {
+                                        disableButton(false);
+                                    }
+                                } else {
+                                    showMessage(R.string.message_token_error);
+                                    disableButton(false);
+                                }
+                            } else {
+                                showMessage(R.string.message_return_data_error);
+                                disableButton(false);
+                            }
+                        }
+                    });
         }
     }
 
@@ -601,4 +599,8 @@ public class ExplosionRecordActivity extends BaseActivity {
             BaseApplication.writeErrorLog(e);
         }
     }
+
+
+
+
 }

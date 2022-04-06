@@ -62,7 +62,17 @@ public class AuthorizationListActivity extends BaseActivity {
     private String token;
     private EnterpriseBean enterpriseBean;
     private BaseApplication myApp;
-    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_authorization_list);
+
+        setTitle(R.string.auth_list);
+        myApp = (BaseApplication) getApplication();
+        enterpriseBean = myApp.readEnterprise();
+        initPage();
+    }    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
             switch (message.what) {
@@ -90,17 +100,6 @@ public class AuthorizationListActivity extends BaseActivity {
             return false;
         }
     });
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_authorization_list);
-
-        setTitle(R.string.auth_list);
-        myApp = (BaseApplication) getApplication();
-        enterpriseBean = myApp.readEnterprise();
-        initPage();
-    }
 
     private void initPage() {
         tabList = findViewById(R.id.tab_title);
@@ -288,54 +287,54 @@ public class AuthorizationListActivity extends BaseActivity {
                         .url(ConstantUtils.HOST_URL)
                         .params(params)
                         .build().execute(new Callback<DownloadDetonatorBean>() {
-                    @Override
-                    public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
-                        if (response.body() != null) {
-                            String string = Objects.requireNonNull(response.body()).string();
-                            return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
-                        }
-                        return null;
-                    }
+                            @Override
+                            public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
+                                if (response.body() != null) {
+                                    String string = Objects.requireNonNull(response.body()).string();
+                                    return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
+                                }
+                                return null;
+                            }
 
-                    @Override
-                    public void onError(Call call, Exception e, int i) {
-                        showMessage(R.string.message_offline_download_fail);
-                        disableClick(false);
-                    }
+                            @Override
+                            public void onError(Call call, Exception e, int i) {
+                                showMessage(R.string.message_offline_download_fail);
+                                disableClick(false);
+                            }
 
-                    @Override
-                    public void onResponse(DownloadDetonatorBean downloadDetonatorBean, int i) {
-                        disableClick(false);
-                        if (null != downloadDetonatorBean) {
-                            if (downloadDetonatorBean.getToken().equals(token)) {
-                                if (downloadDetonatorBean.isStatus()) {
-                                    if (null != downloadDetonatorBean.getResult()) {
-                                        if (downloadDetonatorBean.getResult().getCwxx().equals("0")) {
-                                            List<LgBean> detonators = downloadDetonatorBean.getResult().getLgs().getLg();
-                                            if (null != detonators) {
-                                                myApp.saveDownloadList(downloadDetonatorBean, false);
-                                                checkList(detonators);
+                            @Override
+                            public void onResponse(DownloadDetonatorBean downloadDetonatorBean, int i) {
+                                disableClick(false);
+                                if (null != downloadDetonatorBean) {
+                                    if (downloadDetonatorBean.getToken().equals(token)) {
+                                        if (downloadDetonatorBean.isStatus()) {
+                                            if (null != downloadDetonatorBean.getResult()) {
+                                                if (downloadDetonatorBean.getResult().getCwxx().equals("0")) {
+                                                    List<LgBean> detonators = downloadDetonatorBean.getResult().getLgs().getLg();
+                                                    if (null != detonators) {
+                                                        myApp.saveDownloadList(downloadDetonatorBean, false);
+                                                        checkList(detonators);
+                                                    }
+                                                    showMessage(R.string.message_offline_download_success);
+                                                } else {
+                                                    String error = ErrorCode.downloadErrorCode.get(downloadDetonatorBean.getResult().getCwxx());
+                                                    if (null == error) {
+                                                        error = getResources().getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
+                                                    }
+                                                    showMessage(error);
+                                                }
                                             }
-                                            showMessage(R.string.message_offline_download_success);
                                         } else {
-                                            String error = ErrorCode.downloadErrorCode.get(downloadDetonatorBean.getResult().getCwxx());
-                                            if (null == error) {
-                                                error = getResources().getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
-                                            }
-                                            showMessage(error);
+                                            showMessage(downloadDetonatorBean.getDescription());
                                         }
+                                    } else {
+                                        showMessage(R.string.message_token_error);
                                     }
                                 } else {
-                                    showMessage(downloadDetonatorBean.getDescription());
+                                    showMessage(R.string.message_return_data_error);
                                 }
-                            } else {
-                                showMessage(R.string.message_token_error);
                             }
-                        } else {
-                            showMessage(R.string.message_return_data_error);
-                        }
-                    }
-                });
+                        });
             }
         });
         enterpriseDialog.setClickModify(view -> {
@@ -417,5 +416,7 @@ public class AuthorizationListActivity extends BaseActivity {
         }
 
     }
+
+
 
 }

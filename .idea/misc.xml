@@ -38,6 +38,8 @@
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_explode_record.xml" value="0.209375" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_login.xml" value="0.2203125" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_main.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_props_settings.xml" value="0.22" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_select_mode.xml" value="0.36614583333333334" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_server_select.xml" value="0.209375" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_settings.xml" value="0.209375" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_sound_settings.xml" value="0.209375" />
@@ -45,6 +47,7 @@
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_unite_explode.xml" value="0.21770833333333334" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_update_app.xml" value="0.209375" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_version_manage.xml" value="0.209375" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/activity_waveform.xml" value="0.22" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_welcome.xml" value="0.21770833333333334" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_wifi.xml" value="0.209375" />
         <entry key="..\:/Detonator/app/src/main/res/layout/activity_wifi_connect.xml" value="0.209375" />
@@ -63,7 +66,13 @@
         <entry key="..\:/Detonator/app/src/main/res/layout/layout_mtmodule_list.xml" value="0.19895833333333332" />
         <entry key="..\:/Detonator/app/src/main/res/layout/layout_offline_list.xml" value="0.19895833333333332" />
         <entry key="..\:/Detonator/app/src/main/res/layout/layout_popupwindow.xml" value="0.21145833333333333" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_props_page1.xml" value="0.2" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_props_page2.xml" value="0.2" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_props_page3.xml" value="0.25" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_props_page4.xml" value="0.2" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_props_page5.xml" value="0.36614583333333334" />
         <entry key="..\:/Detonator/app/src/main/res/layout/layout_status_bar.xml" value="0.1875" />
+        <entry key="..\:/Detonator/app/src/main/res/layout/layout_tab_view.xml" value="0.36614583333333334" />
       </map>
     </option>
   </component>

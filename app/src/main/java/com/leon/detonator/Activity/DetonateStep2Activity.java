@@ -49,7 +49,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 public class DetonateStep2Activity extends BaseActivity {
     private final int DETECT_SUCCESS = 1,
@@ -59,11 +58,8 @@ public class DetonateStep2Activity extends BaseActivity {
             DETECT_RESCAN_STEP_2 = 5,
             DETECT_RESCAN_STEP_3 = 6,
             DETECT_SEND_COMMAND = 7,
-            DETECT_RESEND = 8,
-            DETECT_FAST = 9,
-            DETECT_RESTART = 10,
-            DETECT_CHARGE = 11,
-            DETECT_CHARGE_2 = 12;
+            DETECT_GET_RECORD = 8,
+            DETECT_RESTART = 10;
     private final boolean newLG = BaseApplication.readSettings().isNewLG();
     private List<List<DetonatorInfoBean>> lists;
     private List<DetonatorInfoBean> checkList;
@@ -71,7 +67,7 @@ public class DetonateStep2Activity extends BaseActivity {
     private Map<ConstantUtils.LIST_TYPE, String> tabTitle;
     private List<DetonatorListAdapter> adapterList;
     private SerialPortUtil serialPortUtil;
-    private boolean setDelay, beforeDetect = false, fastDetect = false, bypass = false,
+    private boolean setDelay, beforeDetect = false, bypass = false, drawWaveform = false,
             nextStep = false, changingVoltage = false, restart, firstTime, charged = false, startVoltage = false;
     private MyButton btnCharge, btnRescan;
     private TabLayout tabList;
@@ -88,13 +84,28 @@ public class DetonateStep2Activity extends BaseActivity {
     });
     private BaseApplication myApp;
     private int bypassCount = 0, listIndex = 0, resendCount = 0, loadCount, dac = 2330, cmdMode = 0, tempDac, startDac = 0,
-            hiddenKeyCount = 0, hiddenType = 0, soundSuccess, soundAlert;
-    private float voltage = newLG ? 20 : 22, workVoltage = 11;
+            hiddenKeyCount = 0, hiddenType = 0, soundSuccess, soundAlert, changeMode, totalActivationTime;
+    private float voltage = 22, workVoltage = 12;
     private ConstantUtils.LIST_TYPE rescanWhich;
     private SerialDataReceiveListener myReceiveListener;
+    private LocalSettingBean settingBean;
     private SoundPool soundPool;
     private String[] fileList;
     private TabFragment allListTab;
+    private String waveformData;
+
+    private SerialCommand.ACTION_TYPE getCmdType(boolean get) {
+        switch (cmdMode) {
+            case 2:
+                return get ? SerialCommand.ACTION_TYPE.SHORT_CMD2_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD2_SET_DELAY;
+            case 0:
+                if (!newLG)
+                    return get ? SerialCommand.ACTION_TYPE.GET_DELAY : SerialCommand.ACTION_TYPE.SET_DELAY;
+            default:
+                return get ? SerialCommand.ACTION_TYPE.SHORT_CMD1_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD1_SET_DELAY;
+        }
+    }
+
     private final Handler statusHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
@@ -126,17 +137,20 @@ public class DetonateStep2Activity extends BaseActivity {
                     }
                     break;
                 case DETECT_RESCAN:
-                    allListTab.setCheckedHint(true);
-                    BaseApplication.acquireWakeLock(DetonateStep2Activity.this);
-                    resetTabTitle(false);
-                    adapterList.get(pagerList.getCurrentItem()).updateList(lists.get(pagerList.getCurrentItem()));
-                    pDialog.show();
+                    if (!drawWaveform) {
+                        BaseApplication.acquireWakeLock(DetonateStep2Activity.this);
+                        allListTab.setCheckedHint(true);
+                        resetTabTitle(false);
+                        adapterList.get(pagerList.getCurrentItem()).updateList(lists.get(pagerList.getCurrentItem()));
+                        pDialog.show();
+                    }
                     btnCharge.setEnabled(false);
                     btnRescan.setEnabled(false);
                     setProgressVisibility(true);
                     restart = false;
                     if (newLG) {
-                        statusHandler.sendEmptyMessage(DETECT_RESCAN_STEP_3);
+                        changeMode = 4;
+                        statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                         break;
                     }
                     if (firstTime && !charged) {
@@ -167,22 +181,29 @@ public class DetonateStep2Activity extends BaseActivity {
                         break;
                     }
                 case DETECT_RESCAN_STEP_2:
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + dac + "###");
-//                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + (int) workVoltage + "###");
-                    if (restart) {
-                        statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, 2000);
+                    if (newLG) {
+                        myReceiveListener.setStartAutoDetect(false);
+                        changeMode = drawWaveform ? 10 : 6;
+                        statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                     } else {
-                        myReceiveListener.setStartAutoDetect(true);
+                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + dac + "###");
+//                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + (int) workVoltage + "###");
+                        if (restart) {
+                            statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, 2000);
+                        } else {
+                            myReceiveListener.setStartAutoDetect(true);
 //                        waitForKey = true;
 //                        myApp.myToast(DetonateStep2Activity.this, "按任意键开始检测！");
-                        statusHandler.sendEmptyMessageDelayed(DETECT_RESCAN_STEP_3, 2000);
+                            statusHandler.sendEmptyMessageDelayed(DETECT_RESCAN_STEP_3, 2000);
+                        }
                     }
                     break;
                 case DETECT_RESCAN_STEP_3:
+                    changeMode = 0;
                     myApp.myToast(DetonateStep2Activity.this, "开始检测！");
                     myReceiveListener.setStartAutoDetect(false);
                     beforeDetect = false;
-                    statusHandler.sendEmptyMessage(DETECT_RESEND);
+                    statusHandler.sendEmptyMessage(DETECT_GET_RECORD);
                     break;
                 case DETECT_SEND_COMMAND:
                     if (null == serialPortUtil)
@@ -190,11 +211,44 @@ public class DetonateStep2Activity extends BaseActivity {
                     statusHandler.removeMessages(DETECT_SEND_COMMAND);
                     myReceiveListener.setRcvData("");
                     beforeDetect = false;
+                    if (newLG && changeMode > 0) {
+                        switch (changeMode) {
+                            case 1:
+                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 0));
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                                return false;
+                            case 2:
+                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_WORK_VOLTAGE, workVoltage));
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                                return false;
+                            case 4:
+                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_OPEN_BUS, 1));
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                                return false;
+                            case 6:
+                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 1));
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                                return false;
+                            case 8:
+                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_OPEN_BUS, 0));
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                                return false;
+                            case 10:
+                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_SIGNAL_WAVEFORM, 1));
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                                return false;
+                            case 12:
+                                serialPortUtil.sendCmd(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress(), getCmdType(false), lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getDelayTime());
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, 1500);
+                                return false;
+                            case 14:
+                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_SIGNAL_WAVEFORM, 0));
+                                statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                                return false;
+                        }
+                    }
                     if (changingVoltage) {
-                        if (newLG)
-                            serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.SET_VOLTAGE, (int) (workVoltage * 10));
-                        else
-                            serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
+                        serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
                         statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, 200);
                     } else {
                         myReceiveListener.setFeedback(false);
@@ -206,10 +260,7 @@ public class DetonateStep2Activity extends BaseActivity {
                             }
                             setDelay = !checkList.get(listIndex).isDownloaded();
                             if (setDelay) {
-                                if (myApp.isNewClock())
-                                    serialPortUtil.sendCmd(checkList.get(listIndex).getAddress(), checkList.get(listIndex).getDelayTime(), searchIndex(checkList.get(listIndex).getAddress()));
-                                else
-                                    serialPortUtil.sendCmd(checkList.get(listIndex).getAddress(), getCmdType(false), checkList.get(listIndex).getDelayTime());
+                                serialPortUtil.sendCmd(checkList.get(listIndex).getAddress(), getCmdType(false), checkList.get(listIndex).getDelayTime());
                             } else
                                 serialPortUtil.sendCmd(checkList.get(listIndex).getAddress(), getCmdType(true), 0);
                         } else if (rescanWhich == ConstantUtils.LIST_TYPE.ERROR) {
@@ -222,10 +273,7 @@ public class DetonateStep2Activity extends BaseActivity {
                             if (setDelay)
                                 for (int j = 0; j < lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size(); j++) {
                                     if (lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(j).getAddress().equals(checkList.get(listIndex).getAddress())) {
-                                        if (myApp.isNewClock())
-                                            serialPortUtil.sendCmd(checkList.get(listIndex).getAddress(), lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(j).getDelayTime(), j + 3);
-                                        else
-                                            serialPortUtil.sendCmd(checkList.get(listIndex).getAddress(), getCmdType(false), lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(j).getDelayTime());
+                                        serialPortUtil.sendCmd(checkList.get(listIndex).getAddress(), getCmdType(false), lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(j).getDelayTime());
                                         break;
                                     }
                                 }
@@ -239,87 +287,46 @@ public class DetonateStep2Activity extends BaseActivity {
                             }
                             setDelay = !lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).isDownloaded();
                             if (setDelay) {
-                                if (myApp.isNewClock())
-                                    serialPortUtil.sendCmd(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress(), lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getDelayTime(), searchIndex(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress()));
-                                else
-                                    serialPortUtil.sendCmd(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress(), getCmdType(false), lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getDelayTime());
+                                serialPortUtil.sendCmd(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress(), getCmdType(false), lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getDelayTime());
                             } else
                                 serialPortUtil.sendCmd(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress(), getCmdType(true), 0);
                         }
-                        statusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                        statusHandler.sendEmptyMessageDelayed(DETECT_GET_RECORD, ConstantUtils.RESEND_CMD_TIMEOUT);
                     }
                     break;
-                case DETECT_RESEND:
-                    statusHandler.removeMessages(DETECT_RESEND);
+                case DETECT_GET_RECORD:
+                    statusHandler.removeMessages(DETECT_GET_RECORD);
                     if (rescanWhich == ConstantUtils.LIST_TYPE.END || beforeDetect)
                         break;
-                    if (fastDetect && myApp.isNewClock()) {
-                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.FAST_DETECT, 0);
-                        statusHandler.sendEmptyMessageDelayed(DETECT_FAST, (long) ConstantUtils.FAST_DETECT_TIMEOUT * (lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).size() + 2));
-                    } else {
-                        if (resendCount >= ConstantUtils.RESEND_TIMES) {
-                            if (bypass) {
-                                addDetonator(-1);
-                            } else if (rescanWhich == ConstantUtils.LIST_TYPE.ERROR) {
-                                for (int j = 0; j < lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size(); j++) {
-                                    if (lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(j).getAddress().equals(checkList.get(listIndex).getAddress())) {
-                                        lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).remove(j);
-                                        break;
-                                    }
-                                }
-                                lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).add(insertLocate(lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal())), checkList.get(listIndex));
-                            } else
-                                lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).add(rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? checkList.get(listIndex) : lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex));
-                            statusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                            progressHandler.sendEmptyMessage(1);
-                            restart = false;
-                            listIndex++;
-                            cmdMode = nextCmdMode();
-                            resendCount = 0;
-                            setDelay = false;
-                        }
-                        if (((rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND || rescanWhich == ConstantUtils.LIST_TYPE.ERROR) && listIndex >= checkList.size())
-                                || listIndex >= lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size()) {
-                            myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_finished);
-                            statusHandler.sendEmptyMessage(DETECT_FINISH);
-                        } else {
-                            resendCount++;
-                            statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
-                        }
-                    }
-                    break;
-                case DETECT_FAST:
-                    fastDetect = false;
-                    if (checkList.size() != lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size()) {
-                        for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
-                            boolean notFound = true;
-                            for (DetonatorInfoBean b : checkList) {
-                                if (b.getAddress().equals(bean.getAddress())) {
-                                    notFound = false;
+                    if (resendCount >= ConstantUtils.RESEND_TIMES) {
+                        if (bypass) {
+                            addDetonator(-1);
+                        } else if (rescanWhich == ConstantUtils.LIST_TYPE.ERROR) {
+                            for (int j = 0; j < lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size(); j++) {
+                                if (lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(j).getAddress().equals(checkList.get(listIndex).getAddress())) {
+                                    lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).remove(j);
                                     break;
                                 }
                             }
-                            if (notFound) {
-                                lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).add(bean);
-                            }
-                        }
+                            lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).add(insertLocate(lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal())), checkList.get(listIndex));
+                        } else
+                            lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).add(rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? checkList.get(listIndex) : lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex));
+                        statusHandler.sendEmptyMessage(DETECT_SUCCESS);
+                        progressHandler.sendEmptyMessage(1);
+                        restart = false;
+                        listIndex++;
+                        cmdMode = nextCmdMode();
+                        resendCount = 0;
+                        setDelay = false;
                     }
-                    statusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                    statusHandler.sendEmptyMessage(DETECT_FINISH);
-                    break;
-                case DETECT_CHARGE:
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "1250###");
-                    statusHandler.sendEmptyMessageDelayed(DETECT_CHARGE_2, 1000);
-                    break;
-                case DETECT_CHARGE_2:
-                    charged = true;
-                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.OPEN_CAPACITOR, 0);
-                    btnCharge.setEnabled(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size() == lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size());
-                    rescanWhich = ConstantUtils.LIST_TYPE.END;
-                    btnRescan.setEnabled(tabList.getSelectedTabPosition() == ConstantUtils.LIST_TYPE.DETECTED.ordinal() || lists.get(tabList.getSelectedTabPosition()).size() > 0);
-                    setProgressVisibility(false);
-                    myReceiveListener.setStartAutoDetect(true);
-                    myApp.myToast(DetonateStep2Activity.this, "开始充电！");
+                    if (((rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND || rescanWhich == ConstantUtils.LIST_TYPE.ERROR) && listIndex >= checkList.size())
+                            || listIndex >= lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size()) {
+                        myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_finished);
+                        statusHandler.sendEmptyMessage(DETECT_FINISH);
+                    } else {
+                        resendCount++;
+                        statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
+                    }
                     break;
                 default:
                     myApp.myToast(DetonateStep2Activity.this, (String) msg.obj);
@@ -329,12 +336,21 @@ public class DetonateStep2Activity extends BaseActivity {
         }
     });
 
-    private LocalSettingBean settingBean;
+    private String getConfirmString(boolean get) {
+        switch (cmdMode) {
+            case 1:
+                return SerialCommand.RESPOND_CONFIRM.get(get ? SerialCommand.ACTION_TYPE.SHORT_CMD1_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD1_SET_DELAY);
+            case 2:
+                return SerialCommand.RESPOND_CONFIRM.get(get ? SerialCommand.ACTION_TYPE.SHORT_CMD2_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD2_SET_DELAY);
+            default:
+                return SerialCommand.RESPOND_CONFIRM.get(get ? SerialCommand.ACTION_TYPE.GET_DELAY : SerialCommand.ACTION_TYPE.SET_DELAY);
+        }
+    }
+
     private final Runnable bufferRunnable = new Runnable() {
         @Override
         public void run() {
             String received = myReceiveListener.getRcvData();
-            Log.d("ZBEST", "R:" + received);
             if (beforeDetect || received.equals(""))
                 return;
 
@@ -373,18 +389,64 @@ public class DetonateStep2Activity extends BaseActivity {
                     statusHandler.removeMessages(DETECT_SEND_COMMAND);
                     statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                 }
-            } else if (changingVoltage) {
-                if (newLG) {
-                    if (received.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SET_VOLTAGE)))) {
-                        changingVoltage = false;
+            } else if (newLG && received.contains(SerialCommand.AT_CMD_RESPOND)) {
+                statusHandler.removeMessages(DETECT_SEND_COMMAND);
+                Log.d("ZBEST", changeMode + "");
+                switch (changeMode) {
+                    case 1:
+                        if (drawWaveform) {
+                            changeMode = 14;
+                        } else {
+                            changeMode++;
+                        }
+                        statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
+                        break;
+                    case 2:
+                        changeMode++;
                         myApp.myToast(DetonateStep2Activity.this, R.string.message_modify_finished);
                         myReceiveListener.setStartAutoDetect(true);
                         runOnUiThread(() -> {
                             setProgressVisibility(false);
                             btnRescan.setEnabled(tabList.getSelectedTabPosition() == ConstantUtils.LIST_TYPE.DETECTED.ordinal() || lists.get(tabList.getSelectedTabPosition()).size() > 0);
                         });
-                    }
-                } else if (received.startsWith("V")) {
+                        break;
+                    case 4:
+                        changeMode++;
+                        myReceiveListener.setStartAutoDetect(true);
+                        statusHandler.sendEmptyMessageDelayed(DETECT_RESCAN_STEP_2, totalActivationTime);
+                        break;
+                    case 6:
+                        if (drawWaveform) {
+                            listIndex = 0;
+                            changeMode = 12;
+                            rescanWhich = ConstantUtils.LIST_TYPE.ALL;
+                            cmdMode = nextCmdMode();
+                            statusHandler.sendEmptyMessage(DETECT_GET_RECORD);
+                        } else {
+                            changeMode++;
+                            statusHandler.sendEmptyMessage(DETECT_RESCAN_STEP_3);
+                        }
+                        break;
+                    case 10:
+                        changeMode = 6;
+                        statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
+                        break;
+                    case 14:
+                        changeMode++;
+                        drawWaveform = false;
+                        statusHandler.sendEmptyMessage(DETECT_FINISH);
+                        if (waveformData.length() == 2048) {
+                            Intent intent = new Intent(DetonateStep2Activity.this, WaveformActivity.class);
+                            intent.putExtra(KeyUtils.KEY_WAVEFORM_DATA, waveformData);
+                            startActivity(intent);
+                        } else {
+                            ((BaseApplication) getApplication()).myToast(DetonateStep2Activity.this, R.string.message_waveform_data_error);
+                        }
+                        break;
+                }
+                myReceiveListener.setRcvData("");
+            } else if (changingVoltage) {
+                if (received.startsWith("V")) {
                     try {
                         float v = Integer.parseInt(received.substring(1)) / 100.0f;
                         statusHandler.removeMessages(DETECT_SEND_COMMAND);
@@ -417,191 +479,97 @@ public class DetonateStep2Activity extends BaseActivity {
                     }
                 }
             } else if (received.contains(SerialCommand.INITIAL_FAIL)) {
+                nextStep = true;
                 myApp.myToast(DetonateStep2Activity.this, R.string.message_open_module_fail);
                 finish();
             } else if (received.contains(SerialCommand.INITIAL_FINISHED)) {
                 myReceiveListener.setRcvData("");
-                if (newLG)
-                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.SET_VOLTAGE, 90);
-                else
+                if (!newLG)
                     serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "9999###");
                 if (rescanWhich == ConstantUtils.LIST_TYPE.END) {
                     statusHandler.sendEmptyMessage(DETECT_FINISH);
                 } else if (rescanWhich == ConstantUtils.LIST_TYPE.ALL) {
                     statusHandler.sendEmptyMessage(DETECT_RESCAN);
                 }
-            } else if (received.contains(Objects.requireNonNull(SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.OPEN_BUS)))) {
-                btnRescan.setEnabled(true);
-                setProgressVisibility(false);
-                myReceiveListener.setRcvData("");
-                myApp.myToast(DetonateStep2Activity.this, "重启总线成功！");
-                myReceiveListener.setStartAutoDetect(true);
+            } else if (drawWaveform) {
+                waveformData = received;
+                statusHandler.removeMessages(DETECT_SEND_COMMAND);
+                changeMode = 1;
+                statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
             } else if (rescanWhich != ConstantUtils.LIST_TYPE.END) {
-                if (fastDetect && myApp.isNewClock()) {
-                    String confirm = SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.FAST_DETECT);
-                    if (null == confirm)
-                        confirm = "";
-                    int index = received.indexOf(confirm) + confirm.length();
-                    while (received.contains(confirm) && received.length() >= index + 24) {
-                        String data = received.substring(index, index + 24);
-                        try {
-                            int checkSum = 0;
-                            for (int i = 0; i < data.length() - 2; i += 2) {
-                                checkSum += Integer.parseInt(data.substring(i, i + 2), 16);
-                            }
-                            if (String.format("%02X", checkSum).endsWith(data.substring(data.length() - 2))) {
-                                char character = (char) (int) Integer.valueOf(data.substring(12, 14), 16);
-                                String address = data.substring(0, 7) + character + data.substring(7, 12);
-
-                                int i = searchIndex(address) - 3;
-                                if (i < lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size()) {
-                                    data = data.substring(14);
-                                    int delay = Integer.valueOf(data.substring(0, 4), 16);
-                                    DetonatorInfoBean bean = new DetonatorInfoBean(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(i));
-                                    if (delay != bean.getDelayTime()) {
-                                        bean.setDownloaded(false);
-                                        bean.setDelayTime(delay);
-                                        lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).add(bean);
+                boolean success = false;
+                int feedback = -1;
+                statusHandler.removeMessages(DETECT_GET_RECORD);
+                if (setDelay) {
+                    myApp.myToast(DetonateStep2Activity.this, received + "," + getConfirmString(false));
+                    if (!newLG || received.startsWith(SerialCommand.DATA_PREFIX)) {//(!newLG && received.contains(getConfirmString(false)))
+                        String address;
+                        if (rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND || rescanWhich == ConstantUtils.LIST_TYPE.ERROR) {
+                            checkList.get(listIndex).setDownloaded(true);
+                            address = checkList.get(listIndex).getAddress();
+                            if (rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND)
+                                for (DetonatorInfoBean b : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
+                                    if (b.getAddress().equals(address)) {
+                                        b.setDownloaded(true);
+                                        break;
                                     }
-                                    checkList.add(bean);
-                                    lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).add(bean);
                                 }
-                            }
-                        } catch (Exception e) {
+                        } else {
+                            address = lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress();
+                            lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).setDownloaded(true);
+                        }
+                        try {
+                            for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()))
+                                if (bean.getAddress().equals(address))
+                                    bean.setDownloaded(true);
+                            myApp.writeToFile(myApp.getListFile(), lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()));
+                        } catch (JSONException e) {
                             BaseApplication.writeErrorLog(e);
                         }
-                        received = received.substring(index);
-                        index = myReceiveListener.getRcvData().indexOf(confirm) + confirm.length();
-                        myReceiveListener.setRcvData(myReceiveListener.getRcvData().substring(index));
-                        index = received.indexOf(confirm) + confirm.length();
-                        statusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                        progressHandler.sendEmptyMessage(1);
-                        restart = false;
-                        listIndex++;
-                        if (listIndex >= lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size()) {
-                            statusHandler.removeMessages(DETECT_FAST);
-                            statusHandler.sendEmptyMessage(DETECT_FAST);
-                        }
+                        setDelay = false;
+                        success = true;
                     }
                 } else {
-                    if (newLG)
-                        received = received.replace("FEFE", "FE");
-                    else
-                        received = received.replace("FDFD", "FD");
-                    boolean success = true;
-                    int feedback = -1;
-                    statusHandler.removeMessages(DETECT_RESEND);
-                    if (setDelay) {
-                        String confirm = getConfirmString(false);
-//                        myApp.myToast(DetonateStep2Activity.this, received + "," + confirm);
-                        if (success || received.contains(confirm)) {
-                            String address;
-                            if (rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND || rescanWhich == ConstantUtils.LIST_TYPE.ERROR) {
-                                checkList.get(listIndex).setDownloaded(true);
-                                address = checkList.get(listIndex).getAddress();
-                                if (rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND)
-                                    for (DetonatorInfoBean b : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
-                                        if (b.getAddress().equals(address)) {
-                                            b.setDownloaded(true);
-                                            break;
-                                        }
-                                    }
-                            } else {
-                                address = lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).getAddress();
-                                lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(listIndex).setDownloaded(true);
-                            }
-                            try {
-                                for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()))
-                                    if (bean.getAddress().equals(address))
-                                        bean.setDownloaded(true);
-                                myApp.writeToFile(myApp.getListFile(), lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()));
-                            } catch (JSONException e) {
-                                BaseApplication.writeErrorLog(e);
-                            }
-                            setDelay = false;
-                            success = true;
-                        }
-                    } else {
-                        String confirm = getConfirmString(true);
+                    String confirm = getConfirmString(true);
 //                        myApp.myToast(DetonateStep2Activity.this, received + "," + confirm);
 
-                        if (received.contains(confirm)) {
-                            String tempDelay = received.substring(received.indexOf(confirm) + confirm.length());
-                            if (newLG && received.contains(SerialCommand.STRING_DATA_END) && received.lastIndexOf(confirm) + 2 < received.lastIndexOf(SerialCommand.STRING_DATA_END))
-                                tempDelay = received.substring(received.lastIndexOf(confirm) + 2, received.lastIndexOf(SerialCommand.STRING_DATA_END));
-                            if (newLG || tempDelay.length() == 6) {
-                                try {
-                                    int checkSum = 0;//newLG ? 0 : 7;
-                                    for (int i = 0; i < tempDelay.length() - 2; i += 2) {
-                                        checkSum += Integer.parseInt(tempDelay.substring(i, i + 2), 16);
-                                    }
-                                    if (newLG && String.format("%02X", checkSum).endsWith(tempDelay.substring(tempDelay.length() - 2))) {
-                                        byte a = (byte) Integer.parseInt(tempDelay.substring(4, 6), 16),
-                                                b = (byte) Integer.parseInt(tempDelay.substring(6, 8), 16);
-                                        a ^= SerialCommand.XOR_DATA;
-                                        b ^= SerialCommand.XOR_DATA;
-                                        feedback = (a & 0xFF) + (b & 0xFF) * 0x100;
-                                        if (feedback >= ConstantUtils.PRESET_DELAY)
-                                            feedback -= ConstantUtils.PRESET_DELAY;
-                                        success = true;
-                                    } else if (!newLG && String.format("%02X", checkSum).endsWith(tempDelay.substring(4))) {
-                                        feedback = Integer.parseInt(tempDelay.substring(0, 4), 16);
-                                        success = true;
-                                    }
-                                } catch (Exception e) {
-                                    BaseApplication.writeErrorLog(e);
+                    if (received.contains(confirm)) {
+                        String tempDelay = received.substring(received.indexOf(confirm) + confirm.length());
+                        if (tempDelay.length() == 6) {
+                            try {
+                                int checkSum = 0;
+                                for (int i = 0; i < tempDelay.length() - 2; i += 2) {
+                                    checkSum += Integer.parseInt(tempDelay.substring(i, i + 2), 16);
                                 }
+                                if (String.format("%02X", checkSum).endsWith(tempDelay.substring(4))) {
+                                    feedback = Integer.parseInt(tempDelay.substring(0, 4), 16);
+                                    success = true;
+                                }
+                            } catch (Exception e) {
+                                BaseApplication.writeErrorLog(e);
                             }
                         }
                     }
-                    if (success) {
-                        addDetonator(feedback);
-                        resendCount = 1;
-                        restart = false;
-                        listIndex++;
-                        cmdMode = nextCmdMode();
-                        progressHandler.sendEmptyMessage(1);
-                        statusHandler.sendEmptyMessage(DETECT_SUCCESS);
-
-                        if (((rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND || rescanWhich == ConstantUtils.LIST_TYPE.ERROR) && listIndex >= checkList.size()) || listIndex >= lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size()) {
-                            myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_finished);
-                            statusHandler.sendEmptyMessage(DETECT_FINISH);
-                        } else
-                            statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
-                    } else
-                        statusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
                 }
+                if (success) {
+                    addDetonator(feedback);
+                    resendCount = 1;
+                    restart = false;
+                    listIndex++;
+                    cmdMode = nextCmdMode();
+                    progressHandler.sendEmptyMessage(1);
+                    statusHandler.sendEmptyMessage(DETECT_SUCCESS);
+
+                    if (((rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND || rescanWhich == ConstantUtils.LIST_TYPE.ERROR) && listIndex >= checkList.size()) || listIndex >= lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size()) {
+                        myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_finished);
+                        statusHandler.sendEmptyMessage(DETECT_FINISH);
+                    } else
+                        statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
+                } else
+                    statusHandler.sendEmptyMessageDelayed(DETECT_GET_RECORD, ConstantUtils.RESEND_CMD_TIMEOUT);
             }
         }
     };
-
-    private SerialCommand.ACTION_TYPE getCmdType(boolean get) {
-//        if (newLG)
-//            return get ? SerialCommand.ACTION_TYPE.GET_DELAY : SerialCommand.ACTION_TYPE.SET_DELAY;
-        switch (cmdMode) {
-            case 1:
-                return get ? SerialCommand.ACTION_TYPE.SHORT_CMD1_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD1_SET_DELAY;
-            case 2:
-                return get ? SerialCommand.ACTION_TYPE.SHORT_CMD2_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD2_SET_DELAY;
-            default:
-                return get ? SerialCommand.ACTION_TYPE.GET_DELAY : SerialCommand.ACTION_TYPE.SET_DELAY;
-        }
-    }
-
-    private String getConfirmString(boolean get) {
-        if (newLG)
-            return SerialCommand.NEW_RESPOND_CONFIRM.get(get ? SerialCommand.ACTION_TYPE.GET_DELAY : SerialCommand.ACTION_TYPE.SET_DELAY);
-        if (myApp.isNewClock())
-            return SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SET_NUMBER);
-        switch (cmdMode) {
-            case 1:
-                return SerialCommand.RESPOND_CONFIRM.get(get ? SerialCommand.ACTION_TYPE.SHORT_CMD1_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD1_SET_DELAY);
-            case 2:
-                return SerialCommand.RESPOND_CONFIRM.get(get ? SerialCommand.ACTION_TYPE.SHORT_CMD2_GET_DELAY : SerialCommand.ACTION_TYPE.SHORT_CMD2_SET_DELAY);
-            default:
-                return SerialCommand.RESPOND_CONFIRM.get(get ? SerialCommand.ACTION_TYPE.GET_DELAY : SerialCommand.ACTION_TYPE.SET_DELAY);
-        }
-    }
 
     private int nextCmdMode() {
         if (((rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND || rescanWhich == ConstantUtils.LIST_TYPE.ERROR) && listIndex >= checkList.size()) || listIndex >= lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size())
@@ -704,6 +672,7 @@ public class DetonateStep2Activity extends BaseActivity {
         myApp = (BaseApplication) getApplication();
 
         settingBean = BaseApplication.readSettings();
+        totalActivationTime = settingBean.getFirstPulseTime() + settingBean.getSecondPulseTime() + settingBean.getThirdPulseTime() + 10;
         lists = new ArrayList<>();
         fileList = FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1];
         rescanWhich = ConstantUtils.LIST_TYPE.END;
@@ -914,9 +883,9 @@ public class DetonateStep2Activity extends BaseActivity {
                 if (hiddenKeyCount == 5) {
                     hiddenKeyCount = 0;
                     hiddenFunction();
-                } else if (hiddenKeyCount == 0 || hiddenKeyCount == 1 || hiddenKeyCount == 4) {
+                } else if (hiddenKeyCount == 0 || hiddenKeyCount == 1 || hiddenKeyCount == 4)
                     hiddenKeyCount++;
-                } else
+                else
                     hiddenKeyCount = 0;
                 break;
             case KeyEvent.KEYCODE_0:
@@ -980,7 +949,15 @@ public class DetonateStep2Activity extends BaseActivity {
         startVoltage = false;
         switch (hiddenType) {
             case 7:
-                startVoltage = true;
+                if (newLG) {
+                    if (!btnRescan.isEnabled())
+                        statusHandler.sendEmptyMessage(DETECT_FINISH);
+                    drawWaveform = true;
+                    myReceiveListener.setStartAutoDetect(false);
+                    statusHandler.sendEmptyMessage(DETECT_RESCAN);
+                    break;
+                } else
+                    startVoltage = true;
             case 3:
                 myReceiveListener.setStartAutoDetect(false);
                 statusHandler.removeCallbacksAndMessages(null);
@@ -1004,8 +981,9 @@ public class DetonateStep2Activity extends BaseActivity {
                                     try {
                                         float v = Float.parseFloat(etDelay1.getText().toString());
                                         if (v > 6 && v <= 29) {
+                                            firstTime = true;
                                             workVoltage = v;
-                                            startChangeVoltage(workVoltage);
+                                            startChangeVoltage();
 //                                            serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + (int) workVoltage + "###");
 //                                            sendMsg(DETECT_MESSAGE, R.string.message_modify_finished);
 //                                            myReceiveListener.setStartAutoDetect(true);
@@ -1065,15 +1043,21 @@ public class DetonateStep2Activity extends BaseActivity {
             case 5:
                 if (!btnRescan.isEnabled())
                     statusHandler.sendEmptyMessage(DETECT_FINISH);
-                firstTime = true;
-                serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "9999###");
+                if (newLG) {
+                    changeMode = 8;
+                    statusHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
+                } else {
+                    firstTime = true;
+                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "9999###");
+                }
                 break;
             case 6:
                 statusHandler.removeCallbacksAndMessages(null);
-                if (newLG)
-                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.OPEN_BUS, 1);
-                else
+                if (newLG) {
+                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.OPEN_CAPACITOR, lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size(), (int) (workVoltage * 10));
+                } else {
                     serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.OPEN_CAPACITOR, 1);
+                }
                 myApp.myToast(this, "Charging");
                 btnRescan.setEnabled(true);
                 break;
@@ -1147,7 +1131,6 @@ public class DetonateStep2Activity extends BaseActivity {
                     lists.get(i).clear();
                 rescanWhich = ConstantUtils.LIST_TYPE.ALL;
                 cmdMode = nextCmdMode();
-                checkFastDetect();
                 break;
             case NOT_FOUND:
                 if (lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size() > 0) {
@@ -1185,34 +1168,24 @@ public class DetonateStep2Activity extends BaseActivity {
         statusHandler.sendEmptyMessage(DETECT_RESCAN);
     }
 
-    private void startChangeVoltage(float vol) {
-        changingVoltage = true;
+    private void startChangeVoltage() {
         if (newLG) {
-            serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.SET_VOLTAGE, (int) (vol * 10));
+            changeMode = 1;
+            serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 0));
         } else {
+            changingVoltage = true;
             myReceiveListener.setFeedback(true);
             if (null == settingBean.getDacMap())
                 settingBean.setDacMap(new HashMap<>());
-            Integer v = settingBean.getDacMap().get(vol);
+            Integer v = settingBean.getDacMap().get(workVoltage);
             if (null != v) {
                 tempDac = v;
             } else {
-                tempDac = 94 + (int) ((29 - vol) * 124);
+                tempDac = 94 + (int) ((29 - workVoltage) * 124);
             }
             serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + tempDac + "###");
         }
         statusHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, 200);
-    }
-
-    private void checkFastDetect() {
-        fastDetect = true;
-        for (DetonatorInfoBean b : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
-            if (!b.isDownloaded()) {
-                fastDetect = false;
-                break;
-            }
-        }
-        checkList = new ArrayList<>();
     }
 
     private void checkAllListHint() {
@@ -1266,6 +1239,7 @@ public class DetonateStep2Activity extends BaseActivity {
         progressHandler.removeCallbacksAndMessages(null);
         statusHandler.removeCallbacksAndMessages(null);
         if (myReceiveListener != null) {
+            myReceiveListener.setStartAutoDetect(false);
             myReceiveListener.closeAllHandler();
             myReceiveListener = null;
         }

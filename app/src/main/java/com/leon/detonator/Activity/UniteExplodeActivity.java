@@ -1,7 +1,9 @@
 package com.leon.detonator.Activity;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -13,6 +15,7 @@ import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.app.ActivityCompat;
 
 import com.leon.detonator.Base.BaseActivity;
 import com.leon.detonator.Base.BaseApplication;
@@ -62,7 +65,7 @@ public class UniteExplodeActivity extends BaseActivity {
     private RelativeLayout rlUnite;
     private int amount;
     private boolean stopScan, enterExplode, charging = false;
-    private final Handler refreshStatus = new Handler(new Handler.Callback() {
+    private BaseApplication myApp;    private final Handler refreshStatus = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
             int CONNECT_TIMEOUT = 30000;
@@ -238,42 +241,6 @@ public class UniteExplodeActivity extends BaseActivity {
             return false;
         }
     });
-    private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        if (RESULT_OK == result.getResultCode())
-            refreshStatus.sendEmptyMessage(STATUS_CHARGE_FINISHED);
-        else
-            finish();
-    });
-    ScanMTModuleCallback scanMTModuleCallback = new ScanMTModuleCallback() {
-        @Override
-        public void onScannedMTModule(LinkedList<MTModule> linkedList) {
-            if (!stopScan) {
-                refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
-
-                if (null == mtDialog || !mtDialog.isShowing()) {
-                    mtDialog = new MTModuleDialog(UniteExplodeActivity.this, linkedList, mtMac);
-                    mtDialog.setCanceledOnTouchOutside(false);
-                    mtDialog.setListener1(view -> {
-                        mtModuleManager.stopScan();
-                        mtDialog.dismiss();
-                        stopScan = true;
-                        refreshStatus.sendEmptyMessage(STATUS_CONNECTING);
-                        mtModule = mtDialog.getSelectedMTModule();
-                        mtModuleManager.connect(mtModule);
-                    });
-                    mtDialog.setListener2(view -> {
-                        mtModuleManager.stopScan();
-                        mtDialog.dismiss();
-                        refreshStatus.sendEmptyMessage(STATUS_SEARCH_FAIL);
-                    });
-                } else {
-                    mtDialog.setList(linkedList);
-                }
-                mtDialog.show();
-            }
-        }
-    };
-    private BaseApplication myApp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -309,28 +276,36 @@ public class UniteExplodeActivity extends BaseActivity {
         amount = list.size();
         mtMac = bean.getMtMac();
         exploderID = bean.getExploderID();
-        BTAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (!BTAdapter.isEnabled()) {
-            BTAdapter.enable();
-            new Thread() {
-                @Override
-                public void run() {
-                    while (!BTAdapter.isEnabled()) {
-                        try {
-                            Thread.sleep(10);
-                        } catch (Exception e) {
-                            BaseApplication.writeErrorLog(e);
+        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(UniteExplodeActivity.this, Manifest.permission.BLUETOOTH)
+                && PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(UniteExplodeActivity.this, Manifest.permission.BLUETOOTH_ADMIN)) {
+            BTAdapter = BluetoothAdapter.getDefaultAdapter();
+            if (!BTAdapter.isEnabled()) {
+                BTAdapter.enable();
+                new Thread() {
+                    @Override
+                    public void run() {
+                        while (!BTAdapter.isEnabled()) {
+                            try {
+                                Thread.sleep(10);
+                            } catch (Exception e) {
+                                BaseApplication.writeErrorLog(e);
+                            }
                         }
+                        if (mtModuleManager != null)
+                            mtModuleManager.startScan(scanMTModuleCallback);
+                        super.run();
                     }
-                    if (mtModuleManager != null)
-                        mtModuleManager.startScan(scanMTModuleCallback);
-                    super.run();
-                }
-            }.start();
-        } else
-            mtModuleManager.startScan(scanMTModuleCallback);
+                }.start();
+            } else
+                mtModuleManager.startScan(scanMTModuleCallback);
+        }
         refreshStatus.sendEmptyMessage(STATUS_SEARCHING);
-    }
+    }    private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (RESULT_OK == result.getResultCode())
+            refreshStatus.sendEmptyMessage(STATUS_CHARGE_FINISHED);
+        else
+            finish();
+    });
 
     private void initManager() {
         mtModuleManager = MTModuleManager.getInstance(this);
@@ -399,7 +374,35 @@ public class UniteExplodeActivity extends BaseActivity {
 ////                mtModuleManager.startScan(scanMTModuleCallback);
 //                break;
 //        }
-    }
+    }    ScanMTModuleCallback scanMTModuleCallback = new ScanMTModuleCallback() {
+        @Override
+        public void onScannedMTModule(LinkedList<MTModule> linkedList) {
+            if (!stopScan) {
+                refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
+
+                if (null == mtDialog || !mtDialog.isShowing()) {
+                    mtDialog = new MTModuleDialog(UniteExplodeActivity.this, linkedList, mtMac);
+                    mtDialog.setCanceledOnTouchOutside(false);
+                    mtDialog.setListener1(view -> {
+                        mtModuleManager.stopScan();
+                        mtDialog.dismiss();
+                        stopScan = true;
+                        refreshStatus.sendEmptyMessage(STATUS_CONNECTING);
+                        mtModule = mtDialog.getSelectedMTModule();
+                        mtModuleManager.connect(mtModule);
+                    });
+                    mtDialog.setListener2(view -> {
+                        mtModuleManager.stopScan();
+                        mtDialog.dismiss();
+                        refreshStatus.sendEmptyMessage(STATUS_SEARCH_FAIL);
+                    });
+                } else {
+                    mtDialog.setList(linkedList);
+                }
+                mtDialog.show();
+            }
+        }
+    };
 
     private byte[] checksum(String s) {
         String data = (null == exploderID || exploderID.isEmpty() ? mtMac : exploderID) + "," + s + ",";
@@ -459,8 +462,11 @@ public class UniteExplodeActivity extends BaseActivity {
                 BaseApplication.writeErrorLog(e);
             }
         }
-        if (BTAdapter.isEnabled())
-            BTAdapter.disable();
+        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(UniteExplodeActivity.this, Manifest.permission.BLUETOOTH)
+                && PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(UniteExplodeActivity.this, Manifest.permission.BLUETOOTH_ADMIN)) {
+            if (BTAdapter.isEnabled())
+                BTAdapter.disable();
+        }
         if (null != mtModule)
             mtModuleManager.disconnect(mtModule);
         stopScan = true;
@@ -469,4 +475,10 @@ public class UniteExplodeActivity extends BaseActivity {
         refreshStatus.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
+
+
+
+
+
+
 }

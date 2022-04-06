@@ -88,180 +88,6 @@ public class BluetoothActivity extends BaseActivity {
     private boolean searching, sender = false;
     private int rescanLine, lastTouchX, clickIndex;
     private StringBuilder receiveData;
-    private Handler connectHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NonNull Message msg) {
-            switch (msg.what) {
-                case STATUS_CONNECTED:
-                    if (sender)
-                        sendData();
-                    myApp.myToast(BluetoothActivity.this,
-                            String.format(Locale.CHINA, getResources().getString(R.string.bt_connected_device), msg.obj));
-                    break;
-                case STATUS_DATA:
-                    if (!sender) {
-                        if (null == connectHandler) {
-                            myApp.myToast(BluetoothActivity.this, R.string.message_receive_data_please_into_bt);
-                            break;
-                        }
-                        if (msg.arg1 > 0) {
-                            connectHandler.removeMessages(STATUS_RECEIVE_FINISH);
-                            if (searching) {
-                                searching = false;
-                                BTAdapter.cancelDiscovery();
-                            }
-                            receiveData.append(new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1)));
-                            connectHandler.sendEmptyMessageDelayed(STATUS_RECEIVE_FINISH, 100);
-                        }
-                    } else {
-                        if (msg.arg1 > 0) {
-                            String data = new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1));
-                            switch (data) {
-                                case "Success":
-                                    connectHandler.removeMessages(STATUS_ERROR);
-                                    myApp.myToast(BluetoothActivity.this, R.string.message_send_success);
-                                    sender = false;
-                                    if (null != pDialog && pDialog.isShowing()) {
-                                        pDialog.dismiss();
-                                    }
-                                    break;
-                                case "Resend":
-                                    if (null != pDialog && pDialog.isShowing())
-                                        sendData();
-                                    break;
-                            }
-                        }
-                    }
-                    break;
-                case STATUS_RECEIVE_FINISH:
-                    final String data = receiveData.toString();
-                    receiveData = new StringBuilder();
-//                    myApp.myToast(BluetoothActivity.this, data.substring(0, 4) + "," + CRC16.getTableCRC(data.substring(4).getBytes())
-//                            + "," + data.length());
-//                    BaseApplication.writeFile(data);
-
-                    if (!data.startsWith(CRC16.getTableCRC(data.substring(4).getBytes()))) {
-                        btService.write("Resend".getBytes());
-                        //myApp.myToast(BluetoothActivity.this, "数据包错误！");
-                    } else {
-                        btService.write("Success".getBytes());
-                        myApp.myToast(BluetoothActivity.this, R.string.message_receive_success);
-                        List<DetonatorInfoBean> beanList = new ArrayList<>();
-                        myApp.readFromFile(myApp.getListFile(), beanList, DetonatorInfoBean.class);
-                        if (beanList.size() > 0) {
-                            if (null != alertDialog)
-                                alertDialog.dismiss();
-                            alertDialog = new AlertDialog.Builder(BluetoothActivity.this, R.style.AlertDialog)
-                                    .setTitle(R.string.progress_title)
-                                    .setMessage(R.string.dialog_cover_list)
-                                    .setCancelable(false)
-                                    .setNegativeButton(R.string.btn_cancel, null)
-                                    .setNeutralButton(R.string.btn_append, (d, which) -> {
-                                        try {
-                                            JSONArray jsonArray = new JSONArray(data.substring(4));
-                                            for (int i = 0; i < jsonArray.length(); i++) {
-                                                DetonatorInfoBean bean = new DetonatorInfoBean();
-                                                bean.fromJSON(jsonArray.getJSONObject(i));
-                                                beanList.add(bean);
-                                            }
-                                            jsonArray = new JSONArray();
-                                            for (DetonatorInfoBean bean : beanList) {
-                                                jsonArray.put(bean.toJSON());
-                                            }
-                                            saveData("0000" + jsonArray.toString());
-                                        } catch (Exception e1) {
-                                            BaseApplication.writeErrorLog(e1);
-                                        }
-                                    })
-                                    .setPositiveButton(R.string.btn_cover, (d, which) -> saveData(data))
-                                    .create();
-                            alertDialog.show();
-                        } else {
-                            saveData(data);
-                        }
-                    }
-                    break;
-                case STATUS_ERROR:
-                    myApp.myToast(BluetoothActivity.this, (String) msg.obj);
-                    if (null != pDialog && pDialog.isShowing())
-                        pDialog.dismiss();
-                    break;
-            }
-            return false;
-        }
-    });
-
-    private final Handler refreshList = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message msg) {
-            BTSTATUS status = BTSTATUS.values()[msg.what];
-            BluetoothListBean bean;
-            switch (status) {
-                case ENABLING://打开蓝牙
-                    initData(false);
-                    bean = list.get(0);
-                    bean.setChangingStatus(true);
-                    bean.setEnabled(true);
-                    list.set(0, bean);
-                    break;
-                case DISABLING://关闭蓝牙
-                    if (null != btService) {
-                        btService.cancelAllBtThread();
-                        btService = null;
-                    }
-                    initData(false);
-                    bean = list.get(0);
-                    bean.setChangingStatus(true);
-                    bean.setEnabled(false);
-                    list.set(0, bean);
-                    break;
-                case ENABLED:
-                    btService = new BluetoothService(connectHandler);
-                    btService.acceptWait();
-                    searching = true;
-                    initData(true);
-                    startSearch();
-                    break;
-                case DISABLED:
-                    initData(false);
-                    bean = list.get(0);
-                    bean.setChangingStatus(false);
-                    list.set(0, bean);
-                    break;
-                case SEARCHING:
-                    if (rescanLine > 0 && list.size() > rescanLine) {
-                        bean = list.get(rescanLine);
-                        bean.setScanning(true);
-                        list.set(rescanLine, bean);
-                    }
-                    break;
-                case FINISHED:
-                    if (rescanLine > 0 && list.size() > rescanLine) {
-                        bean = list.get(rescanLine);
-                        bean.setScanning(false);
-                        list.set(rescanLine, bean);
-                    }
-                    break;
-                case RENAME:
-                    bean = list.get(1);
-                    BluetoothBean bt = bean.getBluetooth();
-                    bt.setAddress(BTAdapter.getName());
-                    bean.setBluetooth(bt);
-                    list.set(1, bean);
-                    break;
-                case NOTPAIR:
-                    myApp.myToast(BluetoothActivity.this, R.string.bt_pair_fail);
-                case PAIRED:
-                    initData(false);
-                    startSearch();
-                    break;
-                default:
-                    break;
-            }
-            adapter.updateList(list);
-            return false;
-        }
-    });
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -456,7 +282,108 @@ public class BluetoothActivity extends BaseActivity {
             startSearch();
             btService.acceptWait();
         }
-    }
+    }    private Handler connectHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message msg) {
+            switch (msg.what) {
+                case STATUS_CONNECTED:
+                    if (sender)
+                        sendData();
+                    myApp.myToast(BluetoothActivity.this,
+                            String.format(Locale.CHINA, getResources().getString(R.string.bt_connected_device), msg.obj));
+                    break;
+                case STATUS_DATA:
+                    if (!sender) {
+                        if (null == connectHandler) {
+                            myApp.myToast(BluetoothActivity.this, R.string.message_receive_data_please_into_bt);
+                            break;
+                        }
+                        if (msg.arg1 > 0) {
+                            connectHandler.removeMessages(STATUS_RECEIVE_FINISH);
+                            if (searching) {
+                                searching = false;
+                                BTAdapter.cancelDiscovery();
+                            }
+                            receiveData.append(new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1)));
+                            connectHandler.sendEmptyMessageDelayed(STATUS_RECEIVE_FINISH, 100);
+                        }
+                    } else {
+                        if (msg.arg1 > 0) {
+                            String data = new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1));
+                            switch (data) {
+                                case "Success":
+                                    connectHandler.removeMessages(STATUS_ERROR);
+                                    myApp.myToast(BluetoothActivity.this, R.string.message_send_success);
+                                    sender = false;
+                                    if (null != pDialog && pDialog.isShowing()) {
+                                        pDialog.dismiss();
+                                    }
+                                    break;
+                                case "Resend":
+                                    if (null != pDialog && pDialog.isShowing())
+                                        sendData();
+                                    break;
+                            }
+                        }
+                    }
+                    break;
+                case STATUS_RECEIVE_FINISH:
+                    final String data = receiveData.toString();
+                    receiveData = new StringBuilder();
+//                    myApp.myToast(BluetoothActivity.this, data.substring(0, 4) + "," + CRC16.getTableCRC(data.substring(4).getBytes())
+//                            + "," + data.length());
+//                    BaseApplication.writeFile(data);
+
+                    if (!data.startsWith(CRC16.getTableCRC(data.substring(4).getBytes()))) {
+                        btService.write("Resend".getBytes());
+                        //myApp.myToast(BluetoothActivity.this, "数据包错误！");
+                    } else {
+                        btService.write("Success".getBytes());
+                        myApp.myToast(BluetoothActivity.this, R.string.message_receive_success);
+                        List<DetonatorInfoBean> beanList = new ArrayList<>();
+                        myApp.readFromFile(myApp.getListFile(), beanList, DetonatorInfoBean.class);
+                        if (beanList.size() > 0) {
+                            if (null != alertDialog)
+                                alertDialog.dismiss();
+                            alertDialog = new AlertDialog.Builder(BluetoothActivity.this, R.style.AlertDialog)
+                                    .setTitle(R.string.progress_title)
+                                    .setMessage(R.string.dialog_cover_list)
+                                    .setCancelable(false)
+                                    .setNegativeButton(R.string.btn_cancel, null)
+                                    .setNeutralButton(R.string.btn_append, (d, which) -> {
+                                        try {
+                                            JSONArray jsonArray = new JSONArray(data.substring(4));
+                                            for (int i = 0; i < jsonArray.length(); i++) {
+                                                DetonatorInfoBean bean = new DetonatorInfoBean();
+                                                bean.fromJSON(jsonArray.getJSONObject(i));
+                                                beanList.add(bean);
+                                            }
+                                            jsonArray = new JSONArray();
+                                            for (DetonatorInfoBean bean : beanList) {
+                                                jsonArray.put(bean.toJSON());
+                                            }
+                                            saveData("0000" + jsonArray.toString());
+                                        } catch (Exception e1) {
+                                            BaseApplication.writeErrorLog(e1);
+                                        }
+                                    })
+                                    .setPositiveButton(R.string.btn_cover, (d, which) -> saveData(data))
+                                    .create();
+                            alertDialog.show();
+                        } else {
+                            saveData(data);
+                        }
+                    }
+                    break;
+                case STATUS_ERROR:
+                    myApp.myToast(BluetoothActivity.this, (String) msg.obj);
+                    if (null != pDialog && pDialog.isShowing())
+                        pDialog.dismiss();
+                    break;
+            }
+            return false;
+        }
+    });
 
     private void sendData() {
         try {
@@ -478,7 +405,77 @@ public class BluetoothActivity extends BaseActivity {
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
-    }
+    }    private final Handler refreshList = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message msg) {
+            BTSTATUS status = BTSTATUS.values()[msg.what];
+            BluetoothListBean bean;
+            switch (status) {
+                case ENABLING://打开蓝牙
+                    initData(false);
+                    bean = list.get(0);
+                    bean.setChangingStatus(true);
+                    bean.setEnabled(true);
+                    list.set(0, bean);
+                    break;
+                case DISABLING://关闭蓝牙
+                    if (null != btService) {
+                        btService.cancelAllBtThread();
+                        btService = null;
+                    }
+                    initData(false);
+                    bean = list.get(0);
+                    bean.setChangingStatus(true);
+                    bean.setEnabled(false);
+                    list.set(0, bean);
+                    break;
+                case ENABLED:
+                    btService = new BluetoothService(connectHandler);
+                    btService.acceptWait();
+                    searching = true;
+                    initData(true);
+                    startSearch();
+                    break;
+                case DISABLED:
+                    initData(false);
+                    bean = list.get(0);
+                    bean.setChangingStatus(false);
+                    list.set(0, bean);
+                    break;
+                case SEARCHING:
+                    if (rescanLine > 0 && list.size() > rescanLine) {
+                        bean = list.get(rescanLine);
+                        bean.setScanning(true);
+                        list.set(rescanLine, bean);
+                    }
+                    break;
+                case FINISHED:
+                    if (rescanLine > 0 && list.size() > rescanLine) {
+                        bean = list.get(rescanLine);
+                        bean.setScanning(false);
+                        list.set(rescanLine, bean);
+                    }
+                    break;
+                case RENAME:
+                    bean = list.get(1);
+                    BluetoothBean bt = bean.getBluetooth();
+                    bt.setAddress(BTAdapter.getName());
+                    bean.setBluetooth(bt);
+                    list.set(1, bean);
+                    break;
+                case NOTPAIR:
+                    myApp.myToast(BluetoothActivity.this, R.string.bt_pair_fail);
+                case PAIRED:
+                    initData(false);
+                    startSearch();
+                    break;
+                default:
+                    break;
+            }
+            adapter.updateList(list);
+            return false;
+        }
+    });
 
     private void saveData(String data) {
         final File file = new File(myApp.getListFile());
@@ -752,4 +749,8 @@ public class BluetoothActivity extends BaseActivity {
             interrupt();
         }
     }
+
+
+
+
 }

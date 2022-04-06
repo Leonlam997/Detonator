@@ -17,6 +17,8 @@ public class FilePath {
     public final static String FILE_TUNNEL_NOT_FOUND_LIST = APP_PATH + "/T_NotFound.lst";
     public final static String FILE_TUNNEL_ERROR_LIST = APP_PATH + "/T_Error.lst";
     public final static String FILE_TUNNEL_SELECTED_LIST = APP_PATH + "/T_Selected.lst";
+    public final static String[][] FILE_LIST = {{FILE_TUNNEL_DELAY_LIST, FILE_TUNNEL_DETECT_LIST, FILE_TUNNEL_NOT_FOUND_LIST, FILE_TUNNEL_ERROR_LIST, FILE_TUNNEL_SELECTED_LIST},
+            {FILE_OPEN_AIR_DELAY_LIST, FILE_OPEN_AIR_DETECT_LIST, FILE_OPEN_AIR_NOT_FOUND_LIST, FILE_OPEN_AIR_ERROR_LIST, FILE_OPEN_AIR_SELECTED_LIST}};
     public final static String FILE_USER_INFO = APP_PATH + "/Users.dat";
     public final static String FILE_ENTERPRISE_INFO = APP_PATH + "/Enterprise.dat";
     public final static String FILE_PROJECT_INFO = APP_PATH + "/Project";
@@ -29,7 +31,4 @@ public class FilePath {
     public final static String FILE_UPLOAD_LIST = APP_PATH + "/Upload.lst";
     public final static String FILE_UPDATE_PATH = APP_PATH + "/Version";
     public final static String FILE_UPDATE_APK = FILE_UPDATE_PATH + "/%s.apk";
-
-    public final static String[][] FILE_LIST = {{FILE_TUNNEL_DELAY_LIST, FILE_TUNNEL_DETECT_LIST, FILE_TUNNEL_NOT_FOUND_LIST, FILE_TUNNEL_ERROR_LIST, FILE_TUNNEL_SELECTED_LIST},
-            {FILE_OPEN_AIR_DELAY_LIST, FILE_OPEN_AIR_DETECT_LIST, FILE_OPEN_AIR_NOT_FOUND_LIST, FILE_OPEN_AIR_ERROR_LIST, FILE_OPEN_AIR_SELECTED_LIST}};
 }

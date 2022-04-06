@@ -20,7 +20,10 @@ public class SelectModeActivity extends AppCompatActivity {
 
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
         findViewById(R.id.ib_open_air).setOnClickListener(v -> enterApp(1));
+        findViewById(R.id.rl_open_air).setOnClickListener(v -> enterApp(1));
         findViewById(R.id.ib_tunnel).setOnClickListener(v -> enterApp(2));
+        findViewById(R.id.rl_tunnel).setOnClickListener(v -> enterApp(2));
+        findViewById(R.id.ib_open_air).requestFocus();
         myApp = (BaseApplication) getApplication();
 //        findViewById(R.id.ib_pit).setOnClickListener(new View.OnClickListener() {
 //            @Override

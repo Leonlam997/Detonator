@@ -76,122 +76,6 @@ public class DetonateStep4Activity extends BaseActivity {
     private MinaClient minaClient;
     private LocalSettingBean settingBean;
     private BaseApplication myApp;
-    private final Handler refreshProgressBar = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message msg) {
-            refreshProgressBar.removeMessages(1);
-            if (countDown < explodeTime / 100) {
-                countDown++;
-                int percent = countDown * ConstantUtils.UPLOAD_TIMEOUT / explodeTime;
-                tvExplode.setText(String.format(Locale.CHINA, "%d%%", percent));
-                pbExplode.setProgress(percent);
-                refreshProgressBar.sendEmptyMessageDelayed(1, 100);
-            } else {
-                tvExplode.setText(String.format(Locale.CHINA, "%d%%", 100));
-                pbExplode.setProgress(100);
-                if (soundTicktock > 0)
-                    soundPool.stop(soundTicktock);
-                showMessage(R.string.message_explode_success);
-                moveFile();
-                //delaySendCmdHandler.sendEmptyMessage(STEP_READ_VOLTAGE);
-                setProgressVisibility(false);
-                btnExit.setEnabled(true);
-                btnUpload.setEnabled(true);
-            }
-            return false;
-        }
-    });
-    private final Handler delaySendCmdHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message msg) {
-            switch (msg.what) {
-                case STEP_READ_VOLTAGE:
-                    serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
-                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_READ_VOLTAGE, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
-                    break;
-                case STEP_PROGRESS:
-                    BaseApplication.writeFile("进入起爆界面");
-                    if (!uniteExplode)
-                        countDown = (int) ((System.currentTimeMillis() - getIntent().getLongExtra(KeyUtils.KEY_EXPLODE_ELAPSED, 0)) / 100);
-                    else if (serialPortUtil != null) {
-                        serialPortUtil.closeSerialPort();
-                        serialPortUtil = null;
-                    }
-                    refreshProgressBar.sendEmptyMessage(1);
-                    break;
-                case STEP_EXPLODE:
-                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.NEW_EXPLODE, 0);
-                    if (settingBean.isNewLG())
-                        delaySendCmdHandler.sendEmptyMessageDelayed(receiveCount++ < ConstantUtils.EXPLODE_TIMES - 1 ? STEP_EXPLODE : STEP_EXPLODE_2, 10);
-                    else
-                        delaySendCmdHandler.sendEmptyMessageDelayed(STEP_EXPLODE_2, 500);
-                    break;
-                case STEP_EXPLODE_2:
-                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.NEW_EXPLODE, 0);
-                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_PROGRESS, 100);
-                    break;
-                case STEP_CHECK_EXPLODER_ERROR:
-                    disableButton(false);
-                    break;
-                case STEP_CHECK_EXPLODER_SUCCESS:
-                    settingBean = BaseApplication.readSettings();
-                    if (!settingBean.isRegistered() || null == settingBean.getExploderID() || settingBean.getExploderID().isEmpty()) {
-                        showMessage(R.string.message_not_registered);
-                    } else if (0 == settingBean.getServerHost() && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
-                        showMessage(R.string.message_fill_enterprise);
-                        startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
-                    } else {
-                        new AlertDialog.Builder(DetonateStep4Activity.this, R.style.AlertDialog)
-                                .setTitle(R.string.dialog_title_upload)
-                                .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
-                                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> uploadRecord())
-                                .setNegativeButton(R.string.btn_cancel, null)
-                                .create().show();
-                    }
-                    break;
-                case MinaHandler.MINA_DATA:
-                    delaySendCmdHandler.removeMessages(STEP_UPLOAD_TIMEOUT);
-                    if (((String) msg.obj).contains("R")) {
-                        uploadRecord();
-                    } else {
-                        if (((String) msg.obj).startsWith("#") && ((String) msg.obj).endsWith("$"))
-                            receiveCount++;
-                        if (receiveCount >= 3) {
-                            renameRecordFile();
-                            myApp.myToast(DetonateStep4Activity.this, R.string.message_upload_success);
-                            btnExit.setEnabled(true);
-                            finish();
-                            break;
-                        }
-                    }
-                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_UPLOAD_TIMEOUT, ConstantUtils.UPLOAD_TIMEOUT);
-                    break;
-                case MinaHandler.MINA_NORMAL:
-                    delaySendCmdHandler.removeMessages(STEP_UPLOAD_TIMEOUT);
-                    myApp.myToast(DetonateStep4Activity.this, (String) msg.obj);
-                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_UPLOAD_TIMEOUT, ConstantUtils.UPLOAD_TIMEOUT);
-                    break;
-                case MinaHandler.MINA_ERROR:
-                    delaySendCmdHandler.removeMessages(STEP_UPLOAD_TIMEOUT);
-                    disableButton(false);
-                    myApp.myToast(DetonateStep4Activity.this, (String) msg.obj);
-                    if (null != minaClient) {
-                        new Thread(() -> minaClient.closeConnect()).start();
-                    }
-                    break;
-                case STEP_UPLOAD_TIMEOUT:
-                    disableButton(false);
-                    myApp.myToast(DetonateStep4Activity.this, R.string.message_network_timeout);
-                    break;
-                case STEP_MESSAGE:
-                    myApp.myToast(DetonateStep4Activity.this, (String) msg.obj);
-                    break;
-                default:
-                    break;
-            }
-            return false;
-        }
-    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -276,7 +160,31 @@ public class DetonateStep4Activity extends BaseActivity {
         } else {
             delaySendCmdHandler.sendEmptyMessageDelayed(STEP_PROGRESS, 100);
         }
-    }
+    }    private final Handler refreshProgressBar = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message msg) {
+            refreshProgressBar.removeMessages(1);
+            if (countDown < explodeTime / 100) {
+                countDown++;
+                int percent = countDown * ConstantUtils.UPLOAD_TIMEOUT / explodeTime;
+                tvExplode.setText(String.format(Locale.CHINA, "%d%%", percent));
+                pbExplode.setProgress(percent);
+                refreshProgressBar.sendEmptyMessageDelayed(1, 100);
+            } else {
+                tvExplode.setText(String.format(Locale.CHINA, "%d%%", 100));
+                pbExplode.setProgress(100);
+                if (soundTicktock > 0)
+                    soundPool.stop(soundTicktock);
+                showMessage(R.string.message_explode_success);
+                moveFile();
+                //delaySendCmdHandler.sendEmptyMessage(STEP_READ_VOLTAGE);
+                setProgressVisibility(false);
+                btnExit.setEnabled(true);
+                btnUpload.setEnabled(true);
+            }
+            return false;
+        }
+    });
 
     private void initSound() {
         soundPool = myApp.getSoundPool();
@@ -294,7 +202,94 @@ public class DetonateStep4Activity extends BaseActivity {
                 myApp.myToast(this, R.string.message_media_load_error);
         } else
             myApp.myToast(this, R.string.message_media_init_error);
-    }
+    }    private final Handler delaySendCmdHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message msg) {
+            switch (msg.what) {
+                case STEP_READ_VOLTAGE:
+                    serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
+                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_READ_VOLTAGE, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
+                    break;
+                case STEP_PROGRESS:
+                    BaseApplication.writeFile("进入起爆界面");
+                    if (!uniteExplode)
+                        countDown = (int) ((System.currentTimeMillis() - getIntent().getLongExtra(KeyUtils.KEY_EXPLODE_ELAPSED, 0)) / 100);
+                    else if (serialPortUtil != null) {
+                        serialPortUtil.closeSerialPort();
+                        serialPortUtil = null;
+                    }
+                    refreshProgressBar.sendEmptyMessage(1);
+                    break;
+                case STEP_EXPLODE:
+                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.NEW_EXPLODE, 0);
+                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_EXPLODE_2, settingBean.isNewLG() ? 200 : 500);
+                    break;
+                case STEP_EXPLODE_2:
+                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.NEW_EXPLODE, 0);
+                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_PROGRESS, 100);
+                    break;
+                case STEP_CHECK_EXPLODER_ERROR:
+                    disableButton(false);
+                    break;
+                case STEP_CHECK_EXPLODER_SUCCESS:
+                    settingBean = BaseApplication.readSettings();
+                    if (!settingBean.isRegistered() || null == settingBean.getExploderID() || settingBean.getExploderID().isEmpty()) {
+                        showMessage(R.string.message_not_registered);
+                    } else if (0 == settingBean.getServerHost() && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
+                        showMessage(R.string.message_fill_enterprise);
+                        startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
+                    } else {
+                        new AlertDialog.Builder(DetonateStep4Activity.this, R.style.AlertDialog)
+                                .setTitle(R.string.dialog_title_upload)
+                                .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
+                                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> uploadRecord())
+                                .setNegativeButton(R.string.btn_cancel, null)
+                                .create().show();
+                    }
+                    break;
+                case MinaHandler.MINA_DATA:
+                    delaySendCmdHandler.removeMessages(STEP_UPLOAD_TIMEOUT);
+                    if (((String) msg.obj).contains("R")) {
+                        uploadRecord();
+                    } else {
+                        if (((String) msg.obj).startsWith("#") && ((String) msg.obj).endsWith("$"))
+                            receiveCount++;
+                        if (receiveCount >= 3) {
+                            renameRecordFile();
+                            myApp.myToast(DetonateStep4Activity.this, R.string.message_upload_success);
+                            btnExit.setEnabled(true);
+                            finish();
+                            break;
+                        }
+                    }
+                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_UPLOAD_TIMEOUT, ConstantUtils.UPLOAD_TIMEOUT);
+                    break;
+                case MinaHandler.MINA_NORMAL:
+                    delaySendCmdHandler.removeMessages(STEP_UPLOAD_TIMEOUT);
+                    myApp.myToast(DetonateStep4Activity.this, (String) msg.obj);
+                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_UPLOAD_TIMEOUT, ConstantUtils.UPLOAD_TIMEOUT);
+                    break;
+                case MinaHandler.MINA_ERROR:
+                    delaySendCmdHandler.removeMessages(STEP_UPLOAD_TIMEOUT);
+                    disableButton(false);
+                    myApp.myToast(DetonateStep4Activity.this, (String) msg.obj);
+                    if (null != minaClient) {
+                        new Thread(() -> minaClient.closeConnect()).start();
+                    }
+                    break;
+                case STEP_UPLOAD_TIMEOUT:
+                    disableButton(false);
+                    myApp.myToast(DetonateStep4Activity.this, R.string.message_network_timeout);
+                    break;
+                case STEP_MESSAGE:
+                    myApp.myToast(DetonateStep4Activity.this, (String) msg.obj);
+                    break;
+                default:
+                    break;
+            }
+            return false;
+        }
+    });
 
     private void function(int which) {
         switch (which) {
@@ -384,47 +379,47 @@ public class DetonateStep4Activity extends BaseActivity {
                             .url(ConstantUtils.HOST_URL)
                             .params(params)
                             .build().execute(new Callback<UploadExplodeRecordsBean>() {
-                        @Override
-                        public UploadExplodeRecordsBean parseNetworkResponse(Response response, int i) throws Exception {
-                            if (response.body() != null) {
-                                String string = Objects.requireNonNull(response.body()).string();
-                                return BaseApplication.jsonFromString(string, UploadExplodeRecordsBean.class);
-                            }
-                            return null;
-                        }
+                                @Override
+                                public UploadExplodeRecordsBean parseNetworkResponse(Response response, int i) throws Exception {
+                                    if (response.body() != null) {
+                                        String string = Objects.requireNonNull(response.body()).string();
+                                        return BaseApplication.jsonFromString(string, UploadExplodeRecordsBean.class);
+                                    }
+                                    return null;
+                                }
 
-                        @Override
-                        public void onError(Call call, Exception e, int i) {
-                            showMessage(R.string.message_check_network);
-                            disableButton(false);
-                        }
+                                @Override
+                                public void onError(Call call, Exception e, int i) {
+                                    showMessage(R.string.message_check_network);
+                                    disableButton(false);
+                                }
 
-                        @Override
-                        public void onResponse(UploadExplodeRecordsBean uploadExplodeRecordsBean, int i) {
-                            disableButton(false);
-                            if (null != uploadExplodeRecordsBean) {
-                                if (uploadExplodeRecordsBean.getToken().equals(token)) {
-                                    if (uploadExplodeRecordsBean.isStatus()) {
-                                        if (null != uploadExplodeRecordsBean.getResult()) {
-                                            if (uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                                renameRecordFile();
-                                                finish();
+                                @Override
+                                public void onResponse(UploadExplodeRecordsBean uploadExplodeRecordsBean, int i) {
+                                    disableButton(false);
+                                    if (null != uploadExplodeRecordsBean) {
+                                        if (uploadExplodeRecordsBean.getToken().equals(token)) {
+                                            if (uploadExplodeRecordsBean.isStatus()) {
+                                                if (null != uploadExplodeRecordsBean.getResult()) {
+                                                    if (uploadExplodeRecordsBean.getResult().isSuccess()) {
+                                                        renameRecordFile();
+                                                        finish();
+                                                    } else {
+                                                        showMessage(R.string.message_upload_fail);
+                                                        disableButton(false);
+                                                    }
+                                                }
                                             } else {
-                                                showMessage(R.string.message_upload_fail);
-                                                disableButton(false);
+                                                showMessage(uploadExplodeRecordsBean.getDescription());
                                             }
+                                        } else {
+                                            showMessage(R.string.message_token_error);
                                         }
                                     } else {
-                                        showMessage(uploadExplodeRecordsBean.getDescription());
+                                        showMessage(R.string.message_return_data_error);
                                     }
-                                } else {
-                                    showMessage(R.string.message_token_error);
                                 }
-                            } else {
-                                showMessage(R.string.message_return_data_error);
-                            }
-                        }
-                    });
+                            });
                 }
             });
             enterpriseDialog.setClickModify(view -> {
@@ -572,4 +567,8 @@ public class DetonateStep4Activity extends BaseActivity {
         }
         super.onDestroy();
     }
+
+
+
+
 }

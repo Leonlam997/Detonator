@@ -46,15 +46,13 @@ public class WifiActivity extends BaseActivity {
     private final int WIFI_SECURE_NO = 1;
     private final int WIFI_SECURE_WEP = 2;
     private final int WIFI_SECURE_WPA = 3;
+    private int scanCount, index, lastTouchX, lastPosition;
     private List<WifiListBean> list;
     private WifiListAdapter adapter;
     private boolean isStop;
     private boolean isConnecting;
     private RssiBroadcast broadcast;
     private WifiManager wm;
-    private int scanCount, index, lastTouchX, lastPosition;
-    private BaseApplication myApp;
-    private PopupWindow popupMenu;
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode() && null != result.getData()) {
             WifiListBean bean = list.get(index);
@@ -80,6 +78,8 @@ public class WifiActivity extends BaseActivity {
             return false;
         }
     });
+    private BaseApplication myApp;
+    private PopupWindow popupMenu;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -305,16 +305,16 @@ public class WifiActivity extends BaseActivity {
     }
 
     private WifiConfiguration isExist(String ssid) {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return null;
-        }
-        List<WifiConfiguration> configs = wm.getConfiguredNetworks();
-        if (configs != null)
-            for (WifiConfiguration config : configs) {
-                if (config.SSID.equals("\"" + ssid + "\"")) {
-                    return config;
+        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(WifiActivity.this, Manifest.permission.ACCESS_WIFI_STATE)
+                && PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(WifiActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            List<WifiConfiguration> configs = wm.getConfiguredNetworks();
+            if (configs != null)
+                for (WifiConfiguration config : configs) {
+                    if (config.SSID.equals("\"" + ssid + "\"")) {
+                        return config;
+                    }
                 }
-            }
+        }
         return null;
     }
 

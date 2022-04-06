@@ -1,14 +1,19 @@
 package com.leon.detonator.Activity;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.view.View;
+import android.webkit.PermissionRequest;
+
+import androidx.core.app.ActivityCompat;
 
 import com.google.gson.Gson;
 import com.leon.detonator.Base.BaseActivity;
@@ -57,10 +62,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         findViewById(R.id.btn_cooperate).setEnabled(false);
         new Thread(() -> myApp.uploadExplodeList()).start();
         LocalSettingBean bean = BaseApplication.readSettings();
-        String im = ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
-        if (null == bean.getIMEI() || (null != bean.getIMEI() && null != im && !im.trim().isEmpty() && !bean.getIMEI().equals(im))) {
-            bean.setRegistered(false);
-            myApp.saveSettings(bean);
+        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE)) {
+            String im = ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
+            if (null == bean.getIMEI() || (null != bean.getIMEI() && null != im && !im.trim().isEmpty() && !bean.getIMEI().equals(im))) {
+                bean.setRegistered(false);
+                myApp.saveSettings(bean);
+            }
         }
         keyCount = 0;
         initSettings();
@@ -127,6 +134,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             }
             intent.setClass(MainActivity.this, menuActivities[num]);
             startActivity(intent);
+            keyCount = 0;
         }
     }
 
@@ -146,11 +154,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     Intent intent = new Intent();
                     Class<?>[] menuActivities = {VoltageTestActivity.class,
                             SemiProductActivity.class,
-                            SerialTestActivity.class,
+                            settingBean.isNewLG() ? PropsSettingsActivity.class : SerialTestActivity.class,
                             WriteSNActivity.class,
                             ChargeActivity.class};
                     intent.setClass(MainActivity.this, menuActivities[launchType]);
                     startActivity(intent);
+                    keyCount = 0;
                 } else if (keyCount == 0 || keyCount == 1 || keyCount == 4) {
                     keyCount++;
                 } else

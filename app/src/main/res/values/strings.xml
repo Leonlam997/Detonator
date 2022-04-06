@@ -23,6 +23,7 @@
     <string name="check_detonator">在线雷管检测</string>
     <string name="error_detonator">错误雷管列表</string>
     <string name="title_activity_welcome">中爆终端控制器</string>
+    <string name="title_props_settings">参数设置</string>
     <string name="hint_inputUsername">请输入用户名</string>
     <string name="hint_inputPassword">请输入密码</string>
     <string name="txt_RegisterUser">用户注册</string>
@@ -109,7 +110,6 @@
     <string name="detected_amount">在线电子雷管数：</string>
     <string name="used_time">总计用时：</string>
     <string name="delay_period">总延期：</string>
-    <string name="detected_none">未扫描到雷管!</string>
     <string name="check_auth">雷管授权验证</string>
     <string name="det_charge">正在充电</string>
     <string name="det_check_cap">正在检测电容</string>
@@ -210,6 +210,10 @@
     <string name="unite_communication_fail">通讯失败！</string>
     <string name="version_number">版本号：%1$s</string>
     <string name="device_code">编号：%1$s</string>
+    <string name="message_waveform_data_error">数据错误生成失败!</string>
+    <string name="message_scan_timeout">未扫描到二维码!</string>
+    <string name="message_props_set_success">设置成功！</string>
+    <string name="message_props_get_success">读取成功！</string>
     <string name="message_media_init_error">音频设备出错！</string>
     <string name="message_media_load_error">音频加载失败！</string>
     <string name="message_acquire_phone_info_error">获取电话信息错误！</string>
@@ -288,6 +292,11 @@
     <string name="message_explode_success">起爆成功！</string>
     <string name="message_restore_success">列表导入成功！</string>
     <string name="message_input_voltage_error">输入电压值错误！</string>
+    <string name="message_status_charge_only">只充电没起爆！</string>
+    <string name="message_status_explode_only">未充电就起爆！</string>
+    <string name="message_status_charge_explode">正常充电起爆！</string>
+    <string name="message_status_normal">未使用！</string>
+    <string name="message_status_error">获取失败！</string>
     <string name="dialog_title_cancel_upload">取消上传</string>
     <string name="dialog_title_delete_record">删除爆破记录</string>
     <string name="dialog_title_input_delay">设置下一段延期</string>
@@ -380,9 +389,15 @@
     <string name="tab_title_black_list">黑名单</string>
     <string name="tab_title_used_list">已使用</string>
     <string name="tab_title_no_authorize_list">未授权</string>
+    <string name="tab_title_props_page1">电压电流</string>
+    <string name="tab_title_props_page2">第一波</string>
+    <string name="tab_title_props_page3">第二波</string>
+    <string name="tab_title_props_page4">第三波</string>
+    <string name="tab_title_props_page5">通讯脉冲</string>
     <string name="button_update">下载更新</string>
     <string name="button_version">版本管理</string>
     <string name="button_start_detect">开始检测</string>
+    <string name="button_get_status">获取状态</string>
     <string name="button_enter_charge">进入充电</string>
     <string name="button_enter_unite">进入联机</string>
     <string name="button_next_hole">下一孔</string>
@@ -428,4 +443,19 @@
     <string name="button_calibrate">时钟校准</string>
     <string name="button_write_sn">写入序号</string>
     <string name="button_set_delay">设置延时</string>
+    <string name="button_set">设置</string>
+    <string name="button_get">读取</string>
+    <string name="title_text_lpw">低电平脉冲宽度：</string>
+    <string name="title_text_bit0r">Bit0高电平脉宽：</string>
+    <string name="title_text_bit1r">Bit1高电平脉宽：</string>
+    <string name="title_text_voltage">启动脉冲电压：</string>
+    <string name="title_text_pulse_width">启动脉冲宽度：</string>
+    <string name="title_text_stop_pulse">停顿脉冲宽度：</string>
+    <string name="text_pulse_unit">μs</string>
+    <string name="text_current_unit">μA</string>
+    <string name="title_text_dac">比较门限值：</string>
+    <string name="title_text_work_voltage">工作电压：</string>
+    <string name="title_text_current">空载电流补偿：</string>
+    <string name="button_open_bus">打开总线</string>
+    <string name="button_close_bus">关闭总线</string>
 </resources>

@@ -194,46 +194,46 @@ public class LoginActivity extends BaseActivity {
                     .url(ConstantUtils.HOST_URL)
                     .params(params)
                     .build().execute(new Callback<EnterpriseUserBean>() {
-                @Override
-                public EnterpriseUserBean parseNetworkResponse(Response response, int i) throws Exception {
-                    if (response.body() != null) {
-                        String string = Objects.requireNonNull(response.body()).string();
-                        return BaseApplication.jsonFromString(string, EnterpriseUserBean.class);
-                    }
-                    return null;
-                }
+                        @Override
+                        public EnterpriseUserBean parseNetworkResponse(Response response, int i) throws Exception {
+                            if (response.body() != null) {
+                                String string = Objects.requireNonNull(response.body()).string();
+                                return BaseApplication.jsonFromString(string, EnterpriseUserBean.class);
+                            }
+                            return null;
+                        }
 
-                @Override
-                public void onError(Call call, Exception e, int i) {
-                    sendMsg(R.string.message_check_network);
-                }
+                        @Override
+                        public void onError(Call call, Exception e, int i) {
+                            sendMsg(R.string.message_check_network);
+                        }
 
-                @Override
-                public void onResponse(EnterpriseUserBean userBean, int i) {
-                    if (userBean != null && userBean.isStatus() && userBean.getToken().equals(token)) {
-                        if (userBean.getResult() != null) {
-                            userList.addAll(userBean.getResult().getPageList());
-                            if (userBean.getResult().getPageTotal() > userBean.getResult().getPageIndex()) {
-                                new GetEnterpriseProject().start();
-                            } else {
-                                try {
-                                    FileWriter fw = new FileWriter(new File(FilePath.FILE_USER_INFO));
-                                    fw.append(new Gson().toJson(userList));
-                                    fw.close();
-                                } catch (Exception e) {
-                                    BaseApplication.writeErrorLog(e);
+                        @Override
+                        public void onResponse(EnterpriseUserBean userBean, int i) {
+                            if (userBean != null && userBean.isStatus() && userBean.getToken().equals(token)) {
+                                if (userBean.getResult() != null) {
+                                    userList.addAll(userBean.getResult().getPageList());
+                                    if (userBean.getResult().getPageTotal() > userBean.getResult().getPageIndex()) {
+                                        new GetEnterpriseProject().start();
+                                    } else {
+                                        try {
+                                            FileWriter fw = new FileWriter(new File(FilePath.FILE_USER_INFO));
+                                            fw.append(new Gson().toJson(userList));
+                                            fw.close();
+                                        } catch (Exception e) {
+                                            BaseApplication.writeErrorLog(e);
+                                        }
+                                        sendMsg(2, "");
+                                    }
                                 }
-                                sendMsg(2, "");
+                            } else {
+                                if (userBean != null)
+                                    sendMsg(1, userBean.getDescription());
+                                else
+                                    sendMsg(R.string.message_token_error);
                             }
                         }
-                    } else {
-                        if (userBean != null)
-                            sendMsg(1, userBean.getDescription());
-                        else
-                            sendMsg(R.string.message_token_error);
-                    }
-                }
-            });
+                    });
         }
     }
 
@@ -253,49 +253,49 @@ public class LoginActivity extends BaseActivity {
                     .url(ConstantUtils.HOST_URL)
                     .params(params)
                     .build().execute(new Callback<EnterpriseProjectBean>() {
-                @Override
-                public EnterpriseProjectBean parseNetworkResponse(Response response, int i) throws Exception {
-                    if (response.body() != null) {
-                        String string = Objects.requireNonNull(response.body()).string();
-                        return BaseApplication.jsonFromString(string, EnterpriseProjectBean.class);
-                    }
-                    return null;
-                }
+                        @Override
+                        public EnterpriseProjectBean parseNetworkResponse(Response response, int i) throws Exception {
+                            if (response.body() != null) {
+                                String string = Objects.requireNonNull(response.body()).string();
+                                return BaseApplication.jsonFromString(string, EnterpriseProjectBean.class);
+                            }
+                            return null;
+                        }
 
-                @Override
-                public void onError(Call call, Exception e, int i) {
-                    sendMsg(R.string.message_check_network);
-                }
+                        @Override
+                        public void onError(Call call, Exception e, int i) {
+                            sendMsg(R.string.message_check_network);
+                        }
 
-                @Override
-                public void onResponse(EnterpriseProjectBean enterpriseProjectBean, int i) {
-                    if (enterpriseProjectBean != null && enterpriseProjectBean.isStatus() && enterpriseProjectBean.getToken().equals(token)) {
-                        if (enterpriseProjectBean.getResult() != null) {
-                            if (enterpriseProjectBean.getResult().getPageList() != null && enterpriseProjectBean.getResult().getPageList().size() > 0)
-                                projectList.addAll(enterpriseProjectBean.getResult().getPageList());
-                            if (enterpriseProjectBean.getResult().getPageTotal() > enterpriseProjectBean.getResult().getPageIndex()) {
-                                new GetEnterpriseProject().start();
-                            } else {
-                                if (projectList != null && projectList.size() > 0) {
-                                    try {
-                                        FileWriter fw = new FileWriter(new File(FilePath.FILE_PROJECT_INFO + userID + ".dat"));
-                                        fw.append(new Gson().toJson(projectList));
-                                        fw.close();
-                                    } catch (Exception e) {
-                                        BaseApplication.writeErrorLog(e);
+                        @Override
+                        public void onResponse(EnterpriseProjectBean enterpriseProjectBean, int i) {
+                            if (enterpriseProjectBean != null && enterpriseProjectBean.isStatus() && enterpriseProjectBean.getToken().equals(token)) {
+                                if (enterpriseProjectBean.getResult() != null) {
+                                    if (enterpriseProjectBean.getResult().getPageList() != null && enterpriseProjectBean.getResult().getPageList().size() > 0)
+                                        projectList.addAll(enterpriseProjectBean.getResult().getPageList());
+                                    if (enterpriseProjectBean.getResult().getPageTotal() > enterpriseProjectBean.getResult().getPageIndex()) {
+                                        new GetEnterpriseProject().start();
+                                    } else {
+                                        if (projectList != null && projectList.size() > 0) {
+                                            try {
+                                                FileWriter fw = new FileWriter(new File(FilePath.FILE_PROJECT_INFO + userID + ".dat"));
+                                                fw.append(new Gson().toJson(projectList));
+                                                fw.close();
+                                            } catch (Exception e) {
+                                                BaseApplication.writeErrorLog(e);
+                                            }
+                                        }
                                     }
                                 }
+                            } else {
+                                if (enterpriseProjectBean != null)
+                                    sendMsg(1, enterpriseProjectBean.getDescription());
+                                else
+                                    sendMsg(R.string.message_token_error);
+                                sendMsg(2, "");
                             }
                         }
-                    } else {
-                        if (enterpriseProjectBean != null)
-                            sendMsg(1, enterpriseProjectBean.getDescription());
-                        else
-                            sendMsg(R.string.message_token_error);
-                        sendMsg(2, "");
-                    }
-                }
-            });
+                    });
         }
 
     }

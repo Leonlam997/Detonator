@@ -24,7 +24,7 @@ public class VoltageTestActivity extends BaseActivity {
     private EditText etVoltage;
     private SeekBar sbVoltage;
     private SerialDataReceiveListener myReceiveListener;
-    private final Handler delayCmdHandler = new Handler(new Handler.Callback() {
+    private int tempDac;    private final Handler delayCmdHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
@@ -42,7 +42,6 @@ public class VoltageTestActivity extends BaseActivity {
             return false;
         }
     });
-    private int tempDac;
     private LocalSettingBean settingBean;
     private BaseApplication myApp;
 
@@ -208,5 +207,7 @@ public class VoltageTestActivity extends BaseActivity {
         serialPortUtil.closeSerialPort();
         super.onDestroy();
     }
+
+
 
 }

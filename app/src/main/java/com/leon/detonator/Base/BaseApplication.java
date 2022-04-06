@@ -662,10 +662,6 @@ public class BaseApplication extends Application {
         this.tunnel = tunnel;
     }
 
-    public boolean isNewClock() {
-        return false;
-    }
-
     public String getListFile() {
         return tunnel ? FilePath.FILE_TUNNEL_DELAY_LIST : FilePath.FILE_OPEN_AIR_DELAY_LIST;
     }
@@ -716,36 +712,36 @@ public class BaseApplication extends Application {
                                         .url(ConstantUtils.HOST_URL)
                                         .params(params)
                                         .build().execute(new Callback<UploadListResultBean>() {
-                                    @Override
-                                    public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
-                                        if (response.body() != null) {
-                                            String string = Objects.requireNonNull(response.body()).string();
-                                            return BaseApplication.jsonFromString(string, UploadListResultBean.class);
-                                        }
-                                        return null;
-                                    }
+                                            @Override
+                                            public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
+                                                if (response.body() != null) {
+                                                    String string = Objects.requireNonNull(response.body()).string();
+                                                    return BaseApplication.jsonFromString(string, UploadListResultBean.class);
+                                                }
+                                                return null;
+                                            }
 
-                                    @Override
-                                    public void onError(Call call, Exception e, int i) {
+                                            @Override
+                                            public void onError(Call call, Exception e, int i) {
 
-                                    }
+                                            }
 
-                                    @Override
-                                    public void onResponse(UploadListResultBean uploadListResultBean, int i) {
-                                        if (null != uploadListResultBean) {
-                                            if (uploadListResultBean.getToken().equals(token)) {
-                                                if (uploadListResultBean.isStatus()) {
-                                                    b.setUploadServer(true);
-                                                    try {
-                                                        writeToFile(FilePath.FILE_UPLOAD_LIST, list);
-                                                    } catch (Exception e) {
-                                                        writeErrorLog(e);
+                                            @Override
+                                            public void onResponse(UploadListResultBean uploadListResultBean, int i) {
+                                                if (null != uploadListResultBean) {
+                                                    if (uploadListResultBean.getToken().equals(token)) {
+                                                        if (uploadListResultBean.isStatus()) {
+                                                            b.setUploadServer(true);
+                                                            try {
+                                                                writeToFile(FilePath.FILE_UPLOAD_LIST, list);
+                                                            } catch (Exception e) {
+                                                                writeErrorLog(e);
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-                                    }
-                                });
+                                        });
                             }
                         } catch (Exception e) {
                             writeErrorLog(e);
@@ -773,30 +769,30 @@ public class BaseApplication extends Application {
                             .addHeader("IMEI", id)
                             .build().execute(new Callback<UploadListResultBean>() {
 
-                        @Override
-                        public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
-                            if (response.body() != null) {
-                                String string = Objects.requireNonNull(response.body()).string();
-                                return BaseApplication.jsonFromString(string, UploadListResultBean.class);
-                            }
-                            return null;
-                        }
+                                @Override
+                                public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
+                                    if (response.body() != null) {
+                                        String string = Objects.requireNonNull(response.body()).string();
+                                        return BaseApplication.jsonFromString(string, UploadListResultBean.class);
+                                    }
+                                    return null;
+                                }
 
-                        @Override
-                        public void onError(Call call, Exception e, int i) {
+                                @Override
+                                public void onError(Call call, Exception e, int i) {
 
-                        }
+                                }
 
-                        @Override
-                        public void onResponse(UploadListResultBean uploadListResultBean, int i) {
-                            if (null != uploadListResultBean) {
-                                if (uploadListResultBean.isStatus())
-                                    myToast(BaseApplication.this, R.string.message_upload_success);
-                                else
-                                    myToast(BaseApplication.this, uploadListResultBean.getDescription());
-                            }
-                        }
-                    });
+                                @Override
+                                public void onResponse(UploadListResultBean uploadListResultBean, int i) {
+                                    if (null != uploadListResultBean) {
+                                        if (uploadListResultBean.isStatus())
+                                            myToast(BaseApplication.this, R.string.message_upload_success);
+                                        else
+                                            myToast(BaseApplication.this, uploadListResultBean.getDescription());
+                                    }
+                                }
+                            });
                 }
             } catch (SecurityException e) {
                 writeErrorLog(e);
@@ -890,37 +886,37 @@ public class BaseApplication extends Application {
                     .url(ConstantUtils.HOST_URL)
                     .params(params)
                     .build().execute(new Callback<RegisterExploderBean>() {
-                @Override
-                public RegisterExploderBean parseNetworkResponse(Response response, int i) throws Exception {
-                    if (response.body() != null) {
-                        String string = Objects.requireNonNull(response.body()).string();
-                        return jsonFromString(string, RegisterExploderBean.class);
-                    }
-                    return null;
-                }
-
-                @Override
-                public void onError(Call call, Exception e, int i) {
-                    registerFinished = true;
-                }
-
-                @Override
-                public void onResponse(RegisterExploderBean registerExploderBean, int i) {
-                    registerFinished = true;
-
-                    if (null != registerExploderBean && registerExploderBean.isStatus() && registerExploderBean.getToken().equals(token)) {
-                        if (null != registerExploderBean.getResult()) {
-                            settingBean.setRegistered(true);
-                            settingBean.setIMEI(((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId());
-                            settingBean.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
-                            BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
-                            saveSettings(settingBean);
-                        } else {
-                            myToast(BaseApplication.this, registerExploderBean.getDescription());
+                        @Override
+                        public RegisterExploderBean parseNetworkResponse(Response response, int i) throws Exception {
+                            if (response.body() != null) {
+                                String string = Objects.requireNonNull(response.body()).string();
+                                return jsonFromString(string, RegisterExploderBean.class);
+                            }
+                            return null;
                         }
-                    }
-                }
-            });
+
+                        @Override
+                        public void onError(Call call, Exception e, int i) {
+                            registerFinished = true;
+                        }
+
+                        @Override
+                        public void onResponse(RegisterExploderBean registerExploderBean, int i) {
+                            registerFinished = true;
+
+                            if (null != registerExploderBean && registerExploderBean.isStatus() && registerExploderBean.getToken().equals(token)) {
+                                if (null != registerExploderBean.getResult()) {
+                                    settingBean.setRegistered(true);
+                                    settingBean.setIMEI(((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId());
+                                    settingBean.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
+                                    BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
+                                    saveSettings(settingBean);
+                                } else {
+                                    myToast(BaseApplication.this, registerExploderBean.getDescription());
+                                }
+                            }
+                        }
+                    });
         }
     }
 
@@ -938,31 +934,31 @@ public class BaseApplication extends Application {
                     .url(ConstantUtils.HOST_URL)
                     .params(params)
                     .build().execute(new Callback<ExploderBean>() {
-                @Override
-                public ExploderBean parseNetworkResponse(Response response, int i) throws Exception {
-                    if (response.body() != null) {
-                        String string = Objects.requireNonNull(response.body()).string();
-                        return BaseApplication.jsonFromString(string, ExploderBean.class);
-                    }
-                    return null;
-                }
-
-                @Override
-                public void onError(Call call, Exception e, int i) {
-                    registerFinished = true;
-                }
-
-                @Override
-                public void onResponse(ExploderBean exploderBean, int i) {
-                    registerFinished = true;
-                    if (null != exploderBean && exploderBean.isStatus() && exploderBean.getToken().equals(token)) {
-                        if (null != exploderBean.getResult()) {
-                            settingBean.setExploderID(exploderBean.getResult().getCodeID());
-                            saveSettings(settingBean);
+                        @Override
+                        public ExploderBean parseNetworkResponse(Response response, int i) throws Exception {
+                            if (response.body() != null) {
+                                String string = Objects.requireNonNull(response.body()).string();
+                                return BaseApplication.jsonFromString(string, ExploderBean.class);
+                            }
+                            return null;
                         }
-                    }
-                }
-            });
+
+                        @Override
+                        public void onError(Call call, Exception e, int i) {
+                            registerFinished = true;
+                        }
+
+                        @Override
+                        public void onResponse(ExploderBean exploderBean, int i) {
+                            registerFinished = true;
+                            if (null != exploderBean && exploderBean.isStatus() && exploderBean.getToken().equals(token)) {
+                                if (null != exploderBean.getResult()) {
+                                    settingBean.setExploderID(exploderBean.getResult().getCodeID());
+                                    saveSettings(settingBean);
+                                }
+                            }
+                        }
+                    });
         }
     }
 }

@@ -6,24 +6,52 @@ import java.util.Map;
 
 public class LocalSettingBean {
     private String serialNum, delayTime, delayPeriod, mtMac, exploderID, IMEI;
-    private int row, hole, holeInside, section, sectionInside, defaultType = 0, userID, volume, serverHost, fontScale;
+    private int row, hole, holeInside, section, sectionInside, defaultType = 0, userID, volume, serverHost, fontScale,
+            firstPulseTime, secondPulseTime, thirdPulseTime;
     private boolean vibrate, registered, newLG;
     private double latitude, longitude;
     private Map<Float, Integer> dacMap;
 
     public LocalSettingBean() {
-        row = ConstantUtils.PRESET_ROW_DELAY_TIME;
-        hole = ConstantUtils.PRESET_HOLE_DELAY_TIME;
-        holeInside = ConstantUtils.PRESET_HOLE_INSIDE_DELAY_TIME;
-        section = ConstantUtils.PRESET_SECTION_DELAY_TIME;
-        sectionInside = ConstantUtils.PRESET_SECTION_INSIDE_DELAY_TIME;
+        row = 50;
+        hole = 10;
+        holeInside = 0;
+        section = 50;
+        sectionInside = 0;
         volume = ConstantUtils.MAX_VOLUME;
         latitude = 0;
         longitude = 0;
         serverHost = 1;
+        firstPulseTime = 1200;
+        secondPulseTime = 600;
+        thirdPulseTime = 600;
         vibrate = true;
         newLG = false;
         registered = false;
+    }
+
+    public int getFirstPulseTime() {
+        return firstPulseTime;
+    }
+
+    public void setFirstPulseTime(int firstPulseTime) {
+        this.firstPulseTime = firstPulseTime;
+    }
+
+    public int getSecondPulseTime() {
+        return secondPulseTime;
+    }
+
+    public void setSecondPulseTime(int secondPulseTime) {
+        this.secondPulseTime = secondPulseTime;
+    }
+
+    public int getThirdPulseTime() {
+        return thirdPulseTime;
+    }
+
+    public void setThirdPulseTime(int thirdPulseTime) {
+        this.thirdPulseTime = thirdPulseTime;
     }
 
     public String getSerialNum() {

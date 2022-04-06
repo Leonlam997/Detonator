@@ -29,7 +29,7 @@ public class CapacityTestActivity extends BaseActivity {
     private MyProgressDialog pDialog;
     private float averageCurrent;
     private BaseApplication myApp;
-    private final Handler myHandler = new Handler(new Handler.Callback() {
+    private int timeCount;    private final Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             switch (msg.what) {
@@ -86,27 +86,6 @@ public class CapacityTestActivity extends BaseActivity {
                 case 8:
                     setButtonEnabled(false);
                     break;
-            }
-            return false;
-        }
-    });
-    private int timeCount;
-    private final Handler progressHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message msg) {
-            timeCount += 100;
-            if (timeCount < ConstantUtils.INITIAL_TIME - 100) {
-                pDialog.setProgress(100 * timeCount / ConstantUtils.INITIAL_TIME);
-            }
-            if (pDialog.isShowing()) {
-                if (timeCount > ConstantUtils.INITIAL_TIME) {
-                    setButtonEnabled(true);
-                    pDialog.dismiss();
-                    myHandler.removeMessages(4);
-                    myHandler.sendEmptyMessage(4);
-                } else {
-                    progressHandler.sendEmptyMessageDelayed(0, 100);
-                }
             }
             return false;
         }
@@ -203,7 +182,26 @@ public class CapacityTestActivity extends BaseActivity {
             myHandler.sendEmptyMessageDelayed(1, 2000);
         }
         return super.onKeyUp(keyCode, event);
-    }
+    }    private final Handler progressHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message msg) {
+            timeCount += 100;
+            if (timeCount < ConstantUtils.INITIAL_TIME - 100) {
+                pDialog.setProgress(100 * timeCount / ConstantUtils.INITIAL_TIME);
+            }
+            if (pDialog.isShowing()) {
+                if (timeCount > ConstantUtils.INITIAL_TIME) {
+                    setButtonEnabled(true);
+                    pDialog.dismiss();
+                    myHandler.removeMessages(4);
+                    myHandler.sendEmptyMessage(4);
+                } else {
+                    progressHandler.sendEmptyMessageDelayed(0, 100);
+                }
+            }
+            return false;
+        }
+    });
 
     private void initSound() {
         soundPool = myApp.getSoundPool();
@@ -242,4 +240,8 @@ public class CapacityTestActivity extends BaseActivity {
         }
         super.onDestroy();
     }
+
+
+
+
 }

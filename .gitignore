@@ -14,3 +14,4 @@
 
 # Project exclude paths
 /app/.cxx/
+/app/src/androidTest/java/com/leon/detonator/

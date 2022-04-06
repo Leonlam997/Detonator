@@ -9,6 +9,7 @@
     android:rowCount="1">
 
     <RelativeLayout
+        android:id="@+id/rl_open_air"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
         android:background="@color/colorOpenAirBackground">
@@ -18,10 +19,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:background="@mipmap/open_air" />
+            android:background="@mipmap/open_air"
+            android:contentDescription="@string/open_air" />
     </RelativeLayout>
 
     <RelativeLayout
+        android:id="@+id/rl_tunnel"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
         android:background="@color/colorTunnelBackground">
@@ -31,6 +34,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:background="@mipmap/tunnel" />
+            android:background="@mipmap/tunnel"
+            android:contentDescription="@string/tunnel" />
     </RelativeLayout>
 </GridLayout>

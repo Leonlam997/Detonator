@@ -36,7 +36,7 @@ public class ChargeActivity extends BaseActivity {
     private MyProgressDialog pDialog;
     private BaseApplication myApp;
     private int soundSuccess, soundFail, soundAlert, chargeCmdCount;
-    private final Handler detectStatusHandler = new Handler(new Handler.Callback() {
+    private int timeCount, elapseTime, dac;    private final Handler detectStatusHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message msg) {
             switch (msg.what) {
@@ -85,8 +85,8 @@ public class ChargeActivity extends BaseActivity {
             return false;
         }
     });
-    private int timeCount, elapseTime, dac;
-    private final Handler progressHandler = new Handler(new Handler.Callback() {
+    private float workVoltage;
+    private EditText etTime, etVoltage;    private final Handler progressHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             elapseTime += 200;
@@ -101,8 +101,6 @@ public class ChargeActivity extends BaseActivity {
             return false;
         }
     });
-    private float workVoltage;
-    private EditText etTime, etVoltage;
     private LocalSettingBean settingBean;
 
     @Override
@@ -221,7 +219,6 @@ public class ChargeActivity extends BaseActivity {
         myReceiveListener.setStartAutoDetect(enabled);
     }
 
-
     private void startChangeVoltage(float vol) {
         myReceiveListener.setFeedback(true);
         if (null == settingBean.getDacMap())
@@ -255,7 +252,8 @@ public class ChargeActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         progressHandler.removeMessages(1);
-        myReceiveListener.closeAllHandler();
+        if (null != myReceiveListener)
+            myReceiveListener.closeAllHandler();
         if (null != serialPortUtil)
             serialPortUtil.closeSerialPort();
         if (null != soundPool) {
@@ -271,4 +269,8 @@ public class ChargeActivity extends BaseActivity {
         }
         super.onDestroy();
     }
+
+
+
+
 }

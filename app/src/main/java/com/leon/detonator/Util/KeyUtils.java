@@ -2,9 +2,6 @@ package com.leon.detonator.Util;
 
 public class KeyUtils {
     public final static String KEY_ACTIVITY_TITLE = "TitleID";
-    public final static String KEY_ACTIVITY_SUBTITLE = "SubtitleID";
-    public final static String KEY_ACTIVITY_TITLE_STRING = "TitleString";
-    public final static String KEY_ACTIVITY_LEFT_BUTTON_VISIBLE = "LeftButton";
     public final static String KEY_CREATE_DELAY_LIST = "IsCreate";
     public final static String KEY_USER_NAME = "UserName";
     public final static String KEY_LAST_ROW = "LastRow";
@@ -28,4 +25,5 @@ public class KeyUtils {
     public final static String KEY_WIFI_CONNECT_SSID = "ConnectSSID";
     public final static String KEY_WIFI_CONNECT_PASSWORD = "ConnectPassword";
     public final static String KEY_ERROR_RESULT = "ErrorResult";
+    public final static String KEY_WAVEFORM_DATA = "WaveformData";
 }
