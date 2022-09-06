@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
@@ -55,7 +56,6 @@ public class DetonateStep4Activity extends BaseActivity {
     private final int STEP_READ_VOLTAGE = 1,
             STEP_PROGRESS = 2,
             STEP_EXPLODE = 3,
-            STEP_EXPLODE_2 = 4,
             STEP_UPLOAD_TIMEOUT = 5,
             STEP_CHECK_EXPLODER_ERROR = 6,
             STEP_CHECK_EXPLODER_SUCCESS = 7,
@@ -122,34 +122,10 @@ public class DetonateStep4Activity extends BaseActivity {
             try {
                 serialPortUtil = SerialPortUtil.getInstance();
                 serialPortUtil.setOnDataReceiveListener(buffer -> {
-                    String data = new String(buffer);
-                    if (data.contains(SerialCommand.RESPOND_SUCCESS)) {
-                        data = data.replace(SerialCommand.RESPOND_SUCCESS, "");
-                        try {
-                            if (data.contains(SerialCommand.RESPOND_VOLTAGE) && data.indexOf("\r") > data.indexOf(SerialCommand.RESPOND_VOLTAGE)) {
-                                final int vol = Integer.parseInt(data.substring(data.indexOf(SerialCommand.RESPOND_VOLTAGE) + SerialCommand.RESPOND_VOLTAGE.length(), data.indexOf("\r")));
-                                setVoltage(vol / 100.0f);
-                                serialPortUtil.sendCmd(SerialCommand.CMD_READ_CURRENT);
-                            } else if (data.contains(SerialCommand.RESPOND_CURRENT) && data.indexOf("\r") > data.indexOf(SerialCommand.RESPOND_CURRENT)) {
-                                data = data.substring(data.indexOf(SerialCommand.RESPOND_CURRENT) + SerialCommand.RESPOND_CURRENT.length(), data.indexOf("\r"));
-                                if (data.length() > 0) {
-                                    try {
-                                        int c = Integer.parseInt(data);
-                                        int count;
-                                        count = (int) ((c + 2) / 3.4f) + 1;
-                                        float current = 0.0f;
-                                        if (c == 1)
-                                            current = 25;
-                                        else if (c > 0 && count > 0)
-                                            current = count * 25 + ((c + 2) - (count - 1) * 3.4f) / 3.4f;
-                                        setCurrent(current);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            }
-                        } catch (Exception e) {
-                            BaseApplication.writeErrorLog(e);
+                    if (serialPortUtil.checkData(buffer)) {
+                        if (buffer[SerialCommand.CODE_CHAR_AT] == SerialCommand.CODE_MEASURE_VALUE) {
+                            setCurrent(Float.intBitsToFloat((int) Long.parseLong(new String(Arrays.copyOfRange(buffer, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 6)), 16)));
+                            setVoltage(22);
                         }
                     }
                 });
@@ -160,7 +136,9 @@ public class DetonateStep4Activity extends BaseActivity {
         } else {
             delaySendCmdHandler.sendEmptyMessageDelayed(STEP_PROGRESS, 100);
         }
-    }    private final Handler refreshProgressBar = new Handler(new Handler.Callback() {
+    }
+
+    private final Handler refreshProgressBar = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             refreshProgressBar.removeMessages(1);
@@ -202,16 +180,17 @@ public class DetonateStep4Activity extends BaseActivity {
                 myApp.myToast(this, R.string.message_media_load_error);
         } else
             myApp.myToast(this, R.string.message_media_init_error);
-    }    private final Handler delaySendCmdHandler = new Handler(new Handler.Callback() {
+    }
+
+    private final Handler delaySendCmdHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             switch (msg.what) {
                 case STEP_READ_VOLTAGE:
-                    serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
+                    serialPortUtil.sendCmd("", SerialCommand.CODE_MEASURE_VALUE, SerialCommand.MEASURE_CURRENT);
                     delaySendCmdHandler.sendEmptyMessageDelayed(STEP_READ_VOLTAGE, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                     break;
                 case STEP_PROGRESS:
-                    BaseApplication.writeFile("进入起爆界面");
                     if (!uniteExplode)
                         countDown = (int) ((System.currentTimeMillis() - getIntent().getLongExtra(KeyUtils.KEY_EXPLODE_ELAPSED, 0)) / 100);
                     else if (serialPortUtil != null) {
@@ -221,11 +200,7 @@ public class DetonateStep4Activity extends BaseActivity {
                     refreshProgressBar.sendEmptyMessage(1);
                     break;
                 case STEP_EXPLODE:
-                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.NEW_EXPLODE, 0);
-                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_EXPLODE_2, settingBean.isNewLG() ? 200 : 500);
-                    break;
-                case STEP_EXPLODE_2:
-                    serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.NEW_EXPLODE, 0);
+                    serialPortUtil.sendCmd("", SerialCommand.CODE_EXPLODE, 0, 0);
                     delaySendCmdHandler.sendEmptyMessageDelayed(STEP_PROGRESS, 100);
                     break;
                 case STEP_CHECK_EXPLODER_ERROR:
@@ -294,22 +269,23 @@ public class DetonateStep4Activity extends BaseActivity {
     private void function(int which) {
         switch (which) {
             case KeyEvent.KEYCODE_1:
-                if (!BaseApplication.readSettings().isRegistered()) {
-                    myApp.registerExploder();
-                    disableButton(true);
-                    new CheckRegister() {
-                        @Override
-                        public void onError() {
-                            delaySendCmdHandler.sendEmptyMessage(STEP_CHECK_EXPLODER_ERROR);
-                        }
+                if (btnUpload.isEnabled()) {
+                    if (!BaseApplication.readSettings().isRegistered()) {
+                        myApp.registerExploder();
+                        disableButton(true);
+                        new CheckRegister() {
+                            @Override
+                            public void onError() {
+                                delaySendCmdHandler.sendEmptyMessage(STEP_CHECK_EXPLODER_ERROR);
+                            }
 
-                        @Override
-                        public void onSuccess() {
-                            delaySendCmdHandler.sendEmptyMessage(STEP_CHECK_EXPLODER_SUCCESS);
-                        }
-                    }.setActivity(this).start();
-                } else if (btnUpload.isEnabled())
-                    delaySendCmdHandler.sendEmptyMessage(STEP_CHECK_EXPLODER_SUCCESS);
+                            @Override
+                            public void onSuccess() {
+                                delaySendCmdHandler.sendEmptyMessage(STEP_CHECK_EXPLODER_SUCCESS);
+                            }
+                        }.setActivity(this).start();
+                    } else delaySendCmdHandler.sendEmptyMessage(STEP_CHECK_EXPLODER_SUCCESS);
+                }
                 break;
             case KeyEvent.KEYCODE_2:
                 finish();
@@ -567,8 +543,6 @@ public class DetonateStep4Activity extends BaseActivity {
         }
         super.onDestroy();
     }
-
-
 
 
 }

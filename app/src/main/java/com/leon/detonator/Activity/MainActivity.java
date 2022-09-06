@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.view.View;
-import android.webkit.PermissionRequest;
 
 import androidx.core.app.ActivityCompat;
 
@@ -71,7 +70,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         }
         keyCount = 0;
         initSettings();
-        new GetVersion().execute();
+        if (BaseApplication.isNetSystemUsable(this))
+            new GetVersion().execute();
     }
 
     private void initSettings() {
@@ -149,14 +149,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         switch (keyCode) {
             case KeyEvent.KEYCODE_STAR:
-                if (keyCount == 5 && launchType <= 4) {
+                if (keyCount == 5 && launchType <= 1) {
                     keyCount = 0;
                     Intent intent = new Intent();
-                    Class<?>[] menuActivities = {VoltageTestActivity.class,
-                            SemiProductActivity.class,
-                            settingBean.isNewLG() ? PropsSettingsActivity.class : SerialTestActivity.class,
-                            WriteSNActivity.class,
-                            ChargeActivity.class};
+                    Class<?>[] menuActivities = {SemiProductActivity.class,
+                            WriteSNActivity.class};
                     intent.setClass(MainActivity.this, menuActivities[launchType]);
                     startActivity(intent);
                     keyCount = 0;
@@ -171,37 +168,16 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 else
                     keyCount = 0;
                 break;
-            case KeyEvent.KEYCODE_5:
+            case KeyEvent.KEYCODE_6:
                 if (keyCount == 3) {
                     launchType = 0;
                     keyCount++;
                 } else
                     keyCount = 0;
                 break;
-            case KeyEvent.KEYCODE_6:
-                if (keyCount == 3) {
-                    launchType = 1;
-                    keyCount++;
-                } else
-                    keyCount = 0;
-                break;
-            case KeyEvent.KEYCODE_7:
-                if (keyCount == 3) {
-                    launchType = 2;
-                    keyCount++;
-                } else
-                    keyCount = 0;
-                break;
             case KeyEvent.KEYCODE_8:
                 if (keyCount == 3) {
-                    launchType = 3;
-                    keyCount++;
-                } else
-                    keyCount = 0;
-                break;
-            case KeyEvent.KEYCODE_9:
-                if (keyCount == 3) {
-                    launchType = 4;
+                    launchType = 1;
                     keyCount++;
                 } else
                     keyCount = 0;

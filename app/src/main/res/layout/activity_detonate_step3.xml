@@ -4,7 +4,6 @@
     android:layout_height="match_parent"
     android:background="@color/colorCommonBackground"
     android:orientation="vertical">
-
     <LinearLayout
         android:id="@+id/fl_charge"
         android:layout_width="match_parent"
@@ -114,4 +113,19 @@
                 android:src="@mipmap/ic_slider" />
         </RelativeLayout>
     </FrameLayout>
+
+    <ScrollView
+        android:id="@+id/sv_log"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="vertical">
+
+        <TextView
+            android:id="@+id/tv_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/text_black"
+            android:textSize="@dimen/common_text_size" />
+    </ScrollView>
 </LinearLayout>

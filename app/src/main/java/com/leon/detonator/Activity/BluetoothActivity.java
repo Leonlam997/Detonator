@@ -1,11 +1,13 @@
 package com.leon.detonator.Activity;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -25,6 +27,7 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 
 import com.leon.detonator.Adapter.BluetoothListAdapter;
 import com.leon.detonator.Base.BaseActivity;
@@ -95,6 +98,9 @@ public class BluetoothActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth);
 
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            finish();
+        }
         setTitle(R.string.settings_bt);
         myApp = (BaseApplication) getApplication();
         BTAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -112,12 +118,12 @@ public class BluetoothActivity extends BaseActivity {
                         BTAdapter.cancelDiscovery();
                     }
                     BTAdapter.disable();
-                    sendMsg(BTSTATUS.DISABLING);
+                    sendMsg(BtStatus.DISABLING);
                     new DetectBluetoothStatus(false).start();
                     break;
                 case 1:
                     BTAdapter.enable();
-                    sendMsg(BTSTATUS.ENABLING);
+                    sendMsg(BtStatus.ENABLING);
                     new DetectBluetoothStatus(true).start();
                     break;
                 case 2:
@@ -155,7 +161,7 @@ public class BluetoothActivity extends BaseActivity {
                         .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
                             if (!etDelay.getText().toString().isEmpty()) {
                                 BTAdapter.setName(etDelay.getText().toString());
-                                sendMsg(BTSTATUS.RENAME);
+                                sendMsg(BtStatus.RENAME);
                             }
                         })
                         .setNegativeButton(R.string.btn_cancel, null)
@@ -168,7 +174,7 @@ public class BluetoothActivity extends BaseActivity {
                     BluetoothListBean bean = list.get(position);
                     bean.setScanning(true);
                     list.set(position, bean);
-                    sendMsg(BTSTATUS.PAIRING);
+                    sendMsg(BtStatus.PAIRING);
                     pairDevice(bean.getBluetooth().getAddress());
                 }
                 if (position < rescanLine && position > 2) {
@@ -277,14 +283,19 @@ public class BluetoothActivity extends BaseActivity {
 //        intentFilter.addAction(BluetoothDevice.ACTION_UUID);
 //        registerReceiver(mGattUpdateReceiver, intentFilter);
 //        bindService(new Intent(BluetoothActivity.this, BluetoothLeService.class), mServiceConnection, BIND_AUTO_CREATE);
-        btService = new BluetoothService(connectHandler);
+        btService = new BluetoothService(connectHandler, BluetoothActivity.this);
         if (BTAdapter.isEnabled()) {
             startSearch();
             btService.acceptWait();
         }
-    }    private Handler connectHandler = new Handler(new Handler.Callback() {
+    }
+
+    private Handler connectHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message msg) {
+            if (ActivityCompat.checkSelfPermission(BluetoothActivity.this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
             switch (msg.what) {
                 case STATUS_CONNECTED:
                     if (sender)
@@ -405,10 +416,15 @@ public class BluetoothActivity extends BaseActivity {
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
-    }    private final Handler refreshList = new Handler(new Handler.Callback() {
+    }
+
+    private final Handler refreshList = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
-            BTSTATUS status = BTSTATUS.values()[msg.what];
+            if (ActivityCompat.checkSelfPermission(BluetoothActivity.this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
+            BtStatus status = BtStatus.values()[msg.what];
             BluetoothListBean bean;
             switch (status) {
                 case ENABLING://打开蓝牙
@@ -430,7 +446,7 @@ public class BluetoothActivity extends BaseActivity {
                     list.set(0, bean);
                     break;
                 case ENABLED:
-                    btService = new BluetoothService(connectHandler);
+                    btService = new BluetoothService(connectHandler, BluetoothActivity.this);
                     btService.acceptWait();
                     searching = true;
                     initData(true);
@@ -463,7 +479,7 @@ public class BluetoothActivity extends BaseActivity {
                     bean.setBluetooth(bt);
                     list.set(1, bean);
                     break;
-                case NOTPAIR:
+                case NOT_PAIR:
                     myApp.myToast(BluetoothActivity.this, R.string.bt_pair_fail);
                 case PAIRED:
                     initData(false);
@@ -574,7 +590,7 @@ public class BluetoothActivity extends BaseActivity {
         popupMenu.dismiss();
     }
 
-    private void sendMsg(BTSTATUS status) {
+    private void sendMsg(BtStatus status) {
         refreshList.sendMessage(refreshList.obtainMessage(status.ordinal()));
     }
 
@@ -591,7 +607,9 @@ public class BluetoothActivity extends BaseActivity {
         bean.setEnabled(BTAdapter.isEnabled());
         list.add(bean);
         rescanLine = -1;
-
+        if (ActivityCompat.checkSelfPermission(BluetoothActivity.this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         bean = new BluetoothListBean();
         bt = new BluetoothBean();
         bt.setName(getResources().getString(R.string.bt_device_name));
@@ -627,7 +645,7 @@ public class BluetoothActivity extends BaseActivity {
             bluetoothUtil.searchBluetooth(this, new SearchBluetoothListener() {
                 @Override
                 public void startSearch() {
-                    sendMsg(BTSTATUS.SEARCHING);
+                    sendMsg(BtStatus.SEARCHING);
                     searching = true;
                 }
 
@@ -653,13 +671,13 @@ public class BluetoothActivity extends BaseActivity {
                             rescanLine++;
                         }
                     }
-                    sendMsg(BTSTATUS.FOUND);
+                    sendMsg(BtStatus.FOUND);
                 }
 
                 @Override
                 public void finishSearch(Map<String, List<BluetoothBean>> blueToothMap) {
                     searching = false;
-                    sendMsg(BTSTATUS.FINISHED);
+                    sendMsg(BtStatus.FINISHED);
                 }
             });
         } catch (Exception e) {
@@ -677,12 +695,12 @@ public class BluetoothActivity extends BaseActivity {
 
                 @Override
                 public void pairingSuccess(BluetoothDevice device) {
-                    sendMsg(BTSTATUS.PAIRED);
+                    sendMsg(BtStatus.PAIRED);
                 }
 
                 @Override
                 public void cancelPair(BluetoothDevice device) {
-                    sendMsg(BTSTATUS.NOTPAIR);
+                    sendMsg(BtStatus.NOT_PAIR);
                 }
             });
         } catch (Exception e) {
@@ -709,7 +727,9 @@ public class BluetoothActivity extends BaseActivity {
         if (null != popupMenu && popupMenu.isShowing())
             popupMenu.dismiss();
         if (searching)
-            BTAdapter.cancelDiscovery();
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
+                BTAdapter.cancelDiscovery();
+            }
         if (null != bluetoothUtil) {
             bluetoothUtil.closeBluetoothService();
             bluetoothUtil = null;
@@ -717,7 +737,7 @@ public class BluetoothActivity extends BaseActivity {
         super.onDestroy();
     }
 
-    private enum BTSTATUS {
+    private enum BtStatus {
         ENABLING,
         ENABLED,
         DISABLING,
@@ -728,7 +748,7 @@ public class BluetoothActivity extends BaseActivity {
         RENAME,
         PAIRING,
         PAIRED,
-        NOTPAIR
+        NOT_PAIR
     }
 
     private class DetectBluetoothStatus extends Thread {
@@ -745,12 +765,10 @@ public class BluetoothActivity extends BaseActivity {
                 if (BTAdapter.isEnabled() == enable)
                     break;
             }
-            sendMsg(enable ? BTSTATUS.ENABLED : BTSTATUS.DISABLED);
+            sendMsg(enable ? BtStatus.ENABLED : BtStatus.DISABLED);
             interrupt();
         }
     }
-
-
 
 
 }

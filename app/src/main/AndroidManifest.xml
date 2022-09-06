@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.leon.detonator"
     android:installLocation="internalOnly"
     android:sharedUserId="android.uid.system">
 
@@ -10,9 +9,12 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_PRIVILEGED"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -76,7 +78,6 @@
         <activity android:name=".Activity.LoginActivity" />
         <activity android:name=".Activity.MainActivity" />
         <activity android:name=".Activity.DelayScheduleActivity" />
-        <activity android:name=".Activity.SerialTestActivity" />
         <activity android:name=".Activity.DetonatorListActivity" />
         <activity android:name=".Activity.DetectMethodActivity" />
         <activity android:name=".Activity.AuthorizationListActivity" />
@@ -100,7 +101,6 @@
         <activity android:name=".Activity.SystemInfoActivity" />
         <activity android:name=".Activity.CameraActivity" />
         <activity android:name=".Activity.SemiProductActivity" />
-        <activity android:name=".Activity.PropsSettingsActivity" />
         <activity android:name=".Activity.WaveformActivity" />
 
         <service

@@ -15,6 +15,8 @@ import android.database.SQLException;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -24,6 +26,7 @@ import android.os.PowerManager;
 import android.os.Vibrator;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
@@ -32,6 +35,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
@@ -172,7 +176,7 @@ public class BaseApplication extends Application {
                 if (null != pm) {
                     wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, "Detonator:wakeLock");
                     if (null != wakeLock) {
-                        wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/);
+                        wakeLock.acquire(60 * 60 * 1000L /*10 minutes*/);
                     }
                 }
                 activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -183,7 +187,7 @@ public class BaseApplication extends Application {
     }
 
     public static void releaseWakeLock(Activity activity) {
-        if (null != wakeLock) {
+        if (null != wakeLock && wakeLock.isHeld()) {
             activity.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             wakeLock.release();
             wakeLock = null;
@@ -262,10 +266,12 @@ public class BaseApplication extends Application {
         try {
             vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
             settingBean = readSettings();
-            if (!settingBean.isRegistered()) {
-                registerExploder();
-            } else if (null == readSettings().getExploderID() || (null != readSettings().getExploderID() && readSettings().getExploderID().isEmpty())) {
-                readExploder();
+            if (isNetSystemUsable(this)) {
+                if (!settingBean.isRegistered()) {
+                    registerExploder();
+                } else if (null == readSettings().getExploderID() || (null != readSettings().getExploderID() && readSettings().getExploderID().isEmpty())) {
+                    readExploder();
+                }
             }
             File file = new File(FilePath.APP_PATH);
             if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir())) {
@@ -837,6 +843,18 @@ public class BaseApplication extends Application {
         return false;
     }
 
+    public static boolean isNetSystemUsable(Context context) {
+        boolean isNetUsable = false;
+        ConnectivityManager manager = (ConnectivityManager)
+                context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkCapabilities networkCapabilities =
+                manager.getNetworkCapabilities(manager.getActiveNetwork());
+        if (networkCapabilities != null) {
+            isNetUsable = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        }
+        return isNetUsable;
+    }
+
     private class RegisterExploder extends Thread {
         @SuppressLint("HardwareIds")
         @Override
@@ -909,8 +927,10 @@ public class BaseApplication extends Application {
                                     settingBean.setRegistered(true);
                                     settingBean.setIMEI(((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId());
                                     settingBean.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
-                                    BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
-                                    saveSettings(settingBean);
+                                    if (ActivityCompat.checkSelfPermission(BaseApplication.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                                        BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
+                                        saveSettings(settingBean);
+                                    }
                                 } else {
                                     myToast(BaseApplication.this, registerExploderBean.getDescription());
                                 }

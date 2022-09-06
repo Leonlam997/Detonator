@@ -8,7 +8,7 @@ public class LocalSettingBean {
     private String serialNum, delayTime, delayPeriod, mtMac, exploderID, IMEI;
     private int row, hole, holeInside, section, sectionInside, defaultType = 0, userID, volume, serverHost, fontScale,
             firstPulseTime, secondPulseTime, thirdPulseTime;
-    private boolean vibrate, registered, newLG;
+    private boolean vibrate, registered;
     private double latitude, longitude;
     private Map<Float, Integer> dacMap;
 
@@ -26,7 +26,6 @@ public class LocalSettingBean {
         secondPulseTime = 600;
         thirdPulseTime = 600;
         vibrate = true;
-        newLG = false;
         registered = false;
     }
 
@@ -220,13 +219,5 @@ public class LocalSettingBean {
 
     public void setDacMap(Map<Float, Integer> dacMap) {
         this.dacMap = dacMap;
-    }
-
-    public boolean isNewLG() {
-        return newLG;
-    }
-
-    public void setNewLG(boolean newLG) {
-        this.newLG = newLG;
     }
 }

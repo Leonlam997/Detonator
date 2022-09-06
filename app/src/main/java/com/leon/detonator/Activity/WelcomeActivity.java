@@ -38,8 +38,10 @@ public class WelcomeActivity extends AppCompatActivity {
         }
         //    private MediaPlayer mediaPlayer;
         //    private int maxVolume, currentVolume;
-        BaseApplication myApp = (BaseApplication) getApplication();
-        myApp.uploadExplodeList();
+        if (BaseApplication.isNetSystemUsable(this)) {
+            BaseApplication myApp = (BaseApplication) getApplication();
+            myApp.uploadExplodeList();
+        }
         rlWelcome.setOnClickListener(v -> {
             Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
             startActivity(intent);

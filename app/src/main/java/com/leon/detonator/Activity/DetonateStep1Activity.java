@@ -80,7 +80,11 @@ public class DetonateStep1Activity extends BaseActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        SDKInitializer.initialize(getApplicationContext());
+        try {
+            SDKInitializer.initialize(getApplicationContext());
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
+        }
         setContentView(R.layout.activity_detonate_step1);
 
         if (getIntent().getBooleanExtra(KeyUtils.KEY_EXPLODE_UNITE, false))

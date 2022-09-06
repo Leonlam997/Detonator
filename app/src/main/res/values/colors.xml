@@ -32,4 +32,6 @@
     <color name="colorCoordinateText">#1f9ad5</color>
     <color name="colorButtonEnabled">#ffffff</color>
     <color name="colorButtonDisabled">#333333</color>
+    <color name="colorDialogBackground">#db2a2a</color>
+
 </resources>

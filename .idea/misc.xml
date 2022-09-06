@@ -73,6 +73,14 @@
         <entry key="..\:/Detonator/app/src/main/res/layout/layout_props_page5.xml" value="0.36614583333333334" />
         <entry key="..\:/Detonator/app/src/main/res/layout/layout_status_bar.xml" value="0.1875" />
         <entry key="..\:/Detonator/app/src/main/res/layout/layout_tab_view.xml" value="0.36614583333333334" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/drawable/btn_auth_style.xml" value="0.251" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/drawable/dialog_background.xml" value="0.2915" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/drawable/progressbar.xml" value="0.18" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/layout/activity_detonate_step2.xml" value="0.19166666666666668" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/layout/layout_dialog_progress.xml" value="0.20885416666666667" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/layout/layout_enter_charge_dialog.xml" value="0.2453125" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/layout/layout_enter_charge_dialog_title.xml" value="0.28527980535279807" />
+        <entry key="..\:/XT/Detonator/app/src/main/res/layout/layout_list_table.xml" value="0.2526041666666667" />
       </map>
     </option>
   </component>

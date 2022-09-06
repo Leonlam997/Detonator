@@ -40,20 +40,20 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class UniteExplodeActivity extends BaseActivity {
-    private final int STATUS_SEARCHING = 1,
-            STATUS_CONNECTING = 2,
-            STATUS_CONNECTING_ELLIPSIS = 3,
-            STATUS_UNITE_ELLIPSIS = 4,
-            STATUS_CONNECTED = 5,
-            STATUS_CONNECT_FAIL = 6,
-            STATUS_UNITE_WAITING = 7,
-            STATUS_SEARCH_FAIL = 8,
-            STATUS_UNITE_FAIL = 9,
-            STATUS_UNITE_CONNECTED = 10,
-            STATUS_UNITE_CONNECT_FAIL = 11,
-            STATUS_HANDSHAKE = 12,
-            STATUS_DISCONNECT = 13,
-            STATUS_CHARGE_FINISHED = 14;
+    private final int STATUS_SEARCHING = 1;
+    private final int STATUS_CONNECTING = 2;
+    private final int STATUS_CONNECTING_ELLIPSIS = 3;
+    private final int STATUS_UNITE_ELLIPSIS = 4;
+    private final int STATUS_CONNECTED = 5;
+    private final int STATUS_CONNECT_FAIL = 6;
+    private final int STATUS_UNITE_WAITING = 7;
+    private final int STATUS_SEARCH_FAIL = 8;
+    private final int STATUS_UNITE_FAIL = 9;
+    private final int STATUS_UNITE_CONNECTED = 10;
+    private final int STATUS_UNITE_CONNECT_FAIL = 11;
+    private final int STATUS_HANDSHAKE = 12;
+    private final int STATUS_DISCONNECT = 13;
+    private final int STATUS_CHARGE_FINISHED = 14;
     private BluetoothAdapter BTAdapter;
     private MTModuleManager mtModuleManager;
     private MTModule mtModule;
@@ -61,11 +61,17 @@ public class UniteExplodeActivity extends BaseActivity {
     private String mtMac, exploderID;
     private MyButton btnReconnect, btnRescan;
     private ImageView ivStatus1, ivStatus2;
-    private TextView tvConnect, tvUnite, tvEllipsis1, tvEllipsis2;
+    private TextView tvConnect;
+    private TextView tvUnite;
+    private TextView tvEllipsis1;
+    private TextView tvEllipsis2;
     private RelativeLayout rlUnite;
     private int amount;
-    private boolean stopScan, enterExplode, charging = false;
-    private BaseApplication myApp;    private final Handler refreshStatus = new Handler(new Handler.Callback() {
+    private boolean stopScan;
+    private boolean enterExplode;
+    private boolean charging = false;
+    private BaseApplication myApp;
+    private final Handler refreshStatus = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
             int CONNECT_TIMEOUT = 30000;
@@ -300,7 +306,9 @@ public class UniteExplodeActivity extends BaseActivity {
                 mtModuleManager.startScan(scanMTModuleCallback);
         }
         refreshStatus.sendEmptyMessage(STATUS_SEARCHING);
-    }    private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+    }
+
+    private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode())
             refreshStatus.sendEmptyMessage(STATUS_CHARGE_FINISHED);
         else
@@ -374,7 +382,9 @@ public class UniteExplodeActivity extends BaseActivity {
 ////                mtModuleManager.startScan(scanMTModuleCallback);
 //                break;
 //        }
-    }    ScanMTModuleCallback scanMTModuleCallback = new ScanMTModuleCallback() {
+    }
+
+    ScanMTModuleCallback scanMTModuleCallback = new ScanMTModuleCallback() {
         @Override
         public void onScannedMTModule(LinkedList<MTModule> linkedList) {
             if (!stopScan) {
@@ -475,10 +485,6 @@ public class UniteExplodeActivity extends BaseActivity {
         refreshStatus.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
-
-
-
-
 
 
 }

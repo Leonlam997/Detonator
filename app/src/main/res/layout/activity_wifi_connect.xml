@@ -41,18 +41,6 @@
         android:orientation="horizontal">
 
         <com.leon.detonator.Base.MyButton
-            android:id="@+id/btnConfirm"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_gravity="center"
-            android:padding="0dp"
-            android:text="@string/button_confirm"
-            android:textColor="@color/colorButtonEnabled"
-            android:textSize="@dimen/button_text_size"
-            button:bigButton="true" />
-
-        <com.leon.detonator.Base.MyButton
             android:id="@+id/btnCancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -60,6 +48,18 @@
             android:layout_gravity="center"
             android:padding="0dp"
             android:text="@string/button_cancel"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="true" />
+
+        <com.leon.detonator.Base.MyButton
+            android:id="@+id/btnConfirm"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_confirm"
             android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
             button:bigButton="true" />

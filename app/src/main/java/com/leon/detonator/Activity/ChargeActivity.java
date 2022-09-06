@@ -36,7 +36,8 @@ public class ChargeActivity extends BaseActivity {
     private MyProgressDialog pDialog;
     private BaseApplication myApp;
     private int soundSuccess, soundFail, soundAlert, chargeCmdCount;
-    private int timeCount, elapseTime, dac;    private final Handler detectStatusHandler = new Handler(new Handler.Callback() {
+    private int timeCount, elapseTime, dac;
+    private final Handler detectStatusHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message msg) {
             switch (msg.what) {
@@ -61,16 +62,13 @@ public class ChargeActivity extends BaseActivity {
                         BaseApplication.releaseWakeLock(ChargeActivity.this);
                         pDialog.dismiss();
                     }
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + dac + "###");
                     myApp.playSoundVibrate(soundPool, soundSuccess);
                     enabledButton(true);
                     break;
                 case DETECT_CHARGE:
                     if (chargeCmdCount++ <= 1) {
-                        serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.INSTANT_OPEN_CAPACITOR, 0);
                         detectStatusHandler.sendEmptyMessageDelayed(DETECT_CHARGE, 1000);
                     } else {
-                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + dac + "###");
                         detectStatusHandler.sendEmptyMessageDelayed(DETECT_VOLTAGE, ConstantUtils.BOOST_TIME);
                     }
                     break;
@@ -86,7 +84,8 @@ public class ChargeActivity extends BaseActivity {
         }
     });
     private float workVoltage;
-    private EditText etTime, etVoltage;    private final Handler progressHandler = new Handler(new Handler.Callback() {
+    private EditText etTime, etVoltage;
+    private final Handler progressHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             elapseTime += 200;
@@ -127,7 +126,6 @@ public class ChargeActivity extends BaseActivity {
                 if (elapse > 0 && elapse <= 60) {
                     timeCount = (int) (elapse * 60000);
                     enabledButton(false);
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "1600###");
                     chargeCmdCount = 0;
                     pDialog = new MyProgressDialog(this);
                     pDialog.setInverseBackgroundForced(false);
@@ -175,35 +173,15 @@ public class ChargeActivity extends BaseActivity {
         try {
             serialPortUtil = SerialPortUtil.getInstance();
             myReceiveListener = new SerialDataReceiveListener(this, () -> {
-                String received = myReceiveListener.getRcvData();
-                if (received.contains(SerialCommand.ALERT_SHORT_CIRCUIT)) {
+                byte[] received = myReceiveListener.getRcvData();
+                if (received[0] == SerialCommand.ALERT_SHORT_CIRCUIT) {
                     detectStatusHandler.sendEmptyMessage(DETECT_SHORT);
-                } else if (received.contains(SerialCommand.INITIAL_FAIL)) {
+                } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
+                    detectStatusHandler.sendEmptyMessage(DETECT_INITIAL);
+                } else if (received[0] == SerialCommand.INITIAL_FAIL) {
                     myApp.myToast(ChargeActivity.this, R.string.message_open_module_fail);
                     finish();
-                } else if (received.contains(SerialCommand.INITIAL_FINISHED)) {
-                    myReceiveListener.setRcvData("");
-                    detectStatusHandler.sendEmptyMessage(DETECT_INITIAL);
-                } else if (received.startsWith("V")) {
-                    try {
-                        float v = Integer.parseInt(received.substring(1)) / 100.0f;
-                        if (Math.abs(v - workVoltage) < 0.1f) {
-                            detectStatusHandler.sendEmptyMessage(DETECT_CHANGE_FINISHED);
-                            myReceiveListener.setFeedback(false);
-                            settingBean.getDacMap().put(workVoltage, dac);
-                            myApp.saveSettings(settingBean);
-                        } else {
-                            dac += (v > workVoltage ? 100 : -100) * (Math.abs(v - workVoltage) - 0.01f);
-                            if (dac < 50 || dac > 3000) {
-                                dac = 94 + (int) ((24 - workVoltage) * 124);
-                            }
-                            serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + dac + "###");
-                        }
-                    } catch (Exception e) {
-                        BaseApplication.writeErrorLog(e);
-                    }
                 }
-
             });
             serialPortUtil.setOnDataReceiveListener(myReceiveListener);
             enabledButton(false);
@@ -220,7 +198,6 @@ public class ChargeActivity extends BaseActivity {
     }
 
     private void startChangeVoltage(float vol) {
-        myReceiveListener.setFeedback(true);
         if (null == settingBean.getDacMap())
             settingBean.setDacMap(new HashMap<>());
         Integer v = settingBean.getDacMap().get(vol);
@@ -229,7 +206,6 @@ public class ChargeActivity extends BaseActivity {
         } else {
             dac = 94 + (int) ((24 - vol) * 124);
         }
-        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + dac + "###");
         myReceiveListener.setStartAutoDetect(true);
     }
 
@@ -269,8 +245,6 @@ public class ChargeActivity extends BaseActivity {
         }
         super.onDestroy();
     }
-
-
 
 
 }

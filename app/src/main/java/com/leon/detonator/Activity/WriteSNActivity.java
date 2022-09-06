@@ -10,7 +10,6 @@ import android.text.method.NumberKeyListener;
 import android.view.KeyEvent;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
@@ -26,47 +25,39 @@ import com.leon.detonator.Util.ConstantUtils;
 import com.leon.detonator.Util.FilePath;
 
 import java.io.FileWriter;
+import java.util.Arrays;
 import java.util.Locale;
-import java.util.Objects;
 
 public class WriteSNActivity extends BaseActivity {
-    private final int detectVoltage = 2800;
-    private final int HANDLER_SUCCESS = 1,
-            HANDLER_FAIL = 2,
-            HANDLER_RESEND = 3,
-            HANDLER_SCAN = 4;
+    private final int HANDLER_SUCCESS = 1;
+    private final int HANDLER_FAIL = 2;
+    private final int HANDLER_RESEND = 3;
+    private final int HANDLER_SCAN = 4;
+    private final int HANDLER_NEXT_STEP = 5;
+    private final int STEP_WRITE_CONFIG = 1;
+    private final int STEP_WRITE_UID = 2;
+    private final int STEP_WRITE_PSW = 3;
+    private final int STEP_WRITE_SHELL = 4;
+    private final int STEP_READ_SHELL = 5;
+    private final int STEP_WRITE_DELAY = 6;
+    private final int STEP_SCAN_CODE = 7;
+    private final int STEP_WRITE_CLOCK = 8;
+    private final int STEP_LOCK = 9;
     private SerialPortUtil serialPortUtil;
     private SerialDataReceiveListener myReceiveListener;
-    private EditText etNumber, etDelay, etPeriod;
-    private TextView tvAuto;
-    private int resendCount, soundSuccess, soundFail, changeMode;
-    private Button btnWrite, btnDelay;
-    private boolean setDelay, scanMode, startReceive;
+    private EditText etNumber;
+    private EditText etDelay;
+    private EditText etPeriod;
+    private int flowStep;
+    private int soundSuccess;
+    private int soundFail;
+    private Button btnWrite;
+    private Button btnDelay;
+    private boolean startReceive;
     private LocalSettingBean settings;
     private String tempAddress;
     private SoundPool soundPool;
     private BaseApplication myApp;
-
-    private void analyzeCode(String received) {
-        myReceiveListener.setRcvData("");
-        if (!settings.isNewLG())
-            received = received.substring(0, received.indexOf(SerialCommand.RESPOND_SUCCESS));
-        else {
-            received = received.split("\\+")[1];
-            received = received.substring(received.indexOf(SerialCommand.SCAN_RESPOND) + SerialCommand.SCAN_RESPOND.length());
-        }
-        received = received.replace("\1", "")
-                .replace("\r", "")
-                .replace("\n", "")
-                .replace(" ", "");
-        if (received.length() == 13) {
-            tempAddress = received;
-            myApp.playSoundVibrate(soundPool, soundSuccess);
-            myHandler.sendEmptyMessage(HANDLER_SCAN);
-        } else {
-            myHandler.sendEmptyMessage(HANDLER_RESEND);
-        }
-    }
 
     private Handler myHandler = new Handler(new Handler.Callback() {
         @Override
@@ -76,9 +67,6 @@ public class WriteSNActivity extends BaseActivity {
                     etNumber.setText(tempAddress);
                 case HANDLER_FAIL:
                 case HANDLER_SUCCESS:
-                    myReceiveListener.setRcvData("");
-                    scanMode = false;
-                    myReceiveListener.setScanMode(false);
                     if (msg.what == HANDLER_FAIL)
                         myApp.playSoundVibrate(soundPool, soundFail);
                     else
@@ -86,40 +74,61 @@ public class WriteSNActivity extends BaseActivity {
                     myHandler.removeCallbacksAndMessages(null);
                     enabledButton(true);
                     break;
+                case HANDLER_NEXT_STEP:
+                    switch (flowStep) {
+                        case STEP_WRITE_CLOCK:
+                            flowStep = STEP_WRITE_CONFIG;
+                            break;
+                        case STEP_WRITE_CONFIG:
+                            flowStep = STEP_WRITE_UID;
+                            break;
+                        case STEP_WRITE_UID:
+                            flowStep = STEP_WRITE_PSW;
+                            break;
+                        case STEP_WRITE_PSW:
+                            flowStep = STEP_WRITE_SHELL;
+                            break;
+                        case STEP_WRITE_SHELL:
+                            flowStep = STEP_READ_SHELL;
+                            break;
+                        case STEP_READ_SHELL:
+                            flowStep = STEP_LOCK;
+                            break;
+                    }
                 case HANDLER_RESEND:
                     startReceive = true;
                     myHandler.removeMessages(HANDLER_RESEND);
-                    myReceiveListener.setRcvData("");
-                    resendCount++;
-                    if (scanMode) {
-                        if (resendCount >= ConstantUtils.RESEND_TIMES) {
-                            myApp.myToast(WriteSNActivity.this, R.string.message_scan_timeout);
-                            myHandler.sendEmptyMessage(HANDLER_FAIL);
-                        } else {
-                            serialPortUtil.sendCmd(SerialCommand.CMD_SCAN);
-                        }
-                        myHandler.sendEmptyMessageDelayed(HANDLER_RESEND, ConstantUtils.SCAN_TIMEOUT);
-                    } else {
-                        if (4 == changeMode) {
-                            resendCount = 0;
-                            serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 1));
-                        } else if (setDelay) {
-                            if (resendCount >= ConstantUtils.RESEND_TIMES) {
-                                myApp.myToast(WriteSNActivity.this, R.string.message_detonator_not_detected);
-                                myHandler.sendEmptyMessage(HANDLER_FAIL);
-                            } else {
-                                serialPortUtil.sendCmd(etNumber.getText().toString(), settings.isNewLG() ? SerialCommand.ACTION_TYPE.SHORT_CMD2_SET_DELAY : SerialCommand.ACTION_TYPE.SET_DELAY, Integer.parseInt(etDelay.getText().toString()));
-                            }
-                        } else {
-                            if (resendCount >= ConstantUtils.RESEND_TIMES) {
-                                myApp.myToast(WriteSNActivity.this, R.string.message_detonator_not_detected);
-                                myHandler.sendEmptyMessage(HANDLER_FAIL);
-                            } else {
-                                serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.ACTION_TYPE.WRITE_SN, 0);
-                            }
-                        }
-                        myHandler.sendEmptyMessageDelayed(HANDLER_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                    switch (flowStep) {
+                        case STEP_WRITE_CLOCK:
+                            serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.CODE_WRITE_CLOCK, 0);
+                            break;
+                        case STEP_WRITE_CONFIG:
+                            serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.CODE_SINGLE_WRITE_CONFIG, ConstantUtils.UID_LEN, ConstantUtils.PSW_LEN, ConstantUtils.DETONATOR_VERSION);
+                            break;
+                        case STEP_WRITE_UID:
+                            serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.CODE_WRITE_UID, 0);
+                            break;
+                        case STEP_WRITE_PSW:
+                            serialPortUtil.sendCmd(ConstantUtils.EXPLODE_PSW, SerialCommand.CODE_WRITE_PSW, 0);
+                            break;
+                        case STEP_WRITE_SHELL:
+                            serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.CODE_WRITE_SHELL, 0);
+                            break;
+                        case STEP_READ_SHELL:
+                            serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.CODE_READ_SHELL, ConstantUtils.UID_LEN);
+                            break;
+                        case STEP_LOCK:
+                            serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.CODE_LOCK, 0);
+                            break;
+                        case STEP_WRITE_DELAY:
+                            serialPortUtil.sendCmd(etNumber.getText().toString(), SerialCommand.CODE_SINGLE_WRITE_FIELD, 0, Integer.parseInt(etDelay.getText().toString()), 0);
+                            break;
+                        case STEP_SCAN_CODE:
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_CODE, ConstantUtils.SCAN_CODE_TIME);
+                            myHandler.sendEmptyMessageDelayed(HANDLER_RESEND, ConstantUtils.RESEND_SCAN_TIMEOUT);
+                            return false;
                     }
+                    myHandler.sendEmptyMessageDelayed(HANDLER_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
                     break;
             }
             return false;
@@ -139,8 +148,6 @@ public class WriteSNActivity extends BaseActivity {
         etPeriod = findViewById(R.id.etPeriod);
         btnWrite = findViewById(R.id.btn_write);
         btnDelay = findViewById(R.id.btn_delay);
-        tvAuto = findViewById(R.id.tv_autoHints);
-        setDelay = false;
         startReceive = false;
 
         initData();
@@ -148,6 +155,7 @@ public class WriteSNActivity extends BaseActivity {
         try {
             serialPortUtil = SerialPortUtil.getInstance();
             myReceiveListener = new SerialDataReceiveListener(WriteSNActivity.this, bufferRunnable);
+            myReceiveListener.setSingleConnect(true);
             serialPortUtil.setOnDataReceiveListener(myReceiveListener);
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
@@ -174,11 +182,9 @@ public class WriteSNActivity extends BaseActivity {
             if (etNumber.getText().length() != 13) {
                 myApp.myToast(WriteSNActivity.this, R.string.message_detonator_input_error);
             } else {
-                setDelay = false;
                 enabledButton(false);
                 myHandler.removeCallbacksAndMessages(null);
-                if (settings.isNewLG())
-                    changeMode = 4;
+                flowStep = STEP_WRITE_CLOCK;
                 myHandler.sendEmptyMessage(HANDLER_RESEND);
             }
         });
@@ -189,11 +195,9 @@ public class WriteSNActivity extends BaseActivity {
             } else {
                 try {
                     if (Integer.parseInt(etDelay.getText().toString()) >= 0) {
-                        setDelay = true;
                         enabledButton(false);
+                        flowStep = STEP_WRITE_DELAY;
                         myHandler.removeCallbacksAndMessages(null);
-                        if (settings.isNewLG())
-                            changeMode = 4;
                         myHandler.sendEmptyMessage(HANDLER_RESEND);
                     }
                 } catch (Exception e) {
@@ -207,60 +211,48 @@ public class WriteSNActivity extends BaseActivity {
     private final Runnable bufferRunnable = new Runnable() {
         @Override
         public void run() {
-            String received = myReceiveListener.getRcvData();
-            if (received.contains(SerialCommand.INITIAL_FAIL)) {
+            byte[] received = myReceiveListener.getRcvData();
+
+            if (received[0] == SerialCommand.INITIAL_FINISHED) {
+                myHandler.sendEmptyMessage(HANDLER_SUCCESS);
+            } else if (received[0] == SerialCommand.INITIAL_FAIL) {
                 myApp.myToast(WriteSNActivity.this, R.string.message_open_module_fail);
                 finish();
-            } else if (received.contains(SerialCommand.INITIAL_FINISHED)) {
-                myReceiveListener.setRcvData("");
-                if (!settings.isNewLG()) {
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + detectVoltage + "###");
-                    myHandler.sendEmptyMessage(HANDLER_SUCCESS);
-                } else {
-                    changeMode = 1;
-                    serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 0));
-                }
             } else {
-                //sendMsg(2, received);
-                if (settings.isNewLG()) {
-                    if (received.contains(SerialCommand.SCAN_RESPOND)) {
-                        if (scanMode && received.length() > 10)
-                            analyzeCode(received);
-                    } else if (received.contains(SerialCommand.AT_CMD_RESPOND)) {
-                        switch (changeMode) {
-                            case 1:
-                                changeMode++;
-                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_INITIAL_VOLTAGE, ConstantUtils.DEFAULT_SINGLE_WORK_VOLTAGE, ConstantUtils.DEFAULT_SINGLE_WORK_VOLTAGE));
-                                break;
-                            case 2:
-                                changeMode++;
-                                myHandler.sendEmptyMessageDelayed(HANDLER_SUCCESS, ConstantUtils.INITIAL_VOLTAGE_DELAY);
-                                break;
-                            case 4:
-                                changeMode++;
-                                myHandler.sendEmptyMessage(HANDLER_RESEND);
-                                break;
-                        }
-                        myReceiveListener.setRcvData("");
-                    } else if (received.startsWith(SerialCommand.DATA_PREFIX)) {
-                        myHandler.sendEmptyMessage(HANDLER_SUCCESS);
-                    }
-                } else if (scanMode) {
+                if (startReceive) {
                     myHandler.removeMessages(HANDLER_RESEND);
-                    if (received.contains(SerialCommand.RESPOND_SUCCESS)) {
-                        analyzeCode(received);
-                    }
-                } else if (startReceive) {
-                    if (setDelay) {
-                        if (received.contains(Objects.requireNonNull(settings.isNewLG() ? SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SET_DELAY) :
-                                SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SET_DELAY)))) {
-                            myHandler.sendEmptyMessage(HANDLER_SUCCESS);
+                    if (0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
+                        switch (flowStep) {
+                            case STEP_READ_SHELL:
+                                if (!etNumber.getText().toString().equals(new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15)))) {
+                                    myHandler.sendEmptyMessage(HANDLER_FAIL);
+                                    return;
+                                }
+                                break;
+                            case STEP_LOCK:
+                            case STEP_WRITE_DELAY:
+                                myApp.myToast(WriteSNActivity.this, R.string.message_detonator_write_success);
+                                runOnUiThread(() -> {
+                                    try {
+                                        etNumber.setText(String.format(Locale.CHINA, "%s%06d", etNumber.getText().toString().substring(0, 7), Integer.parseInt(etNumber.getText().toString().substring(7)) + 1));
+                                    } catch (Exception e) {
+                                        BaseApplication.writeErrorLog(e);
+                                    }
+                                });
+                                myHandler.sendEmptyMessage(HANDLER_SUCCESS);
+                                return;
+                            case STEP_SCAN_CODE:
+                                if (received.length < 9)
+                                    myHandler.sendEmptyMessage(HANDLER_FAIL);
+                                else {
+                                    tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
+                                    myHandler.sendEmptyMessage(HANDLER_SCAN);
+                                }
+                                return;
                         }
+                        myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                     } else {
-                        if (received.contains(Objects.requireNonNull(settings.isNewLG() ? SerialCommand.NEW_RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.WRITE_SN) :
-                                SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.WRITE_SN)))) {
-                            myHandler.sendEmptyMessage(HANDLER_SUCCESS);
-                        }
+                        myHandler.sendEmptyMessage(HANDLER_FAIL);
                     }
                 }
             }
@@ -268,13 +260,12 @@ public class WriteSNActivity extends BaseActivity {
     };
 
     private void enabledButton(boolean enabled) {
-        resendCount = 0;
-        myReceiveListener.setRcvData("");
         setProgressVisibility(!enabled);
         myReceiveListener.setStartAutoDetect(enabled);
         findViewById(R.id.btn_increase).setEnabled(enabled);
         findViewById(R.id.btn_decrease).setEnabled(enabled);
         btnWrite.setEnabled(enabled);
+        btnDelay.setEnabled(enabled);
         etNumber.setEnabled(enabled);
         etDelay.setEnabled(enabled);
     }
@@ -294,10 +285,7 @@ public class WriteSNActivity extends BaseActivity {
         if (keyCode == KeyEvent.KEYCODE_B) {
             myReceiveListener.setStartAutoDetect(false);
             setProgressVisibility(true);
-            myReceiveListener.setScanMode(true);
-            scanMode = true;
-            resendCount = 0;
-            //btnWrite.setEnabled(false);
+            flowStep = STEP_SCAN_CODE;
             myHandler.removeCallbacksAndMessages(null);
             myHandler.sendEmptyMessage(HANDLER_RESEND);
         }

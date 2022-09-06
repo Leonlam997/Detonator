@@ -130,8 +130,10 @@
     <string name="progress_text">正在初始化模块，请稍候！</string>
     <string name="progress_set_delay">正在下载延期，请稍候！</string>
     <string name="progress_detect">正在检测，请稍候！</string>
+    <string name="progress_reading">正在读取未注册雷管信息</string>
     <string name="progress_upload">正在上传，请稍候！</string>
     <string name="progress_connecting">正在连接设备，请稍候！</string>
+    <string name="progress_total">总进度：%1$d%%</string>
     <string name="open_air">露天</string>
     <string name="tunnel">井巷</string>
     <string name="semi_product_title">半成品检测</string>
@@ -173,6 +175,7 @@
     <string name="map_latitude">纬度：</string>
     <string name="map_longitude">经度：</string>
     <string name="hint_input_name">请输入名称</string>
+    <string name="hint_input_threshold">请输入门限值</string>
     <string name="hint_input_voltage">请输入电压值</string>
     <string name="hint_input_delay_time">请输入延期时间</string>
     <string name="hint_input_interval">请输入间隔时差</string>
@@ -211,13 +214,17 @@
     <string name="version_number">版本号：%1$s</string>
     <string name="device_code">编号：%1$s</string>
     <string name="message_waveform_data_error">数据错误生成失败!</string>
-    <string name="message_scan_timeout">未扫描到二维码!</string>
+    <string name="message_scan_timeout">未扫描到管壳码!</string>
     <string name="message_props_set_success">设置成功！</string>
     <string name="message_props_get_success">读取成功！</string>
     <string name="message_media_init_error">音频设备出错！</string>
     <string name="message_media_load_error">音频加载失败！</string>
     <string name="message_acquire_phone_info_error">获取电话信息错误！</string>
+    <string name="message_detonator_write_success">雷管写入成功！</string>
+    <string name="message_detonator_write_error">雷管写入失败！</string>
     <string name="message_detonator_not_detected">检测不到雷管！</string>
+    <string name="message_detonator_read_shell_error">管壳码读取错误！</string>
+    <string name="message_detonator_read_field_error">数据读取错误！</string>
     <string name="message_detonator_delay_error">管壳码：%1$s\n预设值：%2$dms\n检测值：%3$dms\n延期不一致！</string>
     <string name="message_detonator_tunnel_download_fail">段号：%1$d 段内：%2$d下载失败！</string>
     <string name="message_detonator_open_air_download_fail">排号:%1$d 孔号:%2$d 孔内:%3$d下载失败！</string>
@@ -229,6 +236,7 @@
     <string name="message_detonator_duplicate_input">输入管壳码存在！</string>
     <string name="message_amount_input_error">输入数量超出范围！</string>
     <string name="message_detonator_capacity_status">第%1$d发：%2$s ＃</string>
+    <string name="message_detect_error">雷管信息错误或未连接！</string>
     <string name="message_detect_finished">检测完成！</string>
     <string name="message_modify_finished">修改完成！</string>
     <string name="message_check_network">请检查网络！</string>
@@ -290,6 +298,7 @@
     <string name="message_delay_error">第%1$d发延时不正确！</string>
     <string name="message_charge_fail">第%1$d发充电没完成！</string>
     <string name="message_explode_success">起爆成功！</string>
+    <string name="message_detect_multiple">%1$s发现重码！</string>
     <string name="message_restore_success">列表导入成功！</string>
     <string name="message_input_voltage_error">输入电压值错误！</string>
     <string name="message_status_charge_only">只充电没起爆！</string>
@@ -309,6 +318,7 @@
     <string name="dialog_title_warning">警告</string>
     <string name="dialog_title_wrong_list">检测有误雷管列表</string>
     <string name="dialog_title_edit_explode_voltage">修改起爆电压</string>
+    <string name="dialog_title_edit_threshold">修改门限值</string>
     <string name="dialog_title_edit_work_voltage">修改工作电压</string>
     <string name="dialog_title_edit_start_voltage">修改启动电压</string>
     <string name="dialog_title_out_of_range">延期超出范围</string>
@@ -324,6 +334,8 @@
     <string name="dialog_title_select_scale">选择字体大小</string>
     <string name="dialog_title_select_sleep_time">选择休眠时间</string>
     <string name="dialog_title_abort_modify">放弃修改</string>
+    <string name="dialog_title_detect_again">重新检测</string>
+    <string name="dialog_title_enter_charge">注意！</string>
     <string name="dialog_exist">该码已存在！</string>
     <string name="dialog_scan_first">请先扫码！</string>
     <string name="dialog_qualified">成功！</string>
@@ -334,6 +346,8 @@
     <string name="dialog_device_address">设备地址</string>
     <string name="dialog_device_signal">信号强度</string>
     <string name="dialog_clear_list">是否确定清除列表？</string>
+    <string name="dialog_explode_psw_error">起爆密码验证错误！</string>
+    <string name="dialog_explode_status_error">起爆状态验证错误！</string>
     <string name="dialog_exit_explode">是否退出起爆？</string>
     <string name="dialog_exit_detect">是否退出检测？</string>
     <string name="dialog_exit_download">下载未完成，是否继续退出？</string>
@@ -351,6 +365,8 @@
     <string name="dialog_confirm_delete_version">是否确定删除%1$d个版本？</string>
     <string name="dialog_clear_detected">重新选择将清除之前检测的雷管，是否继续？</string>
     <string name="dialog_delay_out_of_range">最大延期超过6秒，是否继续？</string>
+    <string name="dialog_detect_again">是否重新检测一遍？</string>
+    <string name="dialog_enter_charge">\n进入充电前请工作人员撤离现场！\n</string>
     <string name="dialog_short_circuit">短路保护，请检查线路！</string>
     <string name="dialog_open_circuit">线路已断开，请检查！</string>
     <string name="dialog_confirm_explode">是否确定起爆？</string>
@@ -385,7 +401,7 @@
     <string name="tab_title_all_list">方案列表</string>
     <string name="tab_title_online">在线</string>
     <string name="tab_title_offline">离线</string>
-    <string name="tab_title_delay_error">延期错误</string>
+    <string name="tab_title_delay_error">未注册</string>
     <string name="tab_title_black_list">黑名单</string>
     <string name="tab_title_used_list">已使用</string>
     <string name="tab_title_no_authorize_list">未授权</string>

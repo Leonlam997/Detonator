@@ -1,7 +1,6 @@
 package com.leon.detonator.Activity;
 
 import android.app.AlertDialog;
-import android.content.Intent;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,118 +17,84 @@ import com.leon.detonator.Serial.SerialCommand;
 import com.leon.detonator.Serial.SerialDataReceiveListener;
 import com.leon.detonator.Serial.SerialPortUtil;
 import com.leon.detonator.Util.ConstantUtils;
-import com.leon.detonator.Util.KeyUtils;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 public class CheckLineActivity extends BaseActivity {
-    private final int DETECT_SUCCESS = 1,
-            DETECT_CONTINUE = 2,
-            DETECT_FAIL = 3,
-            DETECT_INITIAL = 4,
-            DETECT_ADDRESS = 6,
-            DETECT_DELAY = 7,
-            DETECT_SHORT = 8,
-            DETECT_RESEND = 9,
-            DETECT_VOLTAGE = 10;
-    private final boolean newLG = BaseApplication.readSettings().isNewLG();
-    private final int initVoltage = 2790;
+    private final int DETECT_SUCCESS = 1;
+    private final int DETECT_CONTINUE = 2;
+    private final int DETECT_FAIL = 3;
+    private final int DETECT_INITIAL = 4;
+    private final int DETECT_NEXT_STEP = 5;
+    private final int DETECT_ADDRESS = 6;
+    private final int DETECT_DELAY = 7;
+    private final int DETECT_SHORT = 8;
+    private final int DETECT_SEND_COMMAND = 9;
+    private final int STEP_CHECK_CONFIG = 1;
+    private final int STEP_CLEAR_STATUS = 2;
+    private final int STEP_SCAN = 3;
+    private final int STEP_READ_SHELL = 4;
+    private final int STEP_READ_FIELD = 5;
+    private final int STEP_END = 6;
     private SerialPortUtil serialPortUtil;
     private SerialDataReceiveListener myReceiveListener;
     private SoundPool soundPool;
-    private MyButton btnDetect, btnStatus;
-    private TextView tvTube, tvDelayTime;
-    private boolean startReceive = false, drawWaveform = false;
-    private int resendCount = 0, delayTime, soundSuccess, soundFail, soundAlert, changeMode, keyCount = 0, cmdType;
+    private MyButton btnDetect;
+    private MyButton btnStatus;
+    private TextView tvTube;
+    private TextView tvDelayTime;
+    private int delayTime;
+    private int soundSuccess;
+    private int soundFail;
+    private int soundAlert;
+    private int flowStep;
     private String tempAddress;
     private BaseApplication myApp;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_check_line);
-
-        setTitle(R.string.single_check_detonator);
-
-        myApp = (BaseApplication) getApplication();
-        tvTube = findViewById(R.id.tv_tube);
-        tvTube.setText("--");
-        tvDelayTime = findViewById(R.id.tv_delay);
-        tvDelayTime.setText(R.string.no_delay_time);
-        btnDetect = findViewById(R.id.btn_detect);
-        btnDetect.setOnClickListener(view -> {
-            cmdType = 1;
-            detectStatusHandler.sendEmptyMessage(DETECT_CONTINUE);
-        });
-        btnDetect.requestFocus();
-        btnStatus = findViewById(R.id.btn_status);
-        if (!newLG) {
-            btnStatus.setOnClickListener(v -> {
-                cmdType = 3;
-                detectStatusHandler.sendEmptyMessage(DETECT_CONTINUE);
-            });
-        } else
-            btnStatus.setVisibility(View.GONE);
-
-        try {
-            serialPortUtil = SerialPortUtil.getInstance();
-            myReceiveListener = new SerialDataReceiveListener(CheckLineActivity.this, bufferRunnable);
-            serialPortUtil.setOnDataReceiveListener(myReceiveListener);
-            enableButton(false);
-        } catch (IOException e) {
-            BaseApplication.writeErrorLog(e);
-            myApp.myToast(CheckLineActivity.this, R.string.message_open_module_fail);
-            finish();
-        }
-        initSound();
-    }
-
-    private final Handler detectStatusHandler = new Handler(new Handler.Callback() {
+    private final Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             switch (msg.what) {
                 case DETECT_INITIAL:
-                    startReceive = false;
                     enableButton(true);
                     break;
                 case DETECT_SUCCESS: //检测成功
-                    detectStatusHandler.removeMessages(DETECT_RESEND);
+                    myHandler.removeMessages(DETECT_SEND_COMMAND);
                     myApp.playSoundVibrate(soundPool, soundSuccess);
-                    myReceiveListener.setRcvData("");
                     enableButton(true);
                     break;
                 case DETECT_CONTINUE: //开始检测
-                    detectStatusHandler.removeCallbacksAndMessages(null);
+                    myHandler.removeCallbacksAndMessages(null);
                     enableButton(false);
-                    startReceive = newLG;
                     tempAddress = "";
                     tvTube.setText("--");
                     tvDelayTime.setText(R.string.no_delay_time);
-                    resendCount = 0;
-                    if (newLG) {
-                        changeMode = 4;
-                        detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                    } else {
-                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + initVoltage + "###");
-                        detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.BOOST_TIME);
-                    }
-//                    detectStatusHandler.sendEmptyMessageDelayed(DETECT_VOLTAGE, ConstantUtils.BOOT_TIME);
+                    myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
+//                    myHandler.sendEmptyMessageDelayed(DETECT_VOLTAGE, ConstantUtils.BOOT_TIME);
                     break;
                 case DETECT_FAIL: //检测失败
-                    detectStatusHandler.removeMessages(DETECT_RESEND);
+                    myHandler.removeMessages(DETECT_SEND_COMMAND);
                     myApp.playSoundVibrate(soundPool, soundFail);
+                    Map<Integer, Integer> failCode = new HashMap<Integer, Integer>() {
+                        {
+                            put(STEP_SCAN, R.string.message_detonator_not_detected);
+                            put(STEP_READ_SHELL, R.string.message_detonator_read_shell_error);
+                            put(STEP_READ_FIELD, R.string.message_detonator_read_field_error);
+                            put(STEP_CHECK_CONFIG, R.string.message_detect_error);
+                            put(STEP_CLEAR_STATUS, R.string.message_detonator_write_error);
+                        }
+                    };
+                    Integer i = failCode.get(flowStep);
+                    myApp.myToast(CheckLineActivity.this, null == i ? R.string.message_detonator_not_detected : i);
                     enableButton(true);
                     tempAddress = "";
-//                    SemiProductDialog myDialog = new SemiProductDialog(CheckLineActivity.this);
-//                    myDialog.setStyle(4);
-//                    myDialog.setTitleId(R.string.dialog_unqualified);
-//                    myDialog.setCode((String) msg.obj);
-//                    myDialog.setAutoClose(false);
-//                    myDialog.setCanceledOnTouchOutside(false);
-//                    myDialog.show();
                     break;
                 case DETECT_ADDRESS:
                     tvTube.setText(tempAddress);
@@ -138,7 +103,7 @@ public class CheckLineActivity extends BaseActivity {
                     tvDelayTime.setText(String.format(Locale.CHINA, "%dms", delayTime));
                     break;
                 case DETECT_SHORT:
-                    detectStatusHandler.removeMessages(DETECT_RESEND);
+                    myHandler.removeMessages(DETECT_SEND_COMMAND);
                     if (myReceiveListener != null) {
                         myReceiveListener.closeAllHandler();
                         myReceiveListener = null;
@@ -155,63 +120,44 @@ public class CheckLineActivity extends BaseActivity {
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
                             .create().show();
                     break;
-                case DETECT_VOLTAGE:
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + initVoltage + "###");
-                    detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.BOOST_TIME);
-                    break;
-                case DETECT_RESEND:
-                    startReceive = true;
-                    myReceiveListener.setRcvData("");
-                    if (newLG)
-                        switch (changeMode) {
-                            case 1:
-                                resendCount = 0;
-                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 0));
-                                detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
-                                return false;
-                            case 2:
-                                resendCount = 0;
-                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_INITIAL_VOLTAGE, ConstantUtils.DEFAULT_SINGLE_WORK_VOLTAGE, ConstantUtils.DEFAULT_SINGLE_WORK_VOLTAGE));
-                                detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
-                                return false;
-                            case 4:
-                                resendCount = 0;
-                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_MODE, 1));
-                                detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
-                                return false;
-                            case 6:
-                                resendCount = 0;
-                                serialPortUtil.sendCmd(String.format(Locale.CHINA, SerialCommand.CMD_SIGNAL_WAVEFORM, 1));
-                                detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
-                                return false;
-                            case 8:
-                                resendCount = 0;
-                                serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.READ_SN, 0);
-                                detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, 1500);
-                                return false;
-                            case 9:
-                                myApp.myToast(CheckLineActivity.this, R.string.message_waveform_data_error);
-                                detectStatusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                                return false;
-                        }
-                    if (resendCount >= ConstantUtils.RESEND_TIMES) {
-                        myApp.myToast(CheckLineActivity.this, R.string.message_detonator_not_detected);
-                        detectStatusHandler.sendEmptyMessage(DETECT_FAIL);
-                        return false;
-                    }
-                    switch (cmdType) {
-                        case 1:
-                            serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.READ_SN, 0);
+                case DETECT_NEXT_STEP:
+                    switch (flowStep) {
+                        case STEP_CHECK_CONFIG:
+                            flowStep = STEP_CLEAR_STATUS;
                             break;
-                        case 2:
-                            serialPortUtil.sendCmd(tempAddress, SerialCommand.ACTION_TYPE.GET_DELAY, 0);
+                        case STEP_CLEAR_STATUS:
+                            flowStep = STEP_SCAN;
                             break;
-                        case 3:
-                            serialPortUtil.sendCmd("", SerialCommand.ACTION_TYPE.READ_TEST_TIMES, 0);
+                        case STEP_SCAN:
+                            flowStep = STEP_READ_SHELL;
+                            break;
+                        case STEP_READ_SHELL:
+                            flowStep = STEP_READ_FIELD;
                             break;
                     }
-                    detectStatusHandler.sendEmptyMessageDelayed(DETECT_RESEND, ConstantUtils.RESEND_CMD_TIMEOUT);
-                    resendCount++;
+                case DETECT_SEND_COMMAND:
+                    switch (flowStep) {
+                        case STEP_CHECK_CONFIG:
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_SINGLE_READ_CONFIG, 0);
+                            myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                            break;
+                        case STEP_CLEAR_STATUS:
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_CLEAR_READ_STATUS, 0);
+                            myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
+                            break;
+                        case STEP_SCAN:
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_UID, ConstantUtils.UID_LEN);
+                            myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                            break;
+                        case STEP_READ_SHELL:
+                            serialPortUtil.sendCmd(tempAddress, SerialCommand.CODE_READ_SHELL, ConstantUtils.UID_LEN);
+                            myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
+                            break;
+                        case STEP_READ_FIELD:
+                            serialPortUtil.sendCmd(tempAddress, SerialCommand.CODE_READ_FIELD, ConstantUtils.UID_LEN, 0, 0, 0);
+                            myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_READ_FIELD_CMD_TIMEOUT);
+                            break;
+                    }
                     break;
                 default:
                     break;
@@ -223,179 +169,90 @@ public class CheckLineActivity extends BaseActivity {
     private final Runnable bufferRunnable = new Runnable() {
         @Override
         public void run() {
-            String received = myReceiveListener.getRcvData();
+            byte[] received = myReceiveListener.getRcvData();
 //            myApp.myToast(CheckLineActivity.this, received);
-            if (received.contains(SerialCommand.ALERT_SHORT_CIRCUIT)) {
-                if (startReceive) {
-                    myApp.myToast(CheckLineActivity.this, R.string.message_capacity_large_current);
-                    detectStatusHandler.sendEmptyMessage(DETECT_FAIL);
-                } else {
-                    detectStatusHandler.sendEmptyMessage(DETECT_SHORT);
-                }
-            } else if (received.contains(SerialCommand.INITIAL_FAIL)) {
+            if (received[0] == SerialCommand.ALERT_SHORT_CIRCUIT) {
+                myHandler.sendEmptyMessage(DETECT_SHORT);
+            } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
+                myHandler.sendEmptyMessage(DETECT_INITIAL);
+            } else if (received[0] == SerialCommand.INITIAL_FAIL) {
                 myApp.myToast(CheckLineActivity.this, R.string.message_open_module_fail);
                 finish();
-            } else if (received.contains(SerialCommand.INITIAL_FINISHED)) {
-                myReceiveListener.setRcvData("");
-                if (newLG) {
-                    startReceive = true;
-                    changeMode = 1;
-                    detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                } else {
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + initVoltage + "###");
-                    detectStatusHandler.sendEmptyMessage(DETECT_INITIAL);
-                }
-            } else if (startReceive) {
-                if (newLG) {
-                    if (received.contains(SerialCommand.AT_CMD_RESPOND)) {
-                        switch (changeMode) {
-                            case 1:
-                                changeMode++;
-                                detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                                break;
-                            case 2:
-                                changeMode++;
-                                detectStatusHandler.removeMessages(DETECT_RESEND);
-                                detectStatusHandler.sendEmptyMessageDelayed(DETECT_INITIAL, ConstantUtils.INITIAL_VOLTAGE_DELAY);
-                                break;
-                            case 4:
-                                if (drawWaveform)
-                                    changeMode = 8;
-                                else
-                                    changeMode++;
-                                detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                                break;
-                            case 6:
-                                changeMode = 4;
-                                detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                                break;
-                        }
-                        myReceiveListener.setRcvData("");
-                    } else if (received.startsWith(SerialCommand.DATA_PREFIX) && received.length() >= 10 && serialPortUtil.checkData(received)) {
-                        tempAddress = received.substring(6, received.length() - 2);
-                        if (1 == cmdType) {
-                            char character = (char) (int) Integer.valueOf(tempAddress.substring(4, 6), 16);
-                            if (character == 0xff)
-                                character = 'F';
-                            tempAddress = tempAddress.substring(0, 4) + tempAddress.substring(6, 9) + character + tempAddress.substring(9);
-                            myReceiveListener.setRcvData("");
-                            resendCount = 0;
-                            cmdType = 2;
-                            detectStatusHandler.removeMessages(DETECT_RESEND);
-                            detectStatusHandler.sendEmptyMessage(DETECT_ADDRESS);
-                            detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                        } else {
-                            detectStatusHandler.removeMessages(DETECT_RESEND);
-                            delayTime = Integer.parseInt(tempAddress, 16);
-                            detectStatusHandler.sendEmptyMessage(DETECT_DELAY);
-                            detectStatusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                        }
-                    } else if (drawWaveform) {
-                        if (received.length() == 2048) {
-                            Intent intent = new Intent(CheckLineActivity.this, WaveformActivity.class);
-                            intent.putExtra(KeyUtils.KEY_WAVEFORM_DATA, received);
-                            startActivity(intent);
-                            detectStatusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                        } else {
-                            myApp.myToast(CheckLineActivity.this, received.length() + "");
-                            changeMode = 9;
-                        }
+            } else {
+                myHandler.removeMessages(DETECT_SEND_COMMAND);
+                if (0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
+                    switch (flowStep) {
+                        case STEP_SCAN:
+                            tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9));
+                            if (!Pattern.matches(ConstantUtils.UID_PATTERN, tempAddress)) {
+                                flowStep = STEP_READ_FIELD;
+                                myHandler.sendEmptyMessage(DETECT_FAIL);
+                                return;
+                            }
+                            break;
+                        case STEP_READ_SHELL:
+                            tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
+                            if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, tempAddress)) {
+                                flowStep = STEP_READ_FIELD;
+                                myHandler.sendEmptyMessage(DETECT_FAIL);
+                                return;
+                            }
+                            myHandler.sendEmptyMessage(DETECT_ADDRESS);
+                            break;
+                        case STEP_READ_FIELD:
+                            delayTime = (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 4]) << 16) + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 5]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 6]);
+                            myHandler.sendEmptyMessage(DETECT_DELAY);
+                            flowStep = STEP_END;
+                            myHandler.sendEmptyMessage(DETECT_SUCCESS);
+                            return;
                     }
+                    myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                 } else {
-                    String confirm;
-                    switch (cmdType) {
-                        case 1:
-                            confirm = SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.READ_SN);
-                            assert confirm != null;
-                            if (received.contains(confirm)) {
-                                received = received.substring(received.indexOf(confirm) + confirm.length());
-//                        myApp.myToast(CheckLineActivity.this, received);
-                                if (received.length() >= 16) {
-                                    tempAddress = received.substring(0, 14);
-                                    detectStatusHandler.removeMessages(DETECT_RESEND);
-                                    if (tempAddress.startsWith("FF")) {
-                                        //sendMsg(DETECT_FAIL, R.string.message_detonator_no_code);
-                                        tempAddress = "FFFFFFFFFFFFFF";
-                                        myReceiveListener.setRcvData("");
-                                        detectStatusHandler.sendEmptyMessage(DETECT_ADDRESS);
-                                        resendCount = 0;
-                                    } else {
-//                                sendMsg(DETECT_MESSAGE, tempAddress);
-                                        try {
-                                            int checkSum = 0;
-                                            for (int j = 0; j < tempAddress.length(); j += 2) {
-                                                byte a = (byte) Integer.parseInt(tempAddress.substring(j, j + 2), 16);
-                                                checkSum += a;
-                                            }
-                                            if (String.format("%02X", checkSum).endsWith(received.substring(14, 16))) {
-                                                char character = (char) (int) Integer.valueOf(tempAddress.substring(12), 16);
-                                                tempAddress = tempAddress.substring(0, 7) + character + tempAddress.substring(7, 12);
-                                                myReceiveListener.setRcvData("");
-                                                detectStatusHandler.removeMessages(DETECT_RESEND);
-                                                detectStatusHandler.sendEmptyMessage(DETECT_ADDRESS);
-                                                resendCount = 0;
-                                                cmdType = 2;
-                                            }
-                                            detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                                        } catch (Exception e) {
-                                            BaseApplication.writeErrorLog(e);
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                        case 2:
-                            confirm = SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.GET_DELAY);
-                            assert confirm != null;
-                            if (received.contains(confirm)) {
-                                detectStatusHandler.removeMessages(DETECT_RESEND);
-                                received = received.substring(received.indexOf(confirm) + confirm.length());
-                                if (received.length() > 4)
-                                    received = received.substring(0, 4);
-                                delayTime = Integer.parseInt(received, 16);
-                                detectStatusHandler.sendEmptyMessage(DETECT_DELAY);
-                                detectStatusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                            }
-                            break;
-                        case 3:
-                            confirm = SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.READ_TEST_TIMES);
-                            assert confirm != null;
-                            if (received.contains(confirm)) {
-                                detectStatusHandler.removeMessages(DETECT_RESEND);
-                                try {
-                                    int times = Integer.parseInt(received.substring(received.indexOf(confirm) + confirm.length()), 16);
-                                    switch (times) {
-                                        case 2:
-                                            myApp.myToast(CheckLineActivity.this, R.string.message_status_charge_only);
-                                            break;
-                                        case 3:
-                                            myApp.myToast(CheckLineActivity.this, R.string.message_status_charge_explode);
-                                            break;
-                                        case 4:
-                                            myApp.myToast(CheckLineActivity.this, R.string.message_status_explode_only);
-                                            break;
-                                        default:
-                                            myApp.myToast(CheckLineActivity.this, "数据："+times);
-                                            break;
-                                    }
-                                } catch (Exception e) {
-                                    myApp.myToast(CheckLineActivity.this, R.string.message_status_error);
-                                }
-                                detectStatusHandler.sendEmptyMessage(DETECT_SUCCESS);
-                            }
-                            break;
-                    }
+                    myHandler.sendEmptyMessage(DETECT_FAIL);
                 }
             }
         }
     };
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_check_line);
+
+        setTitle(R.string.single_check_detonator);
+
+        myApp = (BaseApplication) getApplication();
+        tvTube = findViewById(R.id.tv_tube);
+        tvTube.setText("--");
+        tvDelayTime = findViewById(R.id.tv_delay);
+        tvDelayTime.setText(R.string.no_delay_time);
+        btnDetect = findViewById(R.id.btn_detect);
+        btnDetect.setOnClickListener(view -> {
+            flowStep = STEP_CHECK_CONFIG;
+            myHandler.sendEmptyMessage(DETECT_CONTINUE);
+        });
+        btnDetect.requestFocus();
+        btnStatus = findViewById(R.id.btn_status);
+        btnStatus.setVisibility(View.GONE);
+
+        try {
+            serialPortUtil = SerialPortUtil.getInstance();
+            myReceiveListener = new SerialDataReceiveListener(CheckLineActivity.this, bufferRunnable);
+            myReceiveListener.setSingleConnect(true);
+            serialPortUtil.setOnDataReceiveListener(myReceiveListener);
+            enableButton(false);
+        } catch (IOException e) {
+            BaseApplication.writeErrorLog(e);
+            myApp.myToast(CheckLineActivity.this, R.string.message_open_module_fail);
+            finish();
+        }
+        initSound();
+    }
+
     private void enableButton(boolean enable) {
-        startReceive = !enable;
         setProgressVisibility(!enable);
         btnDetect.setEnabled(enable);
         btnStatus.setEnabled(enable);
-        myReceiveListener.setMaxCurrent(enable ? ConstantUtils.MAXIMUM_CURRENT : 500);
         myReceiveListener.setStartAutoDetect(enable);
     }
 
@@ -417,45 +274,9 @@ public class CheckLineActivity extends BaseActivity {
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_1:
-                cmdType = 1;
-                changeMode = 0;
-                detectStatusHandler.sendEmptyMessage(DETECT_CONTINUE);
-                keyCount = 0;
-                break;
-            case KeyEvent.KEYCODE_STAR:
-                if (btnDetect.isEnabled()) {
-                    if (keyCount < 2)
-                        keyCount++;
-                    else if (keyCount > 3)
-                        keyCount++;
-                    else if (keyCount != 2)
-                        keyCount = 0;
-                    if (keyCount == 6) {
-                        keyCount = 0;
-                        drawWaveform = true;
-                        changeMode = 6;
-                        enableButton(false);
-                        detectStatusHandler.sendEmptyMessage(DETECT_RESEND);
-                    }
-                }
-                break;
-            case KeyEvent.KEYCODE_2:
-                if (!newLG) {
-                    cmdType = 3;
-                    detectStatusHandler.sendEmptyMessage(DETECT_CONTINUE);
-                }
-                keyCount = 0;
-                break;
-            case KeyEvent.KEYCODE_0:
-                if (keyCount == 2)
-                    keyCount++;
-                break;
-            case KeyEvent.KEYCODE_7:
-                if (keyCount == 3)
-                    keyCount++;
-                break;
+        if (keyCode == KeyEvent.KEYCODE_1) {
+            flowStep = STEP_CHECK_CONFIG;
+            myHandler.sendEmptyMessage(DETECT_CONTINUE);
         }
         return super.onKeyUp(keyCode, event);
     }
@@ -470,7 +291,7 @@ public class CheckLineActivity extends BaseActivity {
             soundPool.release();
             soundPool = null;
         }
-        detectStatusHandler.removeCallbacksAndMessages(null);
+        myHandler.removeCallbacksAndMessages(null);
         if (myReceiveListener != null) {
             myReceiveListener.setStartAutoDetect(false);
             myReceiveListener.closeAllHandler();

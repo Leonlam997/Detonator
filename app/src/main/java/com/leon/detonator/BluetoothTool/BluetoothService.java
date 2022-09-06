@@ -1,12 +1,17 @@
 package com.leon.detonator.BluetoothTool;
 
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
 
 import com.leon.detonator.Activity.BluetoothActivity;
 
@@ -38,14 +43,16 @@ public class BluetoothService {
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
     private int BtState;
+    private Context mContext;
 
     /**
      * @param handler 在线程与UI间通讯
      */
-    public BluetoothService(Handler handler) {
+    public BluetoothService(Handler handler, Context context) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         BtState = IDLE;
         mHandler = handler;
+        mContext = context;
     }
 
     /**
@@ -112,6 +119,9 @@ public class BluetoothService {
         mConnectedThread.start();
 
         //发送已连接设备名回UI
+        if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         sendString2UI(BluetoothActivity.STATUS_CONNECTED, device.getName());
         setState(CONNECTED);
     }
@@ -196,10 +206,12 @@ public class BluetoothService {
         public AcceptThread() {
             BluetoothServerSocket bss = null;
             // 获取蓝牙监听端口
-            try {
-                bss = mAdapter.listenUsingRfcommWithServiceRecord(BT_NAME, MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG, "listen() failed", e);
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                try {
+                    bss = mAdapter.listenUsingRfcommWithServiceRecord(BT_NAME, MY_UUID);
+                } catch (IOException e) {
+                    Log.e(TAG, "listen() failed", e);
+                }
             }
             mBtServerSocket = bss;
         }
@@ -263,10 +275,12 @@ public class BluetoothService {
             BluetoothSocket bs = null;
 
             // 根据UUID获取欲连接设备
-            try {
-                bs = device.createRfcommSocketToServiceRecord(MY_UUID);
-            } catch (IOException e) {
-                Log.e(TAG, "create() failed", e);
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+                try {
+                    bs = device.createRfcommSocketToServiceRecord(MY_UUID);
+                } catch (IOException e) {
+                    Log.e(TAG, "create() failed", e);
+                }
             }
             mBtSocket = bs;
         }
@@ -275,20 +289,22 @@ public class BluetoothService {
             if (DEBUG) Log.e(TAG, "Begin mConnectThread");
             setName("ConnectThread");
             // 尝试连接蓝牙端口
-            try {
-                mBtSocket.connect();
-            } catch (IOException e) {
-                // 当连接失败或异常
-                connectionFailed();
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 try {
-                    mBtSocket.close();
-                } catch (IOException e2) {
-                    Log.e(TAG, "close() fail", e2);
+                    mBtSocket.connect();
+                } catch (IOException e) {
+                    // 当连接失败或异常
+                    connectionFailed();
+                    try {
+                        mBtSocket.close();
+                    } catch (IOException e2) {
+                        Log.e(TAG, "close() fail", e2);
+                    }
+                    // 重新开启连接监听线程并退出连接线程
+                    BluetoothService.this.acceptWait();
+                    if (DEBUG) Log.d(TAG, "End mConnectThread");
+                    return;
                 }
-                // 重新开启连接监听线程并退出连接线程
-                BluetoothService.this.acceptWait();
-                if (DEBUG) Log.d(TAG, "End mConnectThread");
-                return;
             }
 
             synchronized (BluetoothService.this) {

@@ -58,21 +58,19 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class DetonatorListActivity extends BaseActivity {
-    private final int SET_DELAY_SUCCESS = 1,
-            MODIFY_SUCCESS = 2,
-            SET_DELAY_REFRESH = 3,
-            RESEND_COMMAND = 4,
-            SET_VOLTAGE = 5,
-            PROGRESS_HANDLER = 6,
-            RESTORE_VOLTAGE = 7;
-    private final int MODE_SCAN = 1,
-            MODE_MODIFY = 2,
-            MODE_MENU = 3,
-            MODE_MENU2 = 4,
-            MODE_HISTORY = 5;
+    private final int SET_DELAY_SUCCESS = 1;
+    private final int MODIFY_SUCCESS = 2;
+    private final int SET_DELAY_REFRESH = 3;
+    private final int RESEND_COMMAND = 4;
+    private final int PROGRESS_HANDLER = 6;
+    private final int MODE_SCAN = 1;
+    private final int MODE_MODIFY = 2;
+    private final int MODE_MENU = 3;
+    private final int MODE_MENU2 = 4;
+    private final int MODE_HISTORY = 5;
     private List<DetonatorInfoBean> list;
     private CheckBox cbSelected;
     private TextView tvRowDelay, tvHoleDelay, tvInsideDelay;
@@ -81,7 +79,13 @@ public class DetonatorListActivity extends BaseActivity {
     private DetonatorListAdapter adapter;
     private SerialPortUtil serialPortUtil;
     private List<DetonatorInfoBean> changedList;
-    private int lastTouchX, keyMode, clickIndex, newTime, resendCount, insertMode, timeout, soundSuccess, soundAlert;
+    private int lastTouchX;
+    private int keyMode;
+    private int clickIndex;
+    private int newTime;
+    private int insertMode;
+    private int soundSuccess;
+    private int soundAlert;
     private boolean insertUp;
     private SerialDataReceiveListener myReceiveListener;
     private PopupWindow popupMenu;
@@ -118,7 +122,9 @@ public class DetonatorListActivity extends BaseActivity {
             i++;
         }
         return i + 3;
-    }    private final Handler myHandler = new Handler(new Handler.Callback() {
+    }
+
+    private final Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             switch (msg.what) {
@@ -157,47 +163,13 @@ public class DetonatorListActivity extends BaseActivity {
                     saveList();
                     adapter.updateList(list);
                     break;
-                case RESTORE_VOLTAGE:
-                    serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "2400###");
-                    myHandler.sendEmptyMessageDelayed(RESEND_COMMAND, 200);
-                    break;
                 case RESEND_COMMAND:
                     myHandler.removeMessages(RESEND_COMMAND);
-                    myReceiveListener.setRcvData("");
                     //myApp.myToast(DetonatorListActivity.this, "重发修改延期！" + resendCount);
                     if (changedList.size() > 0) {
-                        if (resendCount >= ConstantUtils.RESEND_TIMES) {
-                            myHandler.sendEmptyMessage(PROGRESS_HANDLER);
-                            if (myApp.isTunnel())
-                                myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_tunnel_download_fail), changedList.get(0).getHole(), changedList.get(0).getInside()));
-                            else
-                                myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_open_air_download_fail), changedList.get(0).getRow(), changedList.get(0).getHole(), changedList.get(0).getInside()));
-                            resendCount = 0;
-                            changedList.remove(0);
-                            for (DetonatorInfoBean item : list) {
-                                if (item.isSelected()) {
-                                    item.setSelected(false);
-                                    break;
-                                }
-                            }
-                        }
-                        resendCount++;
                         if (changedList.size() > 0) {
-                            if (1 == timeout) {
-                                myReceiveListener.setMaxCurrent((list.size() + 1) * 50);
-                                serialPortUtil.sendCmd(SerialCommand.CMD_READ_VOLTAGE);
-                                timeout = 2;
-                            }
-                            new Handler(message -> {
-                                if (null == serialPortUtil)
-                                    return false;
-                                myReceiveListener.setMaxCurrent(ConstantUtils.MAXIMUM_CURRENT);
-                                serialPortUtil.sendCmd(changedList.get(0).getAddress(), SerialCommand.ACTION_TYPE.SET_DELAY, changedList.get(0).getDelayTime());
-                                myHandler.sendEmptyMessageDelayed(RESEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
-                                if (0 == timeout)
-                                    timeout = 1;
-                                return false;
-                            }).sendEmptyMessageDelayed(1, 1 == timeout ? ConstantUtils.READ_VOLTAGE_TIMEOUT : 0);
+                            serialPortUtil.sendCmd(changedList.get(0).getAddress(), SerialCommand.CODE_WRITE_FIELD, searchIndex(changedList.get(0).getAddress()), changedList.get(0).getDelayTime(), changedList.get(0).getHole());
+                            myHandler.sendEmptyMessageDelayed(RESEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
                         } else {
                             myApp.myToast(DetonatorListActivity.this, R.string.message_detonator_download_success);
                             myHandler.sendEmptyMessage(SET_DELAY_SUCCESS);
@@ -206,10 +178,6 @@ public class DetonatorListActivity extends BaseActivity {
                         myApp.myToast(DetonatorListActivity.this, R.string.message_detonator_download_success);
                         myHandler.sendEmptyMessage(SET_DELAY_SUCCESS);
                     }
-                    break;
-                case SET_VOLTAGE:
-                    if (null != serialPortUtil)
-                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "9999###");
                     break;
                 case PROGRESS_HANDLER:
                     if (pDialog.getProgress() < pDialog.getMax()) {
@@ -263,19 +231,6 @@ public class DetonatorListActivity extends BaseActivity {
                 findViewById(R.id.rl_scan_view).setVisibility(View.VISIBLE);
                 findViewById(R.id.rl_modify_view).setVisibility(View.GONE);
                 findViewById(R.id.rl_disp_view).setVisibility(View.GONE);
-                if (!settings.isNewLG()) {
-                    try {
-                        serialPortUtil = SerialPortUtil.getInstance();
-                        myReceiveListener = new SerialDataReceiveListener(DetonatorListActivity.this, () -> {
-                        });
-                        myHandler.sendEmptyMessageDelayed(SET_VOLTAGE, ConstantUtils.INITIAL_TIME);
-                        //serialPortUtil.setOnDataReceiveListener(myReceiveListener);
-                    } catch (Exception e) {
-                        BaseApplication.writeErrorLog(e);
-                        myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
-                        finish();
-                    }
-                }
                 break;
             case ConstantUtils.MODIFY_LIST:
                 adapter.setCanSelect(true);
@@ -309,7 +264,6 @@ public class DetonatorListActivity extends BaseActivity {
 
         setTitle(titleID);
         tableListView.setAdapter(adapter);
-        tableListView.post(() -> tableListView.requestFocus());
 
         switch (title) {
             case ConstantUtils.RESUME_LIST:
@@ -351,6 +305,18 @@ public class DetonatorListActivity extends BaseActivity {
                     return false;
                 });
                 tableListView.setOnItemClickListener((adapterView, view, i, l) -> showPopupWindow(adapterView, view, i));
+//                tableListView.setOnItemClickListener((adapterView, view, i, l) -> clickIndex = i);
+//                tableListView.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+//                    @Override
+//                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+//                        clickIndex = position;
+//                    }
+//
+//                    @Override
+//                    public void onNothingSelected(AdapterView<?> parent) {
+//
+//                    }
+//                });
                 break;
             case ConstantUtils.MODIFY_LIST:
                 keyMode = MODE_MODIFY;
@@ -484,6 +450,22 @@ public class DetonatorListActivity extends BaseActivity {
                     case KeyEvent.KEYCODE_3:
                         manualAppend(false, null);
                         break;
+//                    case KeyEvent.KEYCODE_4:
+//                        myApp.myToast(DetonatorListActivity.this,"调整电压");
+//                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "2000###");
+//                        break;
+//                    case KeyEvent.KEYCODE_5:
+//                        if (clickIndex >= 0 && clickIndex < list.size()) {
+//                            myApp.myToast(DetonatorListActivity.this,"开灯");
+//                            serialPortUtil.sendCmd(list.get(clickIndex).getAddress(), SerialCommand.ACTION_TYPE.LAMP_ON, 0);
+//                        }
+//                        break;
+//                    case KeyEvent.KEYCODE_6:
+//                        if (clickIndex >= 0 && clickIndex < list.size()) {
+//                            myApp.myToast(DetonatorListActivity.this,"关灯");
+//                            serialPortUtil.sendCmd(list.get(clickIndex).getAddress(), SerialCommand.ACTION_TYPE.LAMP_OFF, 0);
+//                        }
+//                        break;
                     case KeyEvent.KEYCODE_STAR:
                         modifyDelay(1);
                         break;
@@ -584,17 +566,6 @@ public class DetonatorListActivity extends BaseActivity {
         }
         popupMenu.dismiss();
     }
-
-//    @SuppressLint("RestrictedApi")
-//    @Override
-//    public boolean dispatchKeyEvent(KeyEvent event) {
-//        if (event.getAction() == KeyEvent.ACTION_UP && event.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER && (null == popupMenu || !popupMenu.isShowing())) {
-//            if (!tableListView.hasFocus()) {
-//                tableListView.requestFocus();
-//            }
-//        }
-//        return super.dispatchKeyEvent(event);
-//    }
 
     private void deleteDetonators(final boolean single) {
         runOnUiThread(() -> new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
@@ -742,148 +713,136 @@ public class DetonatorListActivity extends BaseActivity {
                 .setTitle(R.string.dialog_title_manual_input)
                 .setView(inputCodeView)
                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, ii) -> {
-                    if (code.length() == 13) {
-                        try {
-                            if (Long.parseLong(code.getText().toString().substring(0, 7)) >= 0) {
-                                for (int j = 0, k = amount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(amount.getText().toString()); j < k; j++) {
-                                    String det = code.getText().toString().substring(0, 8) + String.format(Locale.CHINA, "%05d", (Long.parseLong(code.getText().toString().substring(8)) + j));
-                                    int i = 0;
-                                    for (DetonatorInfoBean bean : list) {
-                                        i++;
-                                        if (bean.getAddress().equals(det)) {
-                                            myApp.myToast(DetonatorListActivity.this, det +
-                                                    String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_exist), i));
-                                            return;
-                                        }
-                                    }
+                    if (Pattern.matches(ConstantUtils.SHELL_PATTERN, code.getText())) {
+                        for (int j = 0, k = amount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(amount.getText().toString()); j < k; j++) {
+                            String det = code.getText().toString().substring(0, 8) + String.format(Locale.CHINA, "%05d", (Long.parseLong(code.getText().toString().substring(8)) + j));
+                            int i = 0;
+                            for (DetonatorInfoBean bean : list) {
+                                i++;
+                                if (bean.getAddress().equals(det)) {
+                                    myApp.myToast(DetonatorListActivity.this, det +
+                                            String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_exist), i));
+                                    return;
                                 }
-                                int delayTime = 0, hole = 0, inside = 0, row = 0;
-                                if (insert) {
-                                    if (insertUp) {
-                                        if (clickIndex > 0) {
-                                            row = list.get(clickIndex).getRow();
-                                            delayTime = list.get(clickIndex - 1).getDelayTime();
-                                            if (ConstantUtils.INSERT_INSIDE == insertMode) {
-                                                hole = list.get(clickIndex).getHole();
-                                                if (1 != list.get(clickIndex).getInside())
-                                                    inside = list.get(clickIndex - 1).getInside();
-                                                else
-                                                    delayTime = list.get(clickIndex).getDelayTime()
-                                                            - (myApp.isTunnel() ? settings.getSectionInside() : settings.getHoleInside());
-
-                                            } else
-                                                hole = list.get(clickIndex - 1).getHole();
-                                        }
-                                    } else {
-                                        row = list.get(clickIndex).getRow();
-                                        hole = list.get(clickIndex).getHole();
-                                        inside = list.get(clickIndex).getInside();
-                                        delayTime = list.get(clickIndex).getDelayTime();
-                                    }
-//                                    myApp.myToast(DetonatorListActivity.this, "c=" + clickIndex + ",h=" + hole + ",i=" + inside);
-                                    List<DetonatorInfoBean> newList = new ArrayList<>();
-                                    for (int j = 0, k = amount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(amount.getText().toString()); j < k; j++) {
-                                        if (row == 0) {
-                                            row = 1;
-                                            hole = 1;
-                                            inside = 1;
-                                        } else if (insertMode == ConstantUtils.INSERT_HOLE) {
-                                            hole++;
-                                            inside = 1;
-                                            delayTime += myApp.isTunnel() ? settings.getSection() : settings.getHole();
-                                        } else {
-                                            inside++;
-                                            delayTime += myApp.isTunnel() ? settings.getSectionInside() : settings.getHoleInside();
-                                        }
-                                        newList.add(new DetonatorInfoBean(code.getText().toString().substring(0, 8).toUpperCase() + String.format(Locale.CHINA, "%05d", (Long.parseLong(code.getText().toString().substring(8)) + j)), Math.min(delayTime, ConstantUtils.MAX_DELAY_TIME), row, hole, inside, false));
-                                    }
-                                    int period = newList.size();
-                                    if (insertMode == ConstantUtils.INSERT_INSIDE) {
-                                        period *= myApp.isTunnel() ? settings.getSectionInside() : settings.getHoleInside();
-                                    } else {
-                                        period *= myApp.isTunnel() ? settings.getSection() : settings.getHole();
-                                    }
-                                    for (int i = clickIndex + (insertUp ? 0 : 1); i < list.size(); i++) {
-                                        DetonatorInfoBean bean = list.get(i);
-                                        if (newList.get(0).getRow() != bean.getRow()
-                                                || (insertMode == ConstantUtils.INSERT_INSIDE && newList.get(0).getHole() != bean.getHole()))
-                                            break;
-                                        bean.setDownloaded(false);
-                                        bean.setDelayTime(bean.getDelayTime() + period);
-                                        if (insertMode == ConstantUtils.INSERT_HOLE) {
-                                            bean.setHole(bean.getHole() + newList.size());
-                                        } else {
-                                            bean.setInside(bean.getInside() + newList.size());
-                                        }
-                                    }
-                                    if (insertUp) {
-                                        if (clickIndex >= 0)
-                                            list.addAll(clickIndex, newList);
-                                        else
-                                            list.addAll(newList);
-                                    } else {
-                                        if (clickIndex == list.size() - 1)
-                                            list.addAll(newList);
-                                        else
-                                            list.addAll(clickIndex + 1, newList);
-                                    }
-                                } else {
-                                    if (list.size() > 0) {
-                                        row = list.get(list.size() - 1).getRow();
-                                        if (myApp.isTunnel()) {
-                                            inside = list.get(list.size() - 1).getInside() + 1;
-                                            hole = list.get(list.size() - 1).getHole();
-                                            delayTime = list.get(list.size() - 1).getDelayTime() + settings.getSectionInside();
-                                        } else {
-                                            inside = 1;
-                                            hole = list.get(list.size() - 1).getHole() + 1;
-                                            for (int i = list.size() - 1; i > 0; i--)
-                                                if (list.get(i).getInside() == 1) {
-                                                    delayTime = list.get(i).getDelayTime() + settings.getHole();
-                                                    break;
-                                                }
-                                        }
-                                    } else {
-                                        row = 1;
-                                        hole = 1;
-                                        inside = 1;
-                                    }
-                                    for (int j = 0, k = amount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(amount.getText().toString()); j < k; j++)
-                                        list.add(new DetonatorInfoBean((code.getText().toString().substring(0, 8).toUpperCase() + String.format(Locale.CHINA, "%05d", (Long.parseLong(code.getText().toString().substring(8)) + j))),
-                                                Math.min(delayTime + j * (myApp.isTunnel() ? settings.getSectionInside() : settings.getHole()), ConstantUtils.MAX_DELAY_TIME),
-                                                row, (myApp.isTunnel() ? hole : j + hole), (myApp.isTunnel() ? j + inside : inside), false));
-                                }
-                                saveList();
-                                adapter.updateList(list);
-                                return;
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
                         }
-                    }
-                    myApp.myToast(DetonatorListActivity.this, R.string.message_detonator_input_error);
+                        int delayTime = 0, hole = 0, inside = 0, row = 0;
+                        if (insert) {
+                            if (insertUp) {
+                                if (clickIndex > 0) {
+                                    row = list.get(clickIndex).getRow();
+                                    delayTime = list.get(clickIndex - 1).getDelayTime();
+                                    if (ConstantUtils.INSERT_INSIDE == insertMode) {
+                                        hole = list.get(clickIndex).getHole();
+                                        if (1 != list.get(clickIndex).getInside())
+                                            inside = list.get(clickIndex - 1).getInside();
+                                        else
+                                            delayTime = list.get(clickIndex).getDelayTime()
+                                                    - (myApp.isTunnel() ? settings.getSectionInside() : settings.getHoleInside());
+
+                                    } else
+                                        hole = list.get(clickIndex - 1).getHole();
+                                }
+                            } else {
+                                row = list.get(clickIndex).getRow();
+                                hole = list.get(clickIndex).getHole();
+                                inside = list.get(clickIndex).getInside();
+                                delayTime = list.get(clickIndex).getDelayTime();
+                            }
+//                                    myApp.myToast(DetonatorListActivity.this, "c=" + clickIndex + ",h=" + hole + ",i=" + inside);
+                            List<DetonatorInfoBean> newList = new ArrayList<>();
+                            for (int j = 0, k = amount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(amount.getText().toString()); j < k; j++) {
+                                if (row == 0) {
+                                    row = 1;
+                                    hole = 1;
+                                    inside = 1;
+                                } else if (insertMode == ConstantUtils.INSERT_HOLE) {
+                                    hole++;
+                                    inside = 1;
+                                    delayTime += myApp.isTunnel() ? settings.getSection() : settings.getHole();
+                                } else {
+                                    inside++;
+                                    delayTime += myApp.isTunnel() ? settings.getSectionInside() : settings.getHoleInside();
+                                }
+                                newList.add(new DetonatorInfoBean(code.getText().toString().substring(0, 8).toUpperCase() + String.format(Locale.CHINA, "%05d", (Long.parseLong(code.getText().toString().substring(8)) + j)), Math.min(delayTime, ConstantUtils.MAX_DELAY_TIME), row, hole, inside, false));
+                            }
+                            int period = newList.size();
+                            if (insertMode == ConstantUtils.INSERT_INSIDE) {
+                                period *= myApp.isTunnel() ? settings.getSectionInside() : settings.getHoleInside();
+                            } else {
+                                period *= myApp.isTunnel() ? settings.getSection() : settings.getHole();
+                            }
+                            for (int i = clickIndex + (insertUp ? 0 : 1); i < list.size(); i++) {
+                                DetonatorInfoBean bean = list.get(i);
+                                if (newList.get(0).getRow() != bean.getRow()
+                                        || (insertMode == ConstantUtils.INSERT_INSIDE && newList.get(0).getHole() != bean.getHole()))
+                                    break;
+                                bean.setDownloaded(false);
+                                bean.setDelayTime(bean.getDelayTime() + period);
+                                if (insertMode == ConstantUtils.INSERT_HOLE) {
+                                    bean.setHole(bean.getHole() + newList.size());
+                                } else {
+                                    bean.setInside(bean.getInside() + newList.size());
+                                }
+                            }
+                            if (insertUp) {
+                                if (clickIndex >= 0)
+                                    list.addAll(clickIndex, newList);
+                                else
+                                    list.addAll(newList);
+                            } else {
+                                if (clickIndex == list.size() - 1)
+                                    list.addAll(newList);
+                                else
+                                    list.addAll(clickIndex + 1, newList);
+                            }
+                        } else {
+                            if (list.size() > 0) {
+                                row = list.get(list.size() - 1).getRow();
+                                if (myApp.isTunnel()) {
+                                    inside = list.get(list.size() - 1).getInside() + 1;
+                                    hole = list.get(list.size() - 1).getHole();
+                                    delayTime = list.get(list.size() - 1).getDelayTime() + settings.getSectionInside();
+                                } else {
+                                    inside = 1;
+                                    hole = list.get(list.size() - 1).getHole() + 1;
+                                    for (int i = list.size() - 1; i > 0; i--)
+                                        if (list.get(i).getInside() == 1) {
+                                            delayTime = list.get(i).getDelayTime() + settings.getHole();
+                                            break;
+                                        }
+                                }
+                            } else {
+                                row = 1;
+                                hole = 1;
+                                inside = 1;
+                            }
+                            for (int j = 0, k = amount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(amount.getText().toString()); j < k; j++)
+                                list.add(new DetonatorInfoBean((code.getText().toString().substring(0, 8).toUpperCase() + String.format(Locale.CHINA, "%05d", (Long.parseLong(code.getText().toString().substring(8)) + j))),
+                                        Math.min(delayTime + j * (myApp.isTunnel() ? settings.getSectionInside() : settings.getHole()), ConstantUtils.MAX_DELAY_TIME),
+                                        row, (myApp.isTunnel() ? hole : j + hole), (myApp.isTunnel() ? j + inside : inside), false));
+                        }
+                        saveList();
+                        adapter.updateList(list);
+                    } else
+                        myApp.myToast(DetonatorListActivity.this, R.string.message_detonator_input_error);
                 })
                 .setNegativeButton(R.string.btn_cancel, null)
                 .create().show();
     }
 
     private void confirmDelay(int time) {
-        try {
-            newTime = time;
-            if (newTime < 0 || newTime > ConstantUtils.MAX_DELAY_TIME)
-                myApp.myToast(DetonatorListActivity.this, R.string.message_detonator_time_input_error);
-            else {
-                DetonatorInfoBean bean = list.get(clickIndex);
-                if (newTime != bean.getDelayTime()) {
-                    bean.setDownloaded(false);
-                    bean.setDelayTime(newTime);
-                    list.set(clickIndex, bean);
-                    myHandler.sendEmptyMessage(MODIFY_SUCCESS);
-                }
+        newTime = time;
+        if (newTime < 0 || newTime > ConstantUtils.MAX_DELAY_TIME)
+            myApp.myToast(DetonatorListActivity.this, R.string.message_detonator_time_input_error);
+        else {
+            DetonatorInfoBean bean = list.get(clickIndex);
+            if (newTime != bean.getDelayTime()) {
+                bean.setDownloaded(false);
+                bean.setDelayTime(newTime);
+                list.set(clickIndex, bean);
+                myHandler.sendEmptyMessage(MODIFY_SUCCESS);
             }
-        } catch (Exception e) {
-            myApp.myToast(DetonatorListActivity.this, R.string.message_input_error);
-            BaseApplication.writeErrorLog(e);
         }
     }
 
@@ -1045,58 +1004,53 @@ public class DetonatorListActivity extends BaseActivity {
                 myApp.myToast(DetonatorListActivity.this, R.string.message_select_list);
                 break;
             case KeyEvent.KEYCODE_8:
-                if (!settings.isNewLG()) {
-                    changedList = new ArrayList<>();
-                    for (DetonatorInfoBean item : list) {
-                        if (item.isSelected()) {
-                            changedList.add(item);
-                        }
+                changedList = new ArrayList<>();
+                for (DetonatorInfoBean item : list) {
+                    if (item.isSelected()) {
+                        changedList.add(item);
                     }
-                    if (changedList.size() < 1) {
-                        myApp.myToast(DetonatorListActivity.this, R.string.message_select_list);
-                    } else {
-                        try {
-                            resendCount = 0;
-                            pDialog = new MyProgressDialog(this);
-                            pDialog.setInverseBackgroundForced(false);
-                            pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-                            pDialog.setTitle(R.string.progress_title);
-                            pDialog.setMessage(getResources().getString(R.string.progress_set_delay));
-                            pDialog.setCanceledOnTouchOutside(false);
-                            pDialog.setMax(changedList.size());
-                            pDialog.setProgress(0);
-                            if (null == serialPortUtil) {
-                                serialPortUtil = SerialPortUtil.getInstance();
-                                myReceiveListener = new SerialDataReceiveListener(DetonatorListActivity.this, () -> {
-                                    String received = myReceiveListener.getRcvData();
-                                    if (received.contains(SerialCommand.ALERT_SHORT_CIRCUIT)) {
-                                        if (myReceiveListener != null) {
-                                            myReceiveListener.closeAllHandler();
-                                            myReceiveListener = null;
-                                        }
-                                        myHandler.removeMessages(RESEND_COMMAND);
-                                        if (serialPortUtil != null) {
-                                            serialPortUtil.closeSerialPort();
-                                            serialPortUtil = null;
-                                        }
-                                        runOnUiThread(() -> new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
-                                                .setTitle(R.string.dialog_title_warning)
-                                                .setMessage(R.string.dialog_short_circuit)
-                                                .setCancelable(false)
-                                                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
-                                                .create().show());
-                                        myApp.playSoundVibrate(soundPool, soundAlert);
-                                        btnModifyDelay.setEnabled(true);
-                                    } else if (received.contains(SerialCommand.INITIAL_FAIL)) {
-                                        myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
-                                        finish();
-                                    } else if (received.contains(SerialCommand.INITIAL_FINISHED)) {
-                                        pDialog.show();
-                                        myReceiveListener.setRcvData("");
-                                        timeout = 0;
-                                        serialPortUtil.sendCmd(SerialCommand.CMD_BOOST + "1000###");
-                                        myHandler.sendEmptyMessageDelayed(RESTORE_VOLTAGE, 500);
-                                    } else if (received.contains(Objects.requireNonNull(SerialCommand.RESPOND_CONFIRM.get(SerialCommand.ACTION_TYPE.SET_DELAY)))) {
+                }
+                if (changedList.size() < 1) {
+                    myApp.myToast(DetonatorListActivity.this, R.string.message_select_list);
+                } else {
+                    try {
+                        pDialog = new MyProgressDialog(this);
+                        pDialog.setInverseBackgroundForced(false);
+                        pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                        pDialog.setTitle(R.string.progress_title);
+                        pDialog.setMessage(getResources().getString(R.string.progress_set_delay));
+                        pDialog.setCanceledOnTouchOutside(false);
+                        pDialog.setMax(changedList.size());
+                        pDialog.setProgress(0);
+                        if (null == serialPortUtil) {
+                            serialPortUtil = SerialPortUtil.getInstance();
+                            myReceiveListener = new SerialDataReceiveListener(DetonatorListActivity.this, () -> {
+                                byte[] received = myReceiveListener.getRcvData();
+                                if (received[0] == SerialCommand.ALERT_SHORT_CIRCUIT) {
+                                    if (myReceiveListener != null) {
+                                        myReceiveListener.closeAllHandler();
+                                        myReceiveListener = null;
+                                    }
+                                    myHandler.removeMessages(RESEND_COMMAND);
+                                    if (serialPortUtil != null) {
+                                        serialPortUtil.closeSerialPort();
+                                        serialPortUtil = null;
+                                    }
+                                    runOnUiThread(() -> new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
+                                            .setTitle(R.string.dialog_title_warning)
+                                            .setMessage(R.string.dialog_short_circuit)
+                                            .setCancelable(false)
+                                            .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
+                                            .create().show());
+                                    myApp.playSoundVibrate(soundPool, soundAlert);
+                                    btnModifyDelay.setEnabled(true);
+                                } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
+                                    pDialog.show();
+                                } else if (received[0] == SerialCommand.INITIAL_FAIL) {
+                                    myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
+                                    finish();
+                                } else {
+                                    if (0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
                                         if (changedList.size() > 0) {
                                             for (DetonatorInfoBean item : list) {
                                                 if (item.isSelected()) {
@@ -1106,25 +1060,18 @@ public class DetonatorListActivity extends BaseActivity {
                                                 }
                                             }
                                             myHandler.sendEmptyMessage(PROGRESS_HANDLER);
-
                                             myHandler.sendEmptyMessage(SET_DELAY_REFRESH);
                                             changedList.remove(0);
-                                            resendCount = 0;
-                                            myReceiveListener.setRcvData("");
                                         }
                                         myHandler.removeMessages(RESEND_COMMAND);
-                                        if (1 == timeout)
-                                            timeout = 0;
                                         myHandler.sendEmptyMessage(RESEND_COMMAND);
-                                    } else if (received.contains(SerialCommand.RESPOND_FAIL)) {
-                                        myReceiveListener.setRcvData("");
+                                    } else {
                                         myHandler.sendEmptyMessage(PROGRESS_HANDLER);
                                         if (changedList.size() > 0) {
                                             if (myApp.isTunnel())
                                                 myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_tunnel_download_fail), changedList.get(0).getHole(), changedList.get(0).getInside()));
                                             else
                                                 myApp.myToast(DetonatorListActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_detonator_open_air_download_fail), changedList.get(0).getRow(), changedList.get(0).getHole(), changedList.get(0).getInside()));
-                                            resendCount = 0;
                                             changedList.remove(0);
                                             for (DetonatorInfoBean item : list) {
                                                 if (item.isSelected()) {
@@ -1133,36 +1080,32 @@ public class DetonatorListActivity extends BaseActivity {
                                                 }
                                             }
                                             myHandler.removeMessages(RESEND_COMMAND);
-                                            if (1 == timeout)
-                                                timeout = 0;
                                             myHandler.sendEmptyMessage(RESEND_COMMAND);
                                         } else {
                                             myApp.myToast(DetonatorListActivity.this, R.string.message_modify_finished);
                                             myHandler.sendEmptyMessage(SET_DELAY_SUCCESS);
                                         }
                                     }
-                                });
-                                serialPortUtil.setOnDataReceiveListener(myReceiveListener);
-                            } else {
-                                pDialog.show();
-                                myReceiveListener.setRcvData("");
-                                myHandler.removeMessages(RESEND_COMMAND);
-                                timeout = 0;
-                                myHandler.sendEmptyMessage(RESEND_COMMAND);
-                            }
-                            setProgressVisibility(true);
-                            btnModifyDelay.setEnabled(false);
-                            btnModifyInterval.setEnabled(false);
-                            btnDelete.setEnabled(false);
-                            cbSelected.setChecked(false);
-                            cbSelected.setEnabled(false);
-                            adapter.setEnabled(false);
-                        } catch (IOException e) {
-                            BaseApplication.writeErrorLog(e);
-                            myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
-                            setResult(0, null);
-                            finish();
+                                }
+                            });
+                            serialPortUtil.setOnDataReceiveListener(myReceiveListener);
+                        } else {
+                            pDialog.show();
+                            myHandler.removeMessages(RESEND_COMMAND);
+                            myHandler.sendEmptyMessage(RESEND_COMMAND);
                         }
+                        setProgressVisibility(true);
+                        btnModifyDelay.setEnabled(false);
+                        btnModifyInterval.setEnabled(false);
+                        btnDelete.setEnabled(false);
+                        cbSelected.setChecked(false);
+                        cbSelected.setEnabled(false);
+                        adapter.setEnabled(false);
+                    } catch (IOException e) {
+                        BaseApplication.writeErrorLog(e);
+                        myApp.myToast(DetonatorListActivity.this, R.string.message_open_module_fail);
+                        setResult(0, null);
+                        finish();
                     }
                 }
                 break;
