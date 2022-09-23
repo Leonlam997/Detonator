@@ -132,7 +132,7 @@
             android:columnCount="3"
             android:orientation="horizontal">
 
-            <com.leon.detonator.Base.MyButton
+            <com.leon.detonator.base.MyButton
                 android:id="@+id/btn_scan"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -146,7 +146,7 @@
                 button:bigButton="false"
                 button:keyCode="1" />
 
-            <com.leon.detonator.Base.MyButton
+            <com.leon.detonator.base.MyButton
                 android:id="@+id/btn_register"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -160,7 +160,7 @@
                 button:bigButton="false"
                 button:keyCode="2" />
 
-            <com.leon.detonator.Base.MyButton
+            <com.leon.detonator.base.MyButton
                 android:id="@+id/btn_manual"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -185,7 +185,7 @@
         android:columnCount="3"
         android:orientation="horizontal">
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_modify_delay"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -199,7 +199,7 @@
             button:bigButton="false"
             button:keyCode="1" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_modify_interval"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -213,7 +213,7 @@
             button:bigButton="false"
             button:keyCode="2" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_delete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -269,7 +269,7 @@
             android:textColor="@android:color/holo_red_dark"
             android:textSize="@dimen/common_text_size" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_restore"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

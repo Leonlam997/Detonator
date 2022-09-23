@@ -232,7 +232,7 @@
         android:columnCount="3"
         android:orientation="horizontal">
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_next_hole"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -246,7 +246,7 @@
             button:bigButton="false"
             button:keyCode="1" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_next_row"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -260,7 +260,7 @@
             button:bigButton="false"
             button:keyCode="2" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_inside"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -285,7 +285,7 @@
         android:orientation="horizontal"
         android:visibility="invisible">
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_section"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -299,7 +299,7 @@
             button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_next_section"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

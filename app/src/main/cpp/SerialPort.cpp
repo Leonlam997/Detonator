@@ -87,7 +87,7 @@ static speed_t getBaudrate(jint baudrate) {
 static const char *TAG = "serial_port";
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_com_leon_detonator_Serial_SerialPort_open(JNIEnv *env, jobject thiz, jstring path,
+Java_com_leon_detonator_serial_SerialPort_open(JNIEnv *env, jobject thiz, jstring path,
                                              jint baudrate) {
     int fd;
     speed_t speed;
@@ -169,7 +169,7 @@ Java_com_leon_detonator_Serial_SerialPort_open(JNIEnv *env, jobject thiz, jstrin
     return mFileDescriptor;
 }
 extern "C" JNIEXPORT jint JNICALL
-Java_com_leon_detonator_Serial_SerialPort_close(JNIEnv *env, jobject thiz) {
+Java_com_leon_detonator_serial_SerialPort_close(JNIEnv *env, jobject thiz) {
     jclass SerialPortClass = env->GetObjectClass(thiz);
     jclass FileDescriptorClass = env->FindClass("java/io/FileDescriptor");
 

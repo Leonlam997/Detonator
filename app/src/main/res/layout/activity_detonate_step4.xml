@@ -49,7 +49,7 @@
         android:columnCount="2"
         android:orientation="horizontal">
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_upload"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -62,7 +62,7 @@
             button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_exit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

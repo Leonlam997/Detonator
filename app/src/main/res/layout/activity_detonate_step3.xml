@@ -102,7 +102,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <com.leon.detonator.Base.SliderImageView
+            <com.leon.detonator.base.SliderImageView
                 android:id="@+id/iv_slider"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -120,12 +120,17 @@
         android:layout_height="match_parent"
         android:scrollbars="vertical">
 
-        <TextView
+        <EditText
             android:id="@+id/tv_log"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
+            android:inputType="textMultiLine"
+            android:hint="@string/camera_detecting"
+            android:enabled="false"
+            android:scrollbars="vertical"
             android:textColor="@color/text_black"
-            android:textSize="@dimen/common_text_size" />
+            android:textSize="@dimen/common_text_size"
+            android:importantForAutofill="no" />
     </ScrollView>
 </LinearLayout>

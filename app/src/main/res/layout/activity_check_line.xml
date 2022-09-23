@@ -62,7 +62,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_detect"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
@@ -74,7 +74,7 @@
             button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_status"
             android:layout_columnWeight="1"
             android:layout_gravity="center"

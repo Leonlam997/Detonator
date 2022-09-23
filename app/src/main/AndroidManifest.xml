@@ -52,17 +52,17 @@
         android:required="true" />
 
     <application
-        android:name=".Base.BaseApplication"
+        android:name=".base.BaseApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".Activity.ChargeActivity" />
-        <activity android:name=".Activity.VersionManageActivity" />
-        <activity android:name=".Activity.CapacityTestActivity" />
-        <activity android:name=".Activity.WelcomeActivity" android:exported="true">
+        <activity android:name=".activity.ChargeActivity" />
+        <activity android:name=".activity.VersionManageActivity" />
+        <activity android:name=".activity.CapacityTestActivity" />
+        <activity android:name=".activity.WelcomeActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -71,42 +71,37 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".Activity.ServerSelectActivity" />
-        <activity android:name=".Activity.UniteExplodeActivity" />
-        <activity android:name=".Activity.ErrorDetonatorListActivity" />
-        <activity android:name=".Activity.EnterpriseActivity" />
-        <activity android:name=".Activity.LoginActivity" />
-        <activity android:name=".Activity.MainActivity" />
-        <activity android:name=".Activity.DelayScheduleActivity" />
-        <activity android:name=".Activity.DetonatorListActivity" />
-        <activity android:name=".Activity.DetectMethodActivity" />
-        <activity android:name=".Activity.AuthorizationListActivity" />
-        <activity android:name=".Activity.ExplosionRecordActivity" />
-        <activity android:name=".Activity.SettingsActivity" />
-        <activity android:name=".Activity.WifiActivity" />
-        <activity android:name=".Activity.WifiConnectActivity" />
-        <activity android:name=".Activity.DisplaySettingsActivity" />
-        <activity android:name=".Activity.DetectActivity" />
-        <activity android:name=".Activity.CheckLineActivity" />
-        <activity android:name=".Activity.VoltageTestActivity" />
-        <activity android:name=".Activity.BluetoothActivity" />
-        <activity android:name=".Activity.DetonateStep1Activity" />
-        <activity android:name=".Activity.DetonateStep2Activity" />
-        <activity android:name=".Activity.DetonateStep3Activity" />
-        <activity android:name=".Activity.DetonateStep4Activity" />
-        <activity android:name=".Activity.WriteSNActivity" />
-        <activity android:name=".Activity.SelectModeActivity" />
-        <activity android:name=".Activity.UpdateAppActivity" />
-        <activity android:name=".Activity.SoundSettingsActivity" />
-        <activity android:name=".Activity.SystemInfoActivity" />
-        <activity android:name=".Activity.CameraActivity" />
-        <activity android:name=".Activity.SemiProductActivity" />
-        <activity android:name=".Activity.WaveformActivity" />
-
-        <service
-            android:name=".BluetoothTool.BluetoothLeService"
-            android:enabled="true"
-            android:exported="false" />
+        <activity android:name=".activity.ServerSelectActivity" />
+        <activity android:name=".activity.UniteExplodeActivity" />
+        <activity android:name=".activity.ErrorDetonatorListActivity" />
+        <activity android:name=".activity.EnterpriseActivity" />
+        <activity android:name=".activity.LoginActivity" />
+        <activity android:name=".activity.MainActivity" />
+        <activity android:name=".activity.DelayScheduleActivity" />
+        <activity android:name=".activity.DetonatorListActivity" />
+        <activity android:name=".activity.DetectMethodActivity" />
+        <activity android:name=".activity.AuthorizationListActivity" />
+        <activity android:name=".activity.ExplosionRecordActivity" />
+        <activity android:name=".activity.SettingsActivity" />
+        <activity android:name=".activity.WifiActivity" />
+        <activity android:name=".activity.WifiConnectActivity" />
+        <activity android:name=".activity.DisplaySettingsActivity" />
+        <activity android:name=".activity.DetectActivity" />
+        <activity android:name=".activity.CheckLineActivity" />
+        <activity android:name=".activity.VoltageTestActivity" />
+        <activity android:name=".activity.BluetoothActivity" />
+        <activity android:name=".activity.DetonateStep1Activity" />
+        <activity android:name=".activity.DetonateStep2Activity" />
+        <activity android:name=".activity.DetonateStep3Activity" />
+        <activity android:name=".activity.DetonateStep4Activity" />
+        <activity android:name=".activity.WriteSNActivity" />
+        <activity android:name=".activity.SelectModeActivity" />
+        <activity android:name=".activity.UpdateAppActivity" />
+        <activity android:name=".activity.SoundSettingsActivity" />
+        <activity android:name=".activity.SystemInfoActivity" />
+        <activity android:name=".activity.CameraActivity" />
+        <activity android:name=".activity.SemiProductActivity" />
+        <activity android:name=".activity.WaveformActivity" />
 
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"

@@ -178,7 +178,7 @@
         android:layout_marginBottom="10dp"
         android:orientation="horizontal">
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_save"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -190,7 +190,7 @@
             android:textSize="@dimen/button_text_size"
             button:bigButton="true" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_clear"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

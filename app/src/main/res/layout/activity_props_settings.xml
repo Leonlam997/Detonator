@@ -31,7 +31,7 @@
         android:layout_marginBottom="10dp"
         android:columnCount="3">
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_open_bus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -43,7 +43,7 @@
             android:textSize="@dimen/button_text_size"
             button:bigButton="false" />
 
-        <com.leon.detonator.Base.MyButton
+        <com.leon.detonator.base.MyButton
             android:id="@+id/btn_get_all"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

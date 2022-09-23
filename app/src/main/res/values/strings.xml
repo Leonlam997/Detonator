@@ -112,7 +112,7 @@
     <string name="delay_period">总延期：</string>
     <string name="check_auth">雷管授权验证</string>
     <string name="det_charge">正在充电</string>
-    <string name="det_check_cap">正在检测电容</string>
+    <string name="det_check">正在检测</string>
     <string name="det_slide">滑动起爆</string>
     <string name="write_number">设置雷管序列号</string>
     <string name="det_up_down_vol">升降法测试</string>
@@ -134,6 +134,7 @@
     <string name="progress_upload">正在上传，请稍候！</string>
     <string name="progress_connecting">正在连接设备，请稍候！</string>
     <string name="progress_total">总进度：%1$d%%</string>
+    <string name="progress_explode">正在做起爆前检测工作，请稍候！</string>
     <string name="open_air">露天</string>
     <string name="tunnel">井巷</string>
     <string name="semi_product_title">半成品检测</string>
@@ -179,6 +180,8 @@
     <string name="hint_input_voltage">请输入电压值</string>
     <string name="hint_input_delay_time">请输入延期时间</string>
     <string name="hint_input_interval">请输入间隔时差</string>
+    <string name="hint_input_select_hole">请输入选择的段号</string>
+    <string name="hint_input_select_row">请输入选择的排号</string>
     <string name="wifi_available_list">可用网络列表</string>
     <string name="wifi_password_error">密码错误！</string>
     <string name="wifi_check_password">连接失败，请检查密码是否正确！</string>
@@ -252,12 +255,14 @@
     <string name="message_delete_file_fail">文件%1$s删除失败！</string>
     <string name="message_copy_file_fail">文件复制失败！</string>
     <string name="message_input_error">输入格式错误！</string>
+    <string name="message_detonator_not_found">列表中未发现%1$s！</string>
     <string name="message_list_not_found">未发现延期列表！</string>
     <string name="message_current_detonator_exist">当前雷管已存在！列表序号：%1$d。</string>
     <string name="message_detonator_exist">已存在！列表序号：%1$d。</string>
     <string name="message_receive_success">列表接收成功！</string>
     <string name="message_receive_data_please_into_bt">请进入蓝牙接收列表！</string>
     <string name="message_send_success">文件发送成功！</string>
+    <string name="message_send_error">连接断开！</string>
     <string name="message_save_list_success">列表保存成功！</string>
     <string name="message_empty_list">列表为空！</string>
     <string name="message_select_list">请选择列表！</string>
@@ -308,7 +313,6 @@
     <string name="message_status_error">获取失败！</string>
     <string name="dialog_title_cancel_upload">取消上传</string>
     <string name="dialog_title_delete_record">删除爆破记录</string>
-    <string name="dialog_title_input_delay">设置下一段延期</string>
     <string name="dialog_title_new_list">新建列表</string>
     <string name="dialog_title_download">数据下载</string>
     <string name="dialog_title_upload">数据上传</string>

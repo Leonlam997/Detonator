@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Activity.WaveformActivity">
+    tools:context=".activity.WaveformActivity">
 
     <Button
         android:id="@+id/btn_zoom_in"
@@ -32,7 +32,7 @@
         app:layout_constraintLeft_toRightOf="@id/btn_zoom_in"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <com.leon.detonator.Base.CoordinateView
+    <com.leon.detonator.base.CoordinateView
         android:id="@+id/view_coordinate"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
@@ -47,7 +47,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <com.leon.detonator.Base.WaveformView
+            <com.leon.detonator.base.WaveformView
                 android:id="@+id/view_waveform"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent" />
