@@ -8,7 +8,8 @@ public class LocalSettingBean {
     private String serialNum, delayTime, delayPeriod, mtMac, exploderID, IMEI;
     private int row, hole, holeInside, section, sectionInside, defaultType = 0, userID, volume, serverHost, fontScale,
             firstPulseTime, secondPulseTime, thirdPulseTime;
-    private boolean vibrate, registered;
+    private boolean vibrate, registered, uploadedLog;
+    private float chargeVoltage;
     private double latitude, longitude;
     private Map<Float, Integer> dacMap;
 
@@ -219,5 +220,21 @@ public class LocalSettingBean {
 
     public void setDacMap(Map<Float, Integer> dacMap) {
         this.dacMap = dacMap;
+    }
+
+    public boolean isUploadedLog() {
+        return uploadedLog;
+    }
+
+    public void setUploadedLog(boolean uploadedLog) {
+        this.uploadedLog = uploadedLog;
+    }
+
+    public float getChargeVoltage() {
+        return chargeVoltage;
+    }
+
+    public void setChargeVoltage(float chargeVoltage) {
+        this.chargeVoltage = chargeVoltage;
     }
 }

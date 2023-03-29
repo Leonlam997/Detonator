@@ -1,168 +1,189 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
-    android:orientation="vertical">
+    android:fadingEdge="vertical"
+    android:scrollbars="vertical">
 
-    <RelativeLayout
+    <RadioGroup
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fadingEdge="vertical"
-        android:scrollbars="vertical">
+        android:layout_height="wrap_content">
 
-        <RadioGroup
+        <RadioButton
+            android:id="@+id/rb_0"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <RadioButton
-                android:id="@+id/rb_0"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="30dp"
-                android:layout_marginTop="10dp"
-                android:textSize="@dimen/table_text_size" />
-
-            <RadioButton
-                android:id="@+id/rb_1"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="30dp"
-                android:layout_marginTop="20dp"
-                android:textSize="@dimen/table_text_size" />
-
-            <RadioButton
-                android:id="@+id/rb_2"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="30dp"
-                android:layout_marginTop="20dp"
-                android:textSize="@dimen/table_text_size" />
-
-            <RadioButton
-                android:id="@+id/rb_3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="30dp"
-                android:layout_marginTop="20dp"
-                android:textSize="@dimen/table_text_size" />
-
-            <RadioButton
-                android:id="@+id/rb_4"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="30dp"
-                android:layout_marginTop="20dp"
-                android:textSize="@dimen/table_text_size" />
-
-            <RadioButton
-                android:id="@+id/rb_5"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="30dp"
-                android:layout_marginTop="20dp"
-                android:textSize="@dimen/table_text_size" />
-        </RadioGroup>
-
-        <TextView
-            android:id="@+id/tv_0"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
+            android:layout_marginStart="30dp"
             android:layout_marginTop="10dp"
-            android:layout_marginEnd="30dp"
             android:textSize="@dimen/table_text_size" />
 
-        <View
+        <RadioButton
+            android:id="@+id/rb_1"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_below="@id/tv_0"
-            android:layout_marginTop="9dp"
-            android:background="@color/colorTableLine" />
-
-        <TextView
-            android:id="@+id/tv_1"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/tv_0"
-            android:layout_alignParentEnd="true"
+            android:layout_marginStart="30dp"
             android:layout_marginTop="20dp"
-            android:layout_marginEnd="30dp"
             android:textSize="@dimen/table_text_size" />
 
-        <View
+        <RadioButton
+            android:id="@+id/rb_2"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_below="@id/tv_1"
-            android:layout_marginTop="9dp"
-            android:background="@color/colorTableLine" />
-
-        <TextView
-            android:id="@+id/tv_2"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/tv_1"
-            android:layout_alignParentEnd="true"
+            android:layout_marginStart="30dp"
             android:layout_marginTop="20dp"
-            android:layout_marginEnd="30dp"
             android:textSize="@dimen/table_text_size" />
 
-        <View
+        <RadioButton
+            android:id="@+id/rb_3"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_below="@id/tv_2"
-            android:layout_marginTop="9dp"
-            android:background="@color/colorTableLine" />
-
-        <TextView
-            android:id="@+id/tv_3"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/tv_2"
-            android:layout_alignParentEnd="true"
+            android:layout_marginStart="30dp"
             android:layout_marginTop="20dp"
-            android:layout_marginEnd="30dp"
             android:textSize="@dimen/table_text_size" />
 
-        <View
+        <RadioButton
+            android:id="@+id/rb_4"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_below="@id/tv_3"
-            android:layout_marginTop="9dp"
-            android:background="@color/colorTableLine" />
-
-        <TextView
-            android:id="@+id/tv_4"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/tv_3"
-            android:layout_alignParentEnd="true"
+            android:layout_marginStart="30dp"
             android:layout_marginTop="20dp"
-            android:layout_marginEnd="30dp"
             android:textSize="@dimen/table_text_size" />
 
-        <View
+        <RadioButton
+            android:id="@+id/rb_5"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_below="@id/tv_4"
-            android:layout_marginTop="9dp"
-            android:background="@color/colorTableLine" />
-
-        <TextView
-            android:id="@+id/tv_5"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/tv_4"
-            android:layout_alignParentEnd="true"
+            android:layout_marginStart="30dp"
             android:layout_marginTop="20dp"
-            android:layout_marginEnd="30dp"
             android:textSize="@dimen/table_text_size" />
 
-        <View
+        <RadioButton
+            android:id="@+id/rb_6"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_below="@id/tv_5"
-            android:layout_marginTop="9dp"
-            android:background="@color/colorTableLine" />
-    </RelativeLayout>
-</LinearLayout>
+            android:layout_height="wrap_content"
+            android:layout_marginStart="30dp"
+            android:layout_marginTop="20dp"
+            android:textSize="@dimen/table_text_size" />
+    </RadioGroup>
+
+    <TextView
+        android:id="@+id/tv_0"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="30dp"
+        android:textSize="@dimen/table_text_size"
+        tools:ignore="RelativeOverlap" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_0"
+        android:layout_marginTop="9dp"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/tv_1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_0"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="30dp"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_1"
+        android:layout_marginTop="9dp"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/tv_2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_1"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="30dp"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_2"
+        android:layout_marginTop="9dp"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/tv_3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_2"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="30dp"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_3"
+        android:layout_marginTop="9dp"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/tv_4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_3"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="30dp"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_4"
+        android:layout_marginTop="9dp"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/tv_5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_4"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="30dp"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_5"
+        android:layout_marginTop="9dp"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/tv_6"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_5"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="30dp"
+        android:textSize="@dimen/table_text_size" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_6"
+        android:layout_marginTop="9dp"
+        android:background="@color/colorTableLine" />
+</RelativeLayout>

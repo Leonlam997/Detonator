@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:background="@mipmap/open_air"
-            android:contentDescription="@string/open_air" />
+            android:contentDescription="@string/mode_open_air" />
     </RelativeLayout>
 
     <RelativeLayout
@@ -35,6 +35,6 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:background="@mipmap/tunnel"
-            android:contentDescription="@string/tunnel" />
+            android:contentDescription="@string/mode_tunnel" />
     </RelativeLayout>
 </GridLayout>

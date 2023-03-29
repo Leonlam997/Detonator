@@ -264,7 +264,7 @@ public class AuthorizationListActivity extends BaseActivity {
     }
 
     private void offlineDownload() {
-        enterpriseDialog = new EnterpriseDialog(this, enterpriseBean);
+        enterpriseDialog = new EnterpriseDialog(AuthorizationListActivity.this);
         enterpriseDialog.setClickConfirm(view -> {
             disableClick(true);
             enterpriseDialog.dismiss();

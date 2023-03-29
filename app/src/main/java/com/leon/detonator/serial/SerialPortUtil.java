@@ -241,9 +241,13 @@ public class SerialPortUtil {
                 if (cmd.length() < len)
                     for (int j = 0; j < len; j++)
                         bufferSend[i++] = 0;
-                else
-                    for (byte uid : cmd.substring(cmd.length() - len).getBytes())
+                else {
+                    byte[] data = cmd.substring(cmd.length() - len).getBytes();
+                    if (len == ConstantUtils.UID_LEN && data[1] > 0x39)
+                        data[1] -= 0x40;
+                    for (byte uid : data)
                         bufferSend[i++] = uid;
+                }
                 break;
         }
         int j = 0;
@@ -315,6 +319,14 @@ public class SerialPortUtil {
      * 关闭串口
      */
     public void closeSerialPort() {
+        if (BaseApplication.isRemote()) {
+            sendCmd("", SerialCommand.CODE_BUS_CONTROL, 0, 0, 0x12);
+            try {
+                Thread.sleep(200);
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
+            }
+        }
         isStop = true;
         if (mReadThread != null) {
             mReadThread.interrupt();

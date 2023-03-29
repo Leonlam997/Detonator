@@ -322,6 +322,8 @@ public class DetectActivity extends BaseActivity {
                 if (0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
                     switch (flowStep) {
                         case STEP_SCAN:
+                            if (received[SerialCommand.CODE_CHAR_AT + 3] < 0x30)
+                                received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
                             tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9));
                             if (!Pattern.matches(ConstantUtils.UID_PATTERN, tempAddress)) {
                                 flowStep = STEP_DATA_ERROR;
@@ -472,7 +474,7 @@ public class DetectActivity extends BaseActivity {
                                 tvSectionDelay.setText(text);
                                 settings.setSection(Integer.parseInt(etDelay.getText().toString()));
                             }
-                            myApp.saveSettings(settings);
+                            myApp.saveBean(settings);
                         }
                     })
                     .setNegativeButton(R.string.btn_cancel, null)

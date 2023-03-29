@@ -6,6 +6,7 @@ import android.util.AttributeSet;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.content.ContextCompat;
 
@@ -15,9 +16,11 @@ import java.util.Locale;
 
 public class MyButton extends AppCompatButton {
     private final int keyCode;
+    private final Context mContext;
 
     public MyButton(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+        mContext = context;
         if (isEnabled()) {
             setTextColor(ContextCompat.getColor(context, R.color.colorButtonEnabled));
         } else {
@@ -34,6 +37,7 @@ public class MyButton extends AppCompatButton {
 
     public MyButton(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        mContext = context;
         if (isEnabled()) {
             setTextColor(ContextCompat.getColor(context, R.color.colorButtonEnabled));
         } else {
@@ -60,5 +64,9 @@ public class MyButton extends AppCompatButton {
             setTextColor(ContextCompat.getColor(getContext(), R.color.colorButtonDisabled));
         }
         super.setEnabled(enabled);
+    }
+
+    public void setTextId(@StringRes int id) {
+        setText(String.format(Locale.CHINA, "%d.%s", keyCode, mContext.getString(id)));
     }
 }

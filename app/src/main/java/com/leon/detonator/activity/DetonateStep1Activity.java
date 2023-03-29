@@ -31,10 +31,15 @@ import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
 import com.baidu.mapapi.map.MyLocationData;
 import com.baidu.mapapi.model.LatLng;
+import com.google.gson.Gson;
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.CheckRegister;
 import com.leon.detonator.base.MyButton;
+import com.leon.detonator.bean.BaiSeCheck;
+import com.leon.detonator.bean.BaiSeCheckResult;
+import com.leon.detonator.bean.BaiSeUpload;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.DownloadDetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
@@ -42,7 +47,6 @@ import com.leon.detonator.bean.LgBean;
 import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.bean.ZbqyBean;
 import com.leon.detonator.dialog.EnterpriseDialog;
-import com.leon.detonator.R;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.ErrorCode;
 import com.leon.detonator.util.KeyUtils;
@@ -59,7 +63,9 @@ import java.util.Map;
 import java.util.Objects;
 
 import okhttp3.Call;
+import okhttp3.MediaType;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class DetonateStep1Activity extends BaseActivity {
     private MapView mapView = null;
@@ -75,7 +81,126 @@ public class DetonateStep1Activity extends BaseActivity {
     private Location lastKnownLocation;
     private DownloadDetonatorBean offlineBean;
     private LocalSettingBean settingBean;
+    private BaiSeCheck baiSeCheck;
     private BaseApplication myApp;
+    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message message) {
+            switch (message.what) {
+                case 1:
+                    if ((0 != settingBean.getServerHost() && 2 != settingBean.getServerHost()) ||
+                            (settingBean.isRegistered() && validLocation().latitude != 0 && validLocation().longitude != 0))
+                        enabledButton(true);
+                    break;
+                case 2:
+                    if (0 == settingBean.getServerHost()) {
+                        if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
+                            showMessage(R.string.message_fill_enterprise);
+                            startActivity(new Intent(DetonateStep1Activity.this, EnterpriseActivity.class));
+                        } else {
+                            new AlertDialog.Builder(DetonateStep1Activity.this, R.style.AlertDialog)
+                                    .setTitle(R.string.dialog_title_download)
+                                    .setMessage(R.string.dialog_confirm_online_download)
+                                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> onlineDownload())
+                                    .setNegativeButton(R.string.btn_cancel, null)
+                                    .create().show();
+                        }
+                    } else {
+                        if (baiSeCheck == null || baiSeCheck.getData().getUserIdCard().isEmpty()) {
+                            showMessage(R.string.message_fill_enterprise);
+                            startActivity(new Intent(DetonateStep1Activity.this, BaiSeDataActivity.class));
+                        } else {
+                            launchWhich(KeyEvent.KEYCODE_POUND);
+                        }
+                    }
+                    break;
+                case 3:
+                    String coordinate;
+                    if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0) {
+                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
+                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(getColor(R.color.colorCoordinateText));
+                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLUE);
+                    } else if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0) {
+                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.BLACK);
+                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.GRAY);
+                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastKnownLocation.getLongitude(), lastKnownLocation.getLatitude());
+                    } else if ((int) settingBean.getLatitude() != 0 && (int) settingBean.getLongitude() != 0) {
+                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.RED);
+                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLACK);
+                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), settingBean.getLongitude(), settingBean.getLatitude());
+                    } else
+                        coordinate = getResources().getString(R.string.map_position_init);
+                    ((TextView) findViewById(R.id.tv_coordinate)).setText(coordinate);
+                    ((TextView) findViewById(R.id.tv_coordinate1)).setText(coordinate);
+                    break;
+                case 4:
+                    enterpriseDialog = new EnterpriseDialog(DetonateStep1Activity.this);
+                    enterpriseDialog.setClickConfirm(view -> {
+                        try {
+                            enabledButton(false);
+                            baiSeCheck.getData().setAppVersion(getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
+                            baiSeCheck.getData().setLngLat(String.format(Locale.CHINA, "%f,%f", validLocation().longitude, validLocation().latitude));
+                            baiSeCheck.getData().setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
+                            baiSeCheck.getData().setDeviceNO(settingBean.getExploderID());
+                            BaseApplication.writeFile(new Gson().toJson(baiSeCheck));
+                            OkHttpUtils.postString().addHeader("access-token", ConstantUtils.ACCESS_TOKEN)
+                                    .url(ConstantUtils.BAI_SE_CHECK_URL)
+                                    .mediaType(MediaType.parse("application/json; charset=utf-8"))
+                                    .content(new Gson().toJson(baiSeCheck.getData()))
+                                    .build().execute(new Callback<BaiSeCheckResult>() {
+
+                                        @Override
+                                        public BaiSeCheckResult parseNetworkResponse(Response response, int i) throws Exception {
+                                            ResponseBody body = response.body();
+                                            if (body != null) {
+                                                String string = body.string();
+                                                return new Gson().fromJson(string, BaiSeCheckResult.class);
+                                            }
+                                            return null;
+                                        }
+
+                                        @Override
+                                        public void onError(Call call, Exception e, int i) {
+                                            myApp.myToast(DetonateStep1Activity.this, R.string.message_network_timeout);
+                                        }
+
+                                        @Override
+                                        public void onResponse(BaiSeCheckResult baiSeCheckResult, int i) {
+                                            if (baiSeCheckResult != null) {
+                                                if (baiSeCheckResult.isSuccess() && baiSeCheckResult.getData().isIsPass()) {
+                                                    myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_success);
+                                                    baiSeCheck.setChecked(true);
+                                                    myApp.saveBean(baiSeCheck);
+                                                    checkExploderHandler.sendEmptyMessage(1);
+                                                } else if (baiSeCheckResult.getData() != null) {
+                                                    if (baiSeCheckResult.getData().getMsg() != null)
+                                                        myApp.myToast(DetonateStep1Activity.this, baiSeCheckResult.getData().getMsg());
+                                                    else
+                                                        myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_fail);
+                                                    enabledButton(true);
+                                                }
+                                            }
+                                        }
+                                    });
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        enterpriseDialog.dismiss();
+                    });
+                    enterpriseDialog.setClickModify(view -> {
+                        enterpriseDialog.dismiss();
+                        startActivity(new Intent(DetonateStep1Activity.this, BaiSeDetectorActivity.class));
+                    });
+                    enterpriseDialog.show();
+                    break;
+                default:
+                    myApp.myToast(DetonateStep1Activity.this, (String) message.obj);
+                    break;
+            }
+            return false;
+        }
+    });
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,29 +227,34 @@ public class DetonateStep1Activity extends BaseActivity {
         settingBean = BaseApplication.readSettings();
         enterpriseBean = myApp.readEnterprise();
         offlineBean = myApp.readDownloadList(false);
-        if (0 == settingBean.getServerHost()) {
+        btnOffline = findViewById(R.id.btn_offline_auth);
+        if (0 == settingBean.getServerHost() || 2 == settingBean.getServerHost()) {
             findViewById(R.id.gl_btn2).setVisibility(View.GONE);
             findViewById(R.id.gl_btn).setVisibility(View.VISIBLE);
             btnOnline = findViewById(R.id.btn_online_auth);
+            if (2 == settingBean.getServerHost()) {
+                baiSeCheck = myApp.readBaiSeCheck();
+                btnOnline.setTextId(R.string.button_online_detect);
+                btnOffline.setTextId(R.string.button_auth);
+            }
         } else {
             findViewById(R.id.gl_btn).setVisibility(View.GONE);
             findViewById(R.id.gl_btn2).setVisibility(View.VISIBLE);
             btnOnline = findViewById(R.id.btn_detect);
         }
         btnOnline.setOnClickListener(view -> launchWhich(KeyEvent.KEYCODE_1));
-        btnOffline = findViewById(R.id.btn_offline_auth);
         btnOffline.setOnClickListener(view -> launchWhich(KeyEvent.KEYCODE_2));
         firstLocate = true;
         initLocation();
-        btnOnline.setEnabled(list.size() > 0
-                && ((lastKnownLocation != null && (int) lastKnownLocation.getLatitude() != 0 && (int) lastKnownLocation.getLongitude() != 0)
-                || ((int) settingBean.getLongitude() != 0 && (int) settingBean.getLatitude() != 0)));
-        btnOffline.setEnabled((offlineBean != null && offlineBean.getResult() != null && (offlineBean.getResult().getLgs() != null &&
-                offlineBean.getResult().getLgs().getLg() != null &&
-                offlineBean.getResult().getLgs().getLg().size() > 0)) && list.size() > 0
-                && ((lastKnownLocation != null && (int) lastKnownLocation.getLatitude() != 0 && (int) lastKnownLocation.getLongitude() != 0)
-                || ((int) settingBean.getLongitude() != 0 && (int) settingBean.getLatitude() != 0)));
-
+//        btnOnline.setEnabled((2 == settingBean.getServerHost() && baiSeCheck.isChecked()) || (2 != settingBean.getServerHost() && (list.size() > 0
+//                && ((lastKnownLocation != null && (int) lastKnownLocation.getLatitude() != 0 && (int) lastKnownLocation.getLongitude() != 0)
+//                || ((int) settingBean.getLongitude() != 0 && (int) settingBean.getLatitude() != 0)))));
+//        btnOffline.setEnabled(2 == settingBean.getServerHost() || ((offlineBean != null && offlineBean.getResult() != null && (offlineBean.getResult().getLgs() != null &&
+//                offlineBean.getResult().getLgs().getLg() != null &&
+//                offlineBean.getResult().getLgs().getLg().size() > 0)) && list.size() > 0
+//                && ((lastKnownLocation != null && (int) lastKnownLocation.getLatitude() != 0 && (int) lastKnownLocation.getLongitude() != 0)
+//                || ((int) settingBean.getLongitude() != 0 && (int) settingBean.getLatitude() != 0))));
+        enabledButton(false);
         mapView = findViewById(R.id.map_view);
         mapView.getChildAt(2).setPadding(0, 0, 10, 100);
         baiduMap = mapView.getMap();
@@ -155,53 +285,6 @@ public class DetonateStep1Activity extends BaseActivity {
         btnOnline.requestFocus();
     }
 
-    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message message) {
-            switch (message.what) {
-                case 1:
-                    enabledButton(true);
-                    break;
-                case 2:
-                    if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
-                        showMessage(R.string.message_fill_enterprise);
-                        startActivity(new Intent(DetonateStep1Activity.this, EnterpriseActivity.class));
-                    } else {
-                        new AlertDialog.Builder(DetonateStep1Activity.this, R.style.AlertDialog)
-                                .setTitle(R.string.dialog_title_download)
-                                .setMessage(R.string.dialog_confirm_online_download)
-                                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> onlineDownload())
-                                .setNegativeButton(R.string.btn_cancel, null)
-                                .create().show();
-                    }
-                    break;
-                case 3:
-                    String coordinate;
-                    if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0) {
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
-                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(getColor(R.color.colorCoordinateText));
-                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLUE);
-                    } else if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0) {
-                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.BLACK);
-                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.GRAY);
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastKnownLocation.getLongitude(), lastKnownLocation.getLatitude());
-                    } else if ((int) settingBean.getLatitude() != 0 && (int) settingBean.getLongitude() != 0) {
-                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.RED);
-                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLACK);
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), settingBean.getLongitude(), settingBean.getLatitude());
-                    } else
-                        coordinate = getResources().getString(R.string.map_position_init);
-                    ((TextView) findViewById(R.id.tv_coordinate)).setText(coordinate);
-                    ((TextView) findViewById(R.id.tv_coordinate1)).setText(coordinate);
-                    break;
-                default:
-                    myApp.myToast(DetonateStep1Activity.this, (String) message.obj);
-                    break;
-            }
-            return false;
-        }
-    });
-
     private void initLocation() {
         if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(DetonateStep1Activity.this, Manifest.permission.ACCESS_COARSE_LOCATION)
                 && PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(DetonateStep1Activity.this, Manifest.permission.ACCESS_FINE_LOCATION)) {
@@ -224,30 +307,20 @@ public class DetonateStep1Activity extends BaseActivity {
     private void launchWhich(int which) {
         boolean enterDetect = false;
         if (KeyEvent.KEYCODE_1 == which && btnOnline.isEnabled()) {
-            if (0 != settingBean.getServerHost()) {
+            if (0 != settingBean.getServerHost() && 2 != settingBean.getServerHost()) {
                 enterDetect = true;
-            } else if (!BaseApplication.readSettings().isRegistered()) {
-                myApp.registerExploder();
-                enabledButton(false);
-                new CheckRegister() {
-                    @Override
-                    public void onError() {
-                        checkExploderHandler.sendEmptyMessage(1);
-                    }
-
-                    @Override
-                    public void onSuccess() {
-                        checkExploderHandler.sendEmptyMessage(2);
-                    }
-                }.setActivity(this).start();
             } else {
-                checkExploderHandler.sendEmptyMessage(2);
+                checkRegister(2);
             }
-        } else if (KeyEvent.KEYCODE_2 == which && btnOffline.isEnabled() && 0 == settingBean.getServerHost()) {
-            if (!checkLocation()) {
-                showMessage(R.string.message_not_allow_area);
-            } else {
-                checkList(offlineBean.getResult().getLgs().getLg(), false);
+        } else if (KeyEvent.KEYCODE_2 == which && btnOffline.isEnabled()) {
+            if (0 == settingBean.getServerHost()) {
+                if (!checkLocation()) {
+                    showMessage(R.string.message_not_allow_area);
+                } else {
+                    checkList(offlineBean.getResult().getLgs().getLg(), false);
+                }
+            } else if (2 == settingBean.getServerHost()) {
+                checkRegister(4);
             }
         } else if (KeyEvent.KEYCODE_POUND == which) {
             enterDetect = true;
@@ -260,6 +333,26 @@ public class DetonateStep1Activity extends BaseActivity {
             intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, validLocation().longitude);
             startActivity(intent);
             finish();
+        }
+    }
+
+    private void checkRegister(int i) {
+        settingBean = BaseApplication.readSettings();
+        if (!settingBean.isRegistered()) {
+            myApp.registerExploder();
+            enabledButton(false);
+            new CheckRegister() {
+                @Override
+                public void onError() {
+                }
+
+                @Override
+                public void onSuccess() {
+                    checkExploderHandler.sendEmptyMessage(i);
+                }
+            }.setActivity(this).start();
+        } else {
+            checkExploderHandler.sendEmptyMessage(i);
         }
     }
 
@@ -289,13 +382,13 @@ public class DetonateStep1Activity extends BaseActivity {
     }
 
     private void showMessage(String s) {
-        Message m = checkExploderHandler.obtainMessage(4);
+        Message m = checkExploderHandler.obtainMessage(5);
         m.obj = s;
         checkExploderHandler.sendMessage(m);
     }
 
     private void showMessage(@StringRes int s) {
-        Message m = checkExploderHandler.obtainMessage(4);
+        Message m = checkExploderHandler.obtainMessage(5);
         m.obj = getResources().getString(s);
         checkExploderHandler.sendMessage(m);
     }
@@ -329,7 +422,7 @@ public class DetonateStep1Activity extends BaseActivity {
     }
 
     private void onlineDownload() {
-        enterpriseDialog = new EnterpriseDialog(this, enterpriseBean);
+        enterpriseDialog = new EnterpriseDialog(DetonateStep1Activity.this);
         enterpriseDialog.setClickConfirm(view -> {
             enabledButton(false);
             enterpriseDialog.dismiss();
@@ -458,10 +551,11 @@ public class DetonateStep1Activity extends BaseActivity {
 
     private void enabledButton(boolean b) {
         setProgressVisibility(!b);
-        btnOnline.setEnabled(b && list.size() > 0);
-        btnOffline.setEnabled(b && list.size() > 0 && (offlineBean != null && offlineBean.getResult() != null && offlineBean.getResult().getLgs() != null
+        btnOnline.setEnabled(b && list.size() > 0 && (2 != settingBean.getServerHost() || (baiSeCheck != null && baiSeCheck.isChecked())));
+        btnOffline.setEnabled(b && (2 == settingBean.getServerHost()
+                || (list.size() > 0 && 2 != settingBean.getServerHost() && (offlineBean != null && offlineBean.getResult() != null && offlineBean.getResult().getLgs() != null
                 && offlineBean.getResult().getLgs().getLg() != null
-                && offlineBean.getResult().getLgs().getLg().size() > 0));
+                && offlineBean.getResult().getLgs().getLg().size() > 0))));
     }
 
     private class MyLocationListener extends BDAbstractLocationListener {
@@ -489,10 +583,8 @@ public class DetonateStep1Activity extends BaseActivity {
                 }
                 settingBean.setLatitude(location.getLatitude());
                 settingBean.setLongitude(location.getLongitude());
-                myApp.saveSettings(settingBean);
+                myApp.saveBean(settingBean);
             }
         }
     }
-
-
 }

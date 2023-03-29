@@ -82,6 +82,7 @@
     <string name="settings_clear">清除数据</string>
     <string name="settings_info">系统信息</string>
     <string name="upgrade_version">版本管理</string>
+    <string name="bai_se_detector">现场人员信息</string>
     <string name="btn_confirm">确定</string>
     <string name="btn_cancel">取消</string>
     <string name="btn_cover">覆盖</string>
@@ -135,8 +136,9 @@
     <string name="progress_connecting">正在连接设备，请稍候！</string>
     <string name="progress_total">总进度：%1$d%%</string>
     <string name="progress_explode">正在做起爆前检测工作，请稍候！</string>
-    <string name="open_air">露天</string>
-    <string name="tunnel">井巷</string>
+    <string name="mode_open_air">露天</string>
+    <string name="mode_tunnel">井巷</string>
+    <string name="mode_wireless">远程</string>
     <string name="semi_product_title">半成品检测</string>
     <string name="select_type">选择雷管类型：</string>
     <string name="code_text">当前管壳码：___________________</string>
@@ -152,13 +154,20 @@
     <string name="camera_not_found">无授权用户！</string>
     <string name="camera_not_detected">检测不到人脸！</string>
     <string name="enterprise_code">单位代码：</string>
-    <string name="enterprise_id">爆破员身体证号：</string>
+    <string name="enterprise_id">爆破员身份证号：</string>
     <string name="enterprise_commercial">是否营业性爆破单位：</string>
-    <string name="enterprise_contract">合同编号：</string>
-    <string name="enterprise_project">项目编号：</string>
+    <string name="enterprise_contract_code">合同编号：</string>
+    <string name="enterprise_project_code">项目编号：</string>
     <string name="enterprise_not_null">* 必填</string>
     <string name="enterprise_hint">长度不能超过50位</string>
     <string name="enterprise_hint_id">18位，X用小数点代替</string>
+    <string name="enterprise_type_project">项目</string>
+    <string name="enterprise_type_contract">合同</string>
+    <string name="enterprise_contract_name">合同名称：</string>
+    <string name="enterprise_project_name">项目名称：</string>
+    <string name="enterprise_exploder_name">爆破员姓名：</string>
+    <string name="enterprise_name">爆破公司名称：</string>
+    <string name="enterprise_detector_id">检测员身份证号：</string>
     <string name="offline_start">起始雷管：</string>
     <string name="offline_end">末端雷管：</string>
     <string name="offline_amount">数量：</string>
@@ -216,6 +225,7 @@
     <string name="unite_communication_fail">通讯失败！</string>
     <string name="version_number">版本号：%1$s</string>
     <string name="device_code">编号：%1$s</string>
+    <string name="message_register_detonator">正在重新注册起爆器！</string>
     <string name="message_waveform_data_error">数据错误生成失败!</string>
     <string name="message_scan_timeout">未扫描到管壳码!</string>
     <string name="message_props_set_success">设置成功！</string>
@@ -289,6 +299,10 @@
     <string name="message_input_id">请输入身份证号码！</string>
     <string name="message_input_id_error">身份证号码输入有误！</string>
     <string name="message_input_contract_code">请输入合同编号！</string>
+    <string name="message_data_input_error">数据不能为空！</string>
+    <string name="message_bai_se_check_success">现场人员检验成功！</string>
+    <string name="message_bai_se_check_fail">现场人员检验失败！</string>
+    <string name="message_upload_log">开始上传日志</string>
     <string name="message_save_success">保存成功！</string>
     <string name="message_cannot_delete_not_upload">不能删除未上传的记录！</string>
     <string name="message_no_select_record">没有选中记录！</string>
@@ -321,7 +335,7 @@
     <string name="dialog_title_edit_name">修改设备名称</string>
     <string name="dialog_title_warning">警告</string>
     <string name="dialog_title_wrong_list">检测有误雷管列表</string>
-    <string name="dialog_title_edit_explode_voltage">修改起爆电压</string>
+    <string name="dialog_title_edit_charge_voltage">修改充电电压</string>
     <string name="dialog_title_edit_threshold">修改门限值</string>
     <string name="dialog_title_edit_work_voltage">修改工作电压</string>
     <string name="dialog_title_edit_start_voltage">修改启动电压</string>
@@ -340,6 +354,7 @@
     <string name="dialog_title_abort_modify">放弃修改</string>
     <string name="dialog_title_detect_again">重新检测</string>
     <string name="dialog_title_enter_charge">注意！</string>
+    <string name="dialog_title_detector">现场检验信息</string>
     <string name="dialog_exist">该码已存在！</string>
     <string name="dialog_scan_first">请先扫码！</string>
     <string name="dialog_qualified">成功！</string>
@@ -428,6 +443,7 @@
     <string name="button_online_auth">在线授权</string>
     <string name="button_offline_auth">离线授权</string>
     <string name="button_online_detect">在线检测</string>
+    <string name="button_auth">人员检验</string>
     <string name="button_upload">上传记录</string>
     <string name="button_save_exit">保存退出</string>
     <string name="button_delete_records">删除记录</string>
@@ -478,4 +494,5 @@
     <string name="title_text_current">空载电流补偿：</string>
     <string name="button_open_bus">打开总线</string>
     <string name="button_close_bus">关闭总线</string>
+    <string name="button_back">返回</string>
 </resources>

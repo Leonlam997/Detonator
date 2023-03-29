@@ -37,15 +37,12 @@ public class SoundSettingsActivity extends BaseActivity {
         settings = BaseApplication.readSettings();
         sbSound.setProgress(settings.getVolume());
         cbVibrate.setChecked(settings.isVibrate());
-        cbVibrate.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                if (b) {
-                    Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-                    if (vibrator != null && vibrator.hasVibrator()) {
-                        vibrator.cancel();
-                        vibrator.vibrate(500);
-                    }
+        cbVibrate.setOnCheckedChangeListener((compoundButton, b) -> {
+            if (b) {
+                Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+                if (vibrator != null && vibrator.hasVibrator()) {
+                    vibrator.cancel();
+                    vibrator.vibrate(500);
                 }
             }
         });
@@ -73,18 +70,8 @@ public class SoundSettingsActivity extends BaseActivity {
 
             }
         });
-        findViewById(R.id.iv_sound1).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                sbSound.setProgress(0);
-            }
-        });
-        findViewById(R.id.iv_sound2).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                sbSound.setProgress(5);
-            }
-        });
+        findViewById(R.id.iv_sound1).setOnClickListener(view -> sbSound.setProgress(0));
+        findViewById(R.id.iv_sound2).setOnClickListener(view -> sbSound.setProgress(5));
         initSound();
     }
 
@@ -103,7 +90,7 @@ public class SoundSettingsActivity extends BaseActivity {
         if (settings.isVibrate() != cbVibrate.isChecked() || settings.getVolume() != sbSound.getProgress()) {
             settings.setVibrate(cbVibrate.isChecked());
             settings.setVolume(sbSound.getProgress());
-            myApp.saveSettings(settings);
+            myApp.saveBean(settings);
         }
         super.onDestroy();
     }

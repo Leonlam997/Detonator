@@ -27,6 +27,7 @@ import com.leon.detonator.util.FilePath;
 import java.io.FileWriter;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public class WriteSNActivity extends BaseActivity {
     private final int HANDLER_SUCCESS = 1;
@@ -175,13 +176,14 @@ public class WriteSNActivity extends BaseActivity {
             }
         });
 
-        findViewById(R.id.btn_increase).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), Long.parseLong(etNumber.getText().toString().substring(8)) + 1)));
-        findViewById(R.id.btn_decrease).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), Long.parseLong(etNumber.getText().toString().substring(8)) - 1)));
+        findViewById(R.id.btn_increase).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8),(Long.parseLong(etNumber.getText().toString().substring(8)) + 1)%100000)));
+        findViewById(R.id.btn_decrease).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) - 1)%100000)));
         //btnWrite.setEnabled(false);
         btnWrite.setOnClickListener(v -> {
-            if (etNumber.getText().length() != 13) {
+            if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, etNumber.getText().toString().toUpperCase())) {
                 myApp.myToast(WriteSNActivity.this, R.string.message_detonator_input_error);
             } else {
+                etNumber.setText(etNumber.getText().toString().toUpperCase());
                 enabledButton(false);
                 myHandler.removeCallbacksAndMessages(null);
                 flowStep = STEP_WRITE_CLOCK;
@@ -310,7 +312,7 @@ public class WriteSNActivity extends BaseActivity {
         settings.setSerialNum(etNumber.getText().toString());
         settings.setDelayTime(etDelay.getText().toString());
         settings.setDelayPeriod(etPeriod.getText().toString());
-        myApp.saveSettings(settings);
+        myApp.saveBean(settings);
         if (null != soundPool) {
             soundPool.autoPause();
             soundPool.unload(soundSuccess);

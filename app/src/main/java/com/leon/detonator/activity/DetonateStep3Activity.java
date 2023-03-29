@@ -64,7 +64,8 @@ public class DetonateStep3Activity extends BaseActivity {
     private final int STEP_CHANGE_VOLTAGE = 16;
     private final int STEP_SCAN = 17;
     private final int STEP_INITIAL = 18;
-    private final int STEP_CHECK_PSW_2 = 19;
+    private final int STEP_EXPLODE_2 = 20;
+    private final int STEP_EXPLODE_3 = 21;
     private final int HANDLER_PRESS_KEY = 1;
     private final int HANDLER_CHARGE = 2;
     private final int HANDLER_SEND_COMMAND = 3;
@@ -150,25 +151,13 @@ public class DetonateStep3Activity extends BaseActivity {
                 case HANDLER_NEXT_STEP:
                     switch (explodeStep) {
                         case STEP_CHECK_PSW:
-                            if (doubleSend)
-                                doubleSend = false;
-                            else {
-                                explodeStep = STEP_CHECK_PSW_2;
-                                doubleSend = true;
-                            }
-                            break;
-                        case STEP_CHECK_PSW_2:
-                            if (doubleSend)
-                                doubleSend = false;
-                            else {
-                                explodeStep = STEP_DELAY;
-                                doubleSend = true;
-                            }
+                            explodeStep = STEP_DELAY;
                             break;
                         case STEP_DELAY:
-                            if (doubleSend)
+                            if (doubleSend) {
+                                explodeStep = STEP_CHECK_PSW;
                                 doubleSend = false;
-                            else
+                            } else
                                 explodeStep = STEP_CHARGE;
                             break;
                         case STEP_CHARGE:
@@ -182,6 +171,12 @@ public class DetonateStep3Activity extends BaseActivity {
                             explodeStep = STEP_READ_STATUS;
                             break;
                         case STEP_EXPLODE:
+                            explodeStep = STEP_EXPLODE_2;
+                            break;
+                        case STEP_EXPLODE_2:
+                            explodeStep = STEP_EXPLODE_3;
+                            break;
+                        case STEP_EXPLODE_3:
                             explodeStep = STEP_CLOSE_BUS;
                             break;
                         case STEP_RELEASE_1:
@@ -210,17 +205,15 @@ public class DetonateStep3Activity extends BaseActivity {
                             break;
                     }
                 case HANDLER_SEND_COMMAND:
+                    if (serialPortUtil == null)
+                        return true;
                     switch (explodeStep) {
                         case STEP_DELAY:
                             serialPortUtil.sendCmd("", SerialCommand.CODE_DELAY, delayTime >= 1024 ? 0xFFFF : delayTime);
-                            myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, delayTime >= 1024 ? 1100 : delayTime + 75);
+                            myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, BaseApplication.isRemote() ? 3000 : (delayTime >= 1024 ? 1100 : delayTime + 75));
                             break;
                         case STEP_CHECK_PSW:
                             serialPortUtil.sendCmd(ConstantUtils.EXPLODE_PSW, SerialCommand.CODE_CHECK_PSW, 0);
-                            myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
-                            break;
-                        case STEP_CHECK_PSW_2:
-                            serialPortUtil.sendCmd("123456", SerialCommand.CODE_CHECK_PSW, 0);
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                             break;
                         case STEP_READ_STATUS:
@@ -228,20 +221,20 @@ public class DetonateStep3Activity extends BaseActivity {
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                             break;
                         case STEP_CHARGE:
-                            serialPortUtil.sendCmd("", SerialCommand.CODE_CHARGE, 0x22);
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_CHARGE, BaseApplication.readSettings().getChargeVoltage() == 18 ? 0x18 : 0x22);
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                             break;
                         case STEP_WAIT_1:
-                            serialPortUtil.setTest(false);
                             serialPortUtil.sendCmd("", SerialCommand.CODE_MEASURE_VALUE, SerialCommand.MEASURE_CURRENT);
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                             break;
                         case STEP_WAIT_2:
-                            serialPortUtil.setTest(false);
                             serialPortUtil.sendCmd("", SerialCommand.CODE_MEASURE_VALUE, SerialCommand.MEASURE_VOLTAGE);
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                             break;
                         case STEP_EXPLODE:
+                        case STEP_EXPLODE_2:
+                        case STEP_EXPLODE_3:
                             serialPortUtil.sendCmd("", SerialCommand.CODE_EXPLODE, 0, 0);
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                             break;
@@ -279,17 +272,23 @@ public class DetonateStep3Activity extends BaseActivity {
                             pDialog.show();
                             break;
                         case STEP_SCAN:
-                            if (countScanZero < ConstantUtils.SCAN_ZERO_COUNT)
-                                serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_UID, ConstantUtils.UID_LEN);
-                            else {
-                                runOnUiThread(() -> tvLog.setText(String.format("%s\n检测完毕！", tvLog.getText())));
-                                pDialog.dismiss();
+                            myHandler.removeMessages(HANDLER_SEND_COMMAND);
+                            if (serialPortUtil != null) {
+                                if (countScanZero < ConstantUtils.SCAN_ZERO_COUNT) {
+                                    serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_UID, ConstantUtils.UID_LEN);
+                                    myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_SCAN_UID_TIMEOUT);
+                                } else {
+                                    explodeStep = STEP_RELEASE_1;
+                                    myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
+                                    runOnUiThread(() -> tvLog.setText(String.format("%s\n检测完毕！", tvLog.getText())));
+                                    pDialog.dismiss();
+                                }
                             }
                             break;
                     }
                     break;
             }
-            return false;
+            return true;
         }
     });
 
@@ -478,27 +477,32 @@ public class DetonateStep3Activity extends BaseActivity {
                                 myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                                 return;
                             case STEP_CLOSE_BUS:
-                                myHandler.removeMessages(HANDLER_PROGRESS);
-                                Intent intent = new Intent(DetonateStep3Activity.this, DetonateStep4Activity.class);
-                                intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0));
-                                intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
-                                intent.putExtra(KeyUtils.KEY_EXPLODE_ELAPSED, System.currentTimeMillis() - 500);
-                                if (null != offlineBean) {
-                                    for (DetonatorInfoBean bean : detonatorList) {
-                                        Iterator<LgBean> it = offlineBean.getResult().getLgs().getLg().iterator();
-                                        while (it.hasNext()) {
-                                            if (it.next().getFbh().equals(bean.getAddress())) {
-                                                it.remove();
-                                                break;
+                                myHandler.removeCallbacksAndMessages(null);
+                                if (pDialog.isShowing()) {
+                                    Intent intent = new Intent(DetonateStep3Activity.this, DetonateStep4Activity.class);
+                                    intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0));
+                                    intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
+                                    intent.putExtra(KeyUtils.KEY_EXPLODE_ELAPSED, System.currentTimeMillis() - 500);
+                                    if (null != offlineBean) {
+                                        for (DetonatorInfoBean bean : detonatorList) {
+                                            Iterator<LgBean> it = offlineBean.getResult().getLgs().getLg().iterator();
+                                            while (it.hasNext()) {
+                                                if (it.next().getFbh().equals(bean.getAddress())) {
+                                                    it.remove();
+                                                    break;
+                                                }
                                             }
                                         }
+                                        myApp.saveDownloadList(offlineBean, false);
                                     }
-                                    myApp.saveDownloadList(offlineBean, false);
+                                    startActivity(intent);
+                                    pDialog.dismiss();
+                                    finish();
                                 }
-                                startActivity(intent);
-                                pDialog.dismiss();
-                                finish();
                                 return;
+                            case STEP_EXPLODE:
+                            case STEP_EXPLODE_2:
+                            case STEP_EXPLODE_3:
                             case STEP_RELEASE_1:
                             case STEP_RELEASE_2:
                             case STEP_RELEASE_3:
@@ -510,10 +514,12 @@ public class DetonateStep3Activity extends BaseActivity {
                                 myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.RESET_DELAY_TIME);
                                 return;
                             case STEP_EXIT_CLOSE_BUS:
-                                finish();
+                                if (countScanZero < ConstantUtils.SCAN_ZERO_COUNT)
+                                    finish();
                                 return;
                             case STEP_SCAN:
                                 try {
+                                    myHandler.removeMessages(HANDLER_SEND_COMMAND);
                                     countScanZero = 0;
                                     DetonatorInfoBean bean = new DetonatorInfoBean(new String(Arrays.copyOfRange(buffer, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9)),
                                             (Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 11]) << 16) + (Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 12]) << 8) + Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 13]),//Delay
@@ -528,20 +534,24 @@ public class DetonateStep3Activity extends BaseActivity {
                                     if (pDialog.getProgress() < pDialog.getMax() - 1)
                                         pDialog.incrementProgressBy(1);
                                     if ((bean.getInside() & SerialCommand.MASK_STATUS_LOCK) == 0)
-                                        tvLog.setText(String.format("%s\n%s 没有锁定", tvLog.getText(), bean.getAddress()));
+                                        runOnUiThread(() -> tvLog.setText(String.format(Locale.CHINA, "%s\n%d%s%d孔:%s 没有锁定", tvLog.getText(),
+                                                bean.getRow(), myApp.isTunnel() ? "段" : "排", bean.getHole(), bean.getAddress())));
                                     if ((bean.getInside() & SerialCommand.MASK_STATUS_PSW) == 0)
-                                        tvLog.setText(String.format("%s\n%s 验证失败(禁爆)", tvLog.getText(), bean.getAddress()));
+                                        runOnUiThread(() -> tvLog.setText(String.format(Locale.CHINA, "%s\n%d%s%d孔:%s 验证失败(禁爆)", tvLog.getText(),
+                                                bean.getRow(), myApp.isTunnel() ? "段" : "排", bean.getHole(), bean.getAddress())));
                                     if ((bean.getInside() & SerialCommand.MASK_STATUS_CHARGE_FULL) == 0)
-                                        tvLog.setText(String.format("%s\n%s 充电不满(禁爆)", tvLog.getText(), bean.getAddress()));
+                                        runOnUiThread(() -> tvLog.setText(String.format(Locale.CHINA, "%s\n%d%s%d孔:%s 充电不满(禁爆)", tvLog.getText(),
+                                                bean.getRow(), myApp.isTunnel() ? "段" : "排", bean.getHole(), bean.getAddress())));
                                     if ((bean.getInside() & SerialCommand.MASK_STATUS_DELAY_FLAG) == 0)
-                                        tvLog.setText(String.format("%s\n%s 标定错误(禁爆)", tvLog.getText(), bean.getAddress()));
+                                        runOnUiThread(() -> tvLog.setText(String.format(Locale.CHINA, "%s\n%d%s%d孔:%s 标定错误(禁爆)", tvLog.getText(),
+                                                bean.getRow(), myApp.isTunnel() ? "段" : "排", bean.getHole(), bean.getAddress())));
                                 } catch (Exception e) {
                                     BaseApplication.writeErrorLog(e);
                                 }
                                 myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.SCAN_DELAY_TIME);
                                 return;
                             case STEP_CHECK_PSW:
-                            case STEP_CHECK_PSW_2:
+                            case STEP_DELAY:
                                 myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, 50);
                                 return;
                         }
@@ -570,12 +580,11 @@ public class DetonateStep3Activity extends BaseActivity {
                                             tvLog = findViewById(R.id.tv_log);
                                             setTitle(R.string.det_check);
                                             tvLog.setText("开始检测，请稍候！");
-//                                        explodeStep = STEP_RELEASE_1;
-//                                        myHandler.sendEmptyMessage(HANDLER_SEND_COMMAND);
                                         })
                                         .create().show());
                                 return;
                             case STEP_SCAN:
+                                myHandler.removeMessages(HANDLER_SEND_COMMAND);
                                 boolean allZero = true;
                                 for (int i = SerialCommand.CODE_CHAR_AT + 2; i < SerialCommand.CODE_CHAR_AT + 9; i++) {
                                     if (0 != buffer[i]) {
@@ -583,15 +592,11 @@ public class DetonateStep3Activity extends BaseActivity {
                                         break;
                                     }
                                 }
-                                if (allZero) {
+                                if (allZero)
                                     countScanZero++;
-                                }
                                 if (pDialog.getProgress() < pDialog.getMax() - 1)
                                     pDialog.incrementProgressBy(1);
                                 myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.SCAN_DELAY_TIME);
-                                break;
-                            case STEP_CHECK_PSW_2:
-                                myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, 50);
                                 break;
                             default:
                                 myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.COMMAND_DELAY_TIME);
@@ -600,6 +605,7 @@ public class DetonateStep3Activity extends BaseActivity {
                     }
                 }
             });
+            serialPortUtil.setTest(true);
             detonatorList = new ArrayList<>();
             try {
                 myApp.readFromFile(
@@ -630,7 +636,6 @@ public class DetonateStep3Activity extends BaseActivity {
                 Exception e) {
             BaseApplication.writeErrorLog(e);
         }
-
     }
 
     private void resetStatus() {
@@ -737,19 +742,18 @@ public class DetonateStep3Activity extends BaseActivity {
             setResult(RESULT_OK);
             finish();
         } else {
-            serialPortUtil.setTest(true);
             myHandler.removeMessages(HANDLER_SEND_COMMAND);
             explodeStep = STEP_CHANGE_VOLTAGE;
             myHandler.sendEmptyMessage(HANDLER_SEND_COMMAND);
             pDialog = new MyProgressDialog(this);
             pDialog.setInverseBackgroundForced(false);
-            pDialog.setCancelable(false);
+            pDialog.setCancelable(true);
             pDialog.setCanceledOnTouchOutside(false);
             pDialog.setTitle(R.string.progress_title);
             pDialog.setMessage(getResources().getString(R.string.progress_explode));
             pDialog.show();
             setViewFontSize(pDialog.getWindow().getDecorView(), getResources().getDimensionPixelSize(R.dimen.label_text_size));
-            WindowManager.LayoutParams layoutParams= pDialog.getWindow().getAttributes();
+            WindowManager.LayoutParams layoutParams = pDialog.getWindow().getAttributes();
             layoutParams.height = 160;
             layoutParams.width = 300;
             pDialog.getWindow().setAttributes(layoutParams);
@@ -825,10 +829,6 @@ public class DetonateStep3Activity extends BaseActivity {
     @Override
     protected void onDestroy() {
         myHandler.removeCallbacksAndMessages(null);
-        if (!uniteExplode && serialPortUtil != null) {
-            serialPortUtil.closeSerialPort();
-            serialPortUtil = null;
-        }
         LocationUtils.unRegisterListener(this);
         BaseApplication.releaseWakeLock(DetonateStep3Activity.this);
         if (!nextStep) {
@@ -845,6 +845,10 @@ public class DetonateStep3Activity extends BaseActivity {
             soundPool.unload(soundAlert);
             soundPool.release();
             soundPool = null;
+        }
+        if (!uniteExplode && serialPortUtil != null) {
+            serialPortUtil.closeSerialPort();
+            serialPortUtil = null;
         }
         super.onDestroy();
     }

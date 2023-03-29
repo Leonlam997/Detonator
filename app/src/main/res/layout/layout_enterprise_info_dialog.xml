@@ -16,121 +16,370 @@
         android:textColor="@color/colorDialogText"
         android:textSize="@dimen/label_text_size" />
 
-    <TextView
-        android:id="@+id/txt_code"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_title"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="10dp"
-        android:text="@string/enterprise_code"
-        android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/dialog_enterprise_text" />
-
-    <TextView
-        android:id="@+id/tv_code"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_title"
-        android:layout_marginTop="10dp"
-        android:layout_toEndOf="@id/txt_code"
-        android:textSize="@dimen/dialog_enterprise_text" />
-
-    <View
-        android:layout_width="fill_parent"
-        android:layout_height="1dp"
-        android:layout_below="@id/tv_code"
-        android:layout_marginTop="4dp"
-        android:background="@color/colorTableLine" />
-
-    <TextView
-        android:id="@+id/txt_id"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_code"
-        android:layout_marginStart="30dp"
-        android:layout_marginTop="10dp"
-        android:text="@string/enterprise_id"
-        android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/dialog_enterprise_text" />
-
-    <TextView
-        android:id="@+id/tv_id"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_code"
-        android:layout_marginTop="10dp"
-        android:layout_toEndOf="@id/txt_id"
-        android:maxLength="18"
-        android:textSize="@dimen/dialog_enterprise_text" />
-
-    <View
-        android:layout_width="fill_parent"
-        android:layout_height="1dp"
-        android:layout_below="@id/tv_id"
-        android:layout_marginTop="4dp"
-        android:background="@color/colorTableLine" />
-
-    <RelativeLayout
-        android:id="@+id/rl_commercial"
+    <ScrollView
+        android:id="@+id/sv_content"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/txt_id">
+        android:layout_height="wrap_content"
+        android:layout_above="@id/ll1"
+        android:layout_below="@id/txt_title"
+        android:scrollbars="vertical">
 
-        <TextView
-            android:id="@+id/txt_contract"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_name"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+                <TextView
+                    android:id="@+id/tv_company"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_code"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+
+                <TextView
+                    android:id="@+id/tv_company_code"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:id="@+id/txt_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_project_name"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+                <TextView
+                    android:id="@+id/tv_project_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:id="@+id/txt_number"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_project_code"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+                <TextView
+                    android:id="@+id/tv_project_code"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_id"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+                <TextView
+                    android:id="@+id/tv_blaster_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_exploder_name"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+                <TextView
+                    android:id="@+id/tv_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/ll_detector"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txt_title"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="30dp"
-            android:layout_marginTop="10dp"
-            android:text="@string/enterprise_contract"
-            android:textColor="@color/colorLabelText"
-            android:textSize="@dimen/dialog_enterprise_text" />
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:id="@+id/txt_project_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/enterprise_project_code"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/dialog_enterprise_text" />
+
+            <TextView
+                android:id="@+id/tv_detector_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/dialog_enterprise_text" />
+        </LinearLayout>
 
         <View
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_below="@id/txt_contract"
             android:layout_marginTop="4dp"
             android:background="@color/colorTableLine" />
 
-        <TextView
-            android:id="@+id/tv_contract"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_toEndOf="@id/txt_contract"
-            android:textSize="@dimen/dialog_enterprise_text" />
-
-        <TextView
-            android:id="@+id/txt_project"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/txt_contract"
             android:layout_marginStart="30dp"
-            android:layout_marginTop="10dp"
-            android:text="@string/enterprise_project"
-            android:textColor="@color/colorLabelText"
-            android:textSize="@dimen/dialog_enterprise_text" />
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/enterprise_id"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/dialog_enterprise_text" />
+
+            <TextView
+                android:id="@+id/tv_detector_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/dialog_enterprise_text" />
+        </LinearLayout>
 
         <View
-            android:layout_width="fill_parent"
+            android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_below="@id/txt_project"
             android:layout_marginTop="4dp"
             android:background="@color/colorTableLine" />
 
-        <TextView
-            android:id="@+id/tv_project"
-            android:layout_width="wrap_content"
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_enterprise"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txt_title"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/txt_contract"
-            android:layout_marginTop="10dp"
-            android:layout_toEndOf="@id/txt_project"
-            android:textSize="@dimen/dialog_enterprise_text" />
-    </RelativeLayout>
+            android:layout_marginStart="30dp"
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:id="@+id/txt_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:text="@string/enterprise_code"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/dialog_enterprise_text" />
+
+            <TextView
+                android:id="@+id/tv_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/dialog_enterprise_text" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="4dp"
+            android:background="@color/colorTableLine" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="30dp"
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:id="@+id/txt_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:text="@string/enterprise_id"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/dialog_enterprise_text" />
+
+            <TextView
+                android:id="@+id/tv_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLength="18"
+                android:textSize="@dimen/dialog_enterprise_text" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="4dp"
+            android:background="@color/colorTableLine" />
+
+        <LinearLayout
+            android:id="@+id/ll_commercial"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:id="@+id/txt_contract"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_contract_code"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+                <TextView
+                    android:id="@+id/tv_contract"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="30dp"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:id="@+id/txt_project"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_project_code"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+
+                <TextView
+                    android:id="@+id/tv_project"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="@dimen/dialog_enterprise_text" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="4dp"
+                android:background="@color/colorTableLine" />
+        </LinearLayout>
+    </LinearLayout>
 
     <GridLayout
+        android:id="@+id/ll1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"

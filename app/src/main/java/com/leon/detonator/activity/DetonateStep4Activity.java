@@ -13,10 +13,14 @@ import android.widget.TextView;
 import androidx.annotation.StringRes;
 
 import com.baidu.mapapi.model.LatLng;
+import com.google.gson.Gson;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.CheckRegister;
 import com.leon.detonator.base.MyButton;
+import com.leon.detonator.bean.BaiSeCheck;
+import com.leon.detonator.bean.BaiSeUpload;
+import com.leon.detonator.bean.BaiSeUploadResult;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.bean.LocalSettingBean;
@@ -50,18 +54,23 @@ import java.util.Map;
 import java.util.Objects;
 
 import okhttp3.Call;
+import okhttp3.MediaType;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class DetonateStep4Activity extends BaseActivity {
-    private final int STEP_READ_VOLTAGE = 1,
-            STEP_PROGRESS = 2,
-            STEP_EXPLODE = 3,
-            STEP_UPLOAD_TIMEOUT = 5,
-            STEP_CHECK_EXPLODER_ERROR = 6,
-            STEP_CHECK_EXPLODER_SUCCESS = 7,
-            STEP_MESSAGE = 8;
-
-    private int explodeTime, countDown = 0, receiveCount = 0, soundTicktock, soundAlert;
+    private final int STEP_READ_VOLTAGE = 1;
+    private final int STEP_PROGRESS = 2;
+    private final int STEP_EXPLODE = 3;
+    private final int STEP_UPLOAD_TIMEOUT = 5;
+    private final int STEP_CHECK_EXPLODER_ERROR = 6;
+    private final int STEP_CHECK_EXPLODER_SUCCESS = 7;
+    private final int STEP_MESSAGE = 8;
+    private int explodeTime;
+    private int countDown;
+    private int receiveCount;
+    private int soundTicktock;
+    private int soundAlert;
     private boolean uniteExplode;
     private SoundPool soundPool;
     private SerialPortUtil serialPortUtil;
@@ -92,6 +101,8 @@ public class DetonateStep4Activity extends BaseActivity {
         myApp = (BaseApplication) getApplication();
         initSound();
         settingBean = BaseApplication.readSettings();
+        settingBean.setUploadedLog(false);
+        myApp.saveBean(settingBean);
         enterpriseBean = myApp.readEnterprise();
         latLng = new LatLng(getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0), getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
         try {
@@ -225,7 +236,7 @@ public class DetonateStep4Activity extends BaseActivity {
                 case MinaHandler.MINA_DATA:
                     delaySendCmdHandler.removeMessages(STEP_UPLOAD_TIMEOUT);
                     if (((String) msg.obj).contains("R")) {
-                        uploadRecord();
+                        uploadServer();
                     } else {
                         if (((String) msg.obj).startsWith("#") && ((String) msg.obj).endsWith("$"))
                             receiveCount++;
@@ -306,104 +317,170 @@ public class DetonateStep4Activity extends BaseActivity {
     }
 
     private void uploadRecord() {
-        if (0 != settingBean.getServerHost()) {
-            BaseApplication.writeFile("上传当前爆破记录!");
-            receiveCount = 0;
-            disableButton(true);
-            delaySendCmdHandler.sendEmptyMessageDelayed(STEP_UPLOAD_TIMEOUT, ConstantUtils.UPLOAD_TIMEOUT);
-            new Thread(() -> {
-                if (null == minaClient)
-                    minaClient = new MinaClient();
-                minaClient.setDetonatorList(list);
-                minaClient.setExplodeTime(new Date());
-                minaClient.setHandler(delaySendCmdHandler);
-                minaClient.setLng(latLng.longitude);
-                minaClient.setLat(latLng.latitude);
-                minaClient.setHost(ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][1]);
-                String sn = BaseApplication.readSettings().getExploderID();
-                minaClient.setSn(sn.substring(1, 5) + sn.substring(sn.length() - 4));
-                minaClient.uploadRecord();
-            }).start();
-        } else {
-            enterpriseDialog = new EnterpriseDialog(this, enterpriseBean);
-            enterpriseDialog.setClickConfirm(view -> {
-                disableButton(true);
-                enterpriseDialog.dismiss();
-                StringBuilder str = new StringBuilder();
-                for (DetonatorInfoBean bean : list) {
-                    str.append(bean.getAddress()).append(",");
-                }
-                str.deleteCharAt(str.length() - 1);
-                token = myApp.makeToken();
-                Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_UPLOAD_RECORDS);
-                if (null != params) {
-                    params.put("dsc", str.toString());
-                    params.put("dwdm", enterpriseBean.getCode());
-                    params.put("bprysfz", enterpriseBean.getId());
-                    SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
-                    params.put("bpsj", df.format(new Date()));
-                    if (null != latLng) {
-                        params.put("jd", latLng.longitude + "");
-                        params.put("wd", latLng.latitude + "");
+        switch (settingBean.getServerHost()) {
+            case 0:
+                enterpriseDialog = new EnterpriseDialog(DetonateStep4Activity.this);
+                enterpriseDialog.setClickConfirm(view -> {
+                    disableButton(true);
+                    enterpriseDialog.dismiss();
+                    StringBuilder str = new StringBuilder();
+                    for (DetonatorInfoBean bean : list) {
+                        str.append(bean.getAddress()).append(",");
                     }
-                    if (enterpriseBean.isCommercial()) {
-                        params.put("htid", enterpriseBean.getContract());
-                        params.put("xmbh", enterpriseBean.getProject());
-                    }
-                    params.put("signature", myApp.signature(params));
-                    OkHttpUtils.post()
-                            .url(ConstantUtils.HOST_URL)
-                            .params(params)
-                            .build().execute(new Callback<UploadExplodeRecordsBean>() {
-                                @Override
-                                public UploadExplodeRecordsBean parseNetworkResponse(Response response, int i) throws Exception {
-                                    if (response.body() != null) {
-                                        String string = Objects.requireNonNull(response.body()).string();
-                                        return BaseApplication.jsonFromString(string, UploadExplodeRecordsBean.class);
+                    str.deleteCharAt(str.length() - 1);
+                    token = myApp.makeToken();
+                    Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_UPLOAD_RECORDS);
+                    if (null != params) {
+                        params.put("dsc", str.toString());
+                        params.put("dwdm", enterpriseBean.getCode());
+                        params.put("bprysfz", enterpriseBean.getId());
+                        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+                        params.put("bpsj", df.format(new Date()));
+                        if (null != latLng) {
+                            params.put("jd", latLng.longitude + "");
+                            params.put("wd", latLng.latitude + "");
+                        }
+                        if (enterpriseBean.isCommercial()) {
+                            params.put("htid", enterpriseBean.getContract());
+                            params.put("xmbh", enterpriseBean.getProject());
+                        }
+                        params.put("signature", myApp.signature(params));
+                        OkHttpUtils.post()
+                                .url(ConstantUtils.HOST_URL)
+                                .params(params)
+                                .build().execute(new Callback<UploadExplodeRecordsBean>() {
+                                    @Override
+                                    public UploadExplodeRecordsBean parseNetworkResponse(Response response, int i) throws Exception {
+                                        if (response.body() != null) {
+                                            String string = Objects.requireNonNull(response.body()).string();
+                                            return BaseApplication.jsonFromString(string, UploadExplodeRecordsBean.class);
+                                        }
+                                        return null;
                                     }
-                                    return null;
-                                }
 
-                                @Override
-                                public void onError(Call call, Exception e, int i) {
-                                    showMessage(R.string.message_check_network);
-                                    disableButton(false);
-                                }
+                                    @Override
+                                    public void onError(Call call, Exception e, int i) {
+                                        showMessage(R.string.message_check_network);
+                                        disableButton(false);
+                                    }
 
-                                @Override
-                                public void onResponse(UploadExplodeRecordsBean uploadExplodeRecordsBean, int i) {
-                                    disableButton(false);
-                                    if (null != uploadExplodeRecordsBean) {
-                                        if (uploadExplodeRecordsBean.getToken().equals(token)) {
-                                            if (uploadExplodeRecordsBean.isStatus()) {
-                                                if (null != uploadExplodeRecordsBean.getResult()) {
-                                                    if (uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                                        renameRecordFile();
-                                                        finish();
-                                                    } else {
-                                                        showMessage(R.string.message_upload_fail);
-                                                        disableButton(false);
+                                    @Override
+                                    public void onResponse(UploadExplodeRecordsBean uploadExplodeRecordsBean, int i) {
+                                        disableButton(false);
+                                        if (null != uploadExplodeRecordsBean) {
+                                            if (uploadExplodeRecordsBean.getToken().equals(token)) {
+                                                if (uploadExplodeRecordsBean.isStatus()) {
+                                                    if (null != uploadExplodeRecordsBean.getResult()) {
+                                                        if (uploadExplodeRecordsBean.getResult().isSuccess()) {
+                                                            renameRecordFile();
+                                                            finish();
+                                                        } else {
+                                                            showMessage(R.string.message_upload_fail);
+                                                            disableButton(false);
+                                                        }
                                                     }
+                                                } else {
+                                                    showMessage(uploadExplodeRecordsBean.getDescription());
                                                 }
                                             } else {
-                                                showMessage(uploadExplodeRecordsBean.getDescription());
+                                                showMessage(R.string.message_token_error);
                                             }
                                         } else {
-                                            showMessage(R.string.message_token_error);
+                                            showMessage(R.string.message_return_data_error);
                                         }
-                                    } else {
-                                        showMessage(R.string.message_return_data_error);
                                     }
-                                }
-                            });
-                }
-            });
-            enterpriseDialog.setClickModify(view -> {
-                enterpriseDialog.dismiss();
-                startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
-            });
-            enterpriseDialog.show();
+                                });
+                    }
+                });
+                enterpriseDialog.setClickModify(view -> {
+                    enterpriseDialog.dismiss();
+                    startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
+                });
+                enterpriseDialog.show();
+                break;
+            case 2:
+                enterpriseDialog = new EnterpriseDialog(DetonateStep4Activity.this);
+                enterpriseDialog.setClickConfirm(view -> {
+                    disableButton(true);
+                    enterpriseDialog.dismiss();
+                    try {
+                        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+                        BaiSeUpload baiSeUpload = myApp.readBaiSeUpload();
+                        baiSeUpload.setLngLat(String.format(Locale.CHINA, "%f,%f", latLng.longitude, latLng.latitude));
+                        baiSeUpload.setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
+                        baiSeUpload.setDeviceNO(settingBean.getExploderID());
+                        baiSeUpload.setDetonatorCount(list.size());
+                        baiSeUpload.setBurstTime(df.format(new Date()));
+                        myApp.saveBean(baiSeUpload);
+                        BaseApplication.writeFile(new Gson().toJson(baiSeUpload));
+                        OkHttpUtils.postString().addHeader("access-token", ConstantUtils.ACCESS_TOKEN)
+                                .url(ConstantUtils.BAI_SE_UPLOAD_URL)
+                                .mediaType(MediaType.parse("application/json; charset=utf-8"))
+                                .content(new Gson().toJson(baiSeUpload))
+                                .build().execute(new Callback<BaiSeUploadResult>() {
+                                    @Override
+                                    public BaiSeUploadResult parseNetworkResponse(Response response, int i) throws Exception {
+                                        ResponseBody body = response.body();
+                                        if (body != null) {
+                                            String string = body.string();
+                                            return new Gson().fromJson(string, BaiSeUploadResult.class);
+                                        }
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public void onError(Call call, Exception e, int i) {
+                                        myApp.myToast(DetonateStep4Activity.this, R.string.message_network_timeout);
+                                    }
+
+                                    @Override
+                                    public void onResponse(BaiSeUploadResult baiSeUploadResult, int i) {
+                                        if (baiSeUploadResult != null) {
+                                            if (baiSeUploadResult.isSuccess()) {
+                                                BaiSeCheck baiSeCheck = myApp.readBaiSeCheck();
+                                                baiSeCheck.setChecked(false);
+                                                myApp.saveBean(baiSeCheck);
+                                                uploadServer();
+                                            } else if (baiSeUploadResult.getMessage() != null) {
+                                                myApp.myToast(DetonateStep4Activity.this, baiSeUploadResult.getMessage());
+                                            }
+                                        }
+                                    }
+                                });
+
+                    } catch (Exception e) {
+                        BaseApplication.writeErrorLog(e);
+                    }
+                });
+                enterpriseDialog.setClickModify(view -> {
+                    enterpriseDialog.dismiss();
+                    startActivity(new Intent(DetonateStep4Activity.this, BaiSeDataActivity.class));
+                });
+                enterpriseDialog.show();
+                break;
+            default:
+                BaseApplication.writeFile("上传当前爆破记录!");
+                uploadServer();
         }
+    }
+
+    private void uploadServer() {
+        receiveCount = 0;
+        disableButton(true);
+        delaySendCmdHandler.sendEmptyMessageDelayed(STEP_UPLOAD_TIMEOUT, ConstantUtils.UPLOAD_TIMEOUT);
+        new Thread(() -> {
+            if (null == minaClient)
+                minaClient = new MinaClient();
+            minaClient.setDetonatorList(list);
+            minaClient.setExplodeTime(new Date());
+            minaClient.setHandler(delaySendCmdHandler);
+            minaClient.setLng(latLng.longitude);
+            minaClient.setLat(latLng.latitude);
+            minaClient.setHost(ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][1]);
+            String sn = BaseApplication.readSettings().getExploderID();
+            minaClient.setSn(sn.substring(1, 5) + sn.substring(sn.length() - 4));
+            minaClient.uploadRecord();
+        }).start();
     }
 
     private void renameRecordFile() {

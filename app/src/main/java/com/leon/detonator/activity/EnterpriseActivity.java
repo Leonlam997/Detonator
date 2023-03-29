@@ -13,6 +13,9 @@ import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.R;
+import com.leon.detonator.util.ConstantUtils;
+
+import java.util.regex.Pattern;
 
 public class EnterpriseActivity extends BaseActivity {
     private EditText etCode, etId, etContract, etProject;
@@ -55,7 +58,27 @@ public class EnterpriseActivity extends BaseActivity {
             }
         };
         etCode.addTextChangedListener(textWatcher);
-        etId.addTextChangedListener(textWatcher);
+        etId.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty()
+                        || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
+                findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty()
+                        && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+                if (editable.toString().contains("."))
+                    editable.replace(editable.toString().indexOf("."), editable.toString().indexOf(".") + 1, "X");
+            }
+        });
         etContract.addTextChangedListener(textWatcher);
         etProject.addTextChangedListener(textWatcher);
         findViewById(R.id.btn_clear).setOnClickListener(view -> {
@@ -73,7 +96,7 @@ public class EnterpriseActivity extends BaseActivity {
             } else if (etId.getText().toString().isEmpty()) {
                 myApp.myToast(EnterpriseActivity.this, R.string.message_input_id);
                 etId.requestFocus();
-            } else if (etId.getText().toString().length() != 18 || (etId.getText().toString().contains(".") && !etId.getText().toString().endsWith("."))) {
+            } else if (!Pattern.matches(ConstantUtils.ID_PATTERN, etId.getText())) {
                 myApp.myToast(EnterpriseActivity.this, R.string.message_input_id_error);
                 etId.requestFocus();
             } else if (cbCommercial.isChecked() && etContract.getText().toString().isEmpty()) {
@@ -88,7 +111,7 @@ public class EnterpriseActivity extends BaseActivity {
                     enterprise.setContract(etContract.getText().toString());
                     enterprise.setProject(etProject.getText().toString());
                 }
-                myApp.saveEnterprise(enterprise);
+                myApp.saveBean(enterprise);
                 myApp.myToast(EnterpriseActivity.this, R.string.message_save_success);
                 finish();
             }

@@ -119,7 +119,7 @@ public class LoginActivity extends BaseActivity {
 //                                    userID = bean.getUserID();
 //                                    LocalSettingBean settingBeans = BaseApplication.readSettings();
 //                                    settingBeans.setUserID(userID);
-//                                    myApp.saveSettings(settingBeans);
+//                                    myApp.saveBean(settingBeans);
 //                                    projectList = new ArrayList<>();
 //                                    sendMsg(3, "");
 //                                    new GetEnterpriseProject().start();
@@ -217,7 +217,7 @@ public class LoginActivity extends BaseActivity {
                                         new GetEnterpriseProject().start();
                                     } else {
                                         try {
-                                            FileWriter fw = new FileWriter(new File(FilePath.FILE_USER_INFO));
+                                            FileWriter fw = new FileWriter(FilePath.FILE_USER_INFO);
                                             fw.append(new Gson().toJson(userList));
                                             fw.close();
                                         } catch (Exception e) {
@@ -278,7 +278,7 @@ public class LoginActivity extends BaseActivity {
                                     } else {
                                         if (projectList != null && projectList.size() > 0) {
                                             try {
-                                                FileWriter fw = new FileWriter(new File(FilePath.FILE_PROJECT_INFO + userID + ".dat"));
+                                                FileWriter fw = new FileWriter(FilePath.FILE_PROJECT_INFO + userID + ".dat");
                                                 fw.append(new Gson().toJson(projectList));
                                                 fw.close();
                                             } catch (Exception e) {

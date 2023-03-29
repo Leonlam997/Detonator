@@ -54,9 +54,9 @@ public class SerialCommand {
     public final static int MEASURE_VOLTAGE = 0x00;
     public final static int MEASURE_CURRENT_LOW = 0x44;
     public final static int MEASURE_CURRENT_HIGH = 0x55;
-    public final static int MASK_STATUS_LOCK = 1<<7;
-    public final static int MASK_STATUS_PSW=1<<5;
-    public final static int MASK_STATUS_CHARGE_FULL=1<<4;
-    public final static int MASK_STATUS_DELAY_FLAG=1<<3;
+    public final static int MASK_STATUS_LOCK = 1 << 7;
+    public final static int MASK_STATUS_PSW = 1 << 5;
+    public final static int MASK_STATUS_CHARGE_FULL = 1 << 4;
+    public final static int MASK_STATUS_DELAY_FLAG = 1 << 3;
 
 }

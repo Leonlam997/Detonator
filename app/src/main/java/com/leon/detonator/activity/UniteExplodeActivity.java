@@ -326,7 +326,7 @@ public class UniteExplodeActivity extends BaseActivity {
                         mtMac = mtModule.getMacAddress();
                         LocalSettingBean bean = BaseApplication.readSettings();
                         bean.setMtMac(mtMac);
-                        myApp.saveSettings(bean);
+                        myApp.saveBean(bean);
                         mtModule.writeData("LGE".getBytes(), null);
                         refreshStatus.sendEmptyMessage(STATUS_UNITE_WAITING);
                         refreshStatus.sendEmptyMessageDelayed(STATUS_HANDSHAKE, 500);

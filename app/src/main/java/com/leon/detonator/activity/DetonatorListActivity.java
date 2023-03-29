@@ -2,7 +2,6 @@ package com.leon.detonator.activity;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -14,7 +13,6 @@ import android.os.Message;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.method.NumberKeyListener;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -40,7 +38,6 @@ import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.EnterpriseProjectBean;
 import com.leon.detonator.bean.LocalSettingBean;
-import com.leon.detonator.dialog.MyProgressDialog;
 import com.leon.detonator.R;
 import com.leon.detonator.serial.SerialCommand;
 import com.leon.detonator.serial.SerialDataReceiveListener;
@@ -53,7 +50,6 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -702,7 +698,7 @@ public class DetonatorListActivity extends BaseActivity {
                         }
                     }
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.btn_cancel, null)
                 .create().show();
     }
 
@@ -726,7 +722,8 @@ public class DetonatorListActivity extends BaseActivity {
                 .setTitle(R.string.dialog_title_manual_input)
                 .setView(inputCodeView)
                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, ii) -> {
-                    if (Pattern.matches(ConstantUtils.SHELL_PATTERN, code.getText())) {
+                    if (Pattern.matches(ConstantUtils.SHELL_PATTERN, code.getText().toString().toUpperCase())) {
+                        code.setText(code.getText().toString().toUpperCase());
                         for (int j = 0, k = amount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(amount.getText().toString()); j < k; j++) {
                             String det = code.getText().toString().substring(0, 8) + String.format(Locale.CHINA, "%05d", (Long.parseLong(code.getText().toString().substring(8)) + j));
                             int i = 0;
@@ -918,7 +915,7 @@ public class DetonatorListActivity extends BaseActivity {
                                     settings.setHoleInside(Integer.parseInt(etDelay.getText().toString()));
                                 }
                             }
-                            myApp.saveSettings(settings);
+                            myApp.saveBean(settings);
                         }
                     })
                     .setNegativeButton(R.string.btn_cancel, null)

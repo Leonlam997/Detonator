@@ -12,10 +12,14 @@ import android.widget.ListView;
 
 import androidx.annotation.StringRes;
 
+import com.google.gson.Gson;
 import com.leon.detonator.adapter.ExplosionRecordAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.CheckRegister;
+import com.leon.detonator.bean.BaiSeCheck;
+import com.leon.detonator.bean.BaiSeUpload;
+import com.leon.detonator.bean.BaiSeUploadResult;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.bean.ExplosionRecordBean;
@@ -48,7 +52,9 @@ import java.util.Map;
 import java.util.Objects;
 
 import okhttp3.Call;
+import okhttp3.MediaType;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class ExplosionRecordActivity extends BaseActivity {
     private CheckBox cbSelected;
@@ -64,6 +70,101 @@ public class ExplosionRecordActivity extends BaseActivity {
     private LocalSettingBean settingBean;
     private MyProgressDialog pDialog;
     private BaseApplication myApp;
+
+    private final Handler msgHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message message) {
+            switch (message.what) {
+                case MinaHandler.MINA_DATA:
+                    msgHandler.removeMessages(4);
+                    if (((String) message.obj).contains("R")) {
+                        uploadServer(true);
+                    } else {
+                        if (((String) message.obj).startsWith("#") && ((String) message.obj).endsWith("$"))
+                            receiveCount++;
+                        if (receiveCount >= 3) {
+                            successCount++;
+                            moveFile();
+                            if (settingBean.getServerHost() == 2)
+                                uploadBaiSe();
+                            else
+                                uploadRecord();
+                        }
+                    }
+                    break;
+                case MinaHandler.MINA_NORMAL:
+                    msgHandler.removeMessages(4);
+                    if (null != message.obj)
+                        myApp.myToast(ExplosionRecordActivity.this, (String) message.obj);
+                    break;
+                case MinaHandler.MINA_ERROR:
+                    msgHandler.removeMessages(4);
+                    disableButton(false);
+                    showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1));
+                case 4:
+                    disableButton(false);
+                    myApp.myToast(ExplosionRecordActivity.this, R.string.message_network_timeout);
+                    break;
+            }
+            return false;
+        }
+    });
+
+    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NotNull Message message) {
+            switch (message.what) {
+                case 1:
+                    disableButton(false);
+                    break;
+                case 2:
+                    settingBean = BaseApplication.readSettings();
+                    if (!settingBean.isRegistered() || null == settingBean.getExploderID() || settingBean.getExploderID().isEmpty()) {
+                        showMessage(R.string.message_not_registered);
+                    } else if (0 == settingBean.getServerHost() && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
+                        showMessage(R.string.message_input_enterprise_code);
+                        startActivity(new Intent(ExplosionRecordActivity.this, EnterpriseActivity.class));
+                    } else {
+                        int count = 0;
+                        for (ExplosionRecordBean b : list)
+                            if (b.isSelected())
+                                count++;
+                        if (0 == count)
+                            myApp.myToast(ExplosionRecordActivity.this, R.string.message_no_select_record);
+                        else {
+                            new AlertDialog.Builder(ExplosionRecordActivity.this, R.style.AlertDialog)
+                                    .setTitle(R.string.dialog_title_upload)
+                                    .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload_all), count, ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
+                                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> checkExploderHandler.sendEmptyMessage(3))
+                                    .setNegativeButton(R.string.btn_cancel, null)
+                                    .create().show();
+                        }
+                    }
+                    break;
+                case 3:
+                    int selected = 0;
+                    for (ExplosionRecordBean b : list)
+                        if (b.isSelected()) {
+                            selected++;
+                        }
+                    uploadIndex = -1;
+                    pDialog = new MyProgressDialog(ExplosionRecordActivity.this);
+                    pDialog.setInverseBackgroundForced(false);
+                    pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                    pDialog.setTitle(R.string.progress_title);
+                    pDialog.setMessage(getResources().getString(R.string.progress_upload));
+                    pDialog.setMax(selected);
+                    pDialog.setProgress(0);
+                    pDialog.show();
+                    uploadRecord();
+                    break;
+                case 4:
+                    myApp.myToast(ExplosionRecordActivity.this, (String) message.obj);
+                    break;
+            }
+            return false;
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,62 +217,7 @@ public class ExplosionRecordActivity extends BaseActivity {
         findViewById(R.id.btn_upload).setOnClickListener(v -> launchWhich(KeyEvent.KEYCODE_1));
 
         findViewById(R.id.btn_delete).setOnClickListener(v -> launchWhich(KeyEvent.KEYCODE_2));
-    }    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message message) {
-            switch (message.what) {
-                case 1:
-                    disableButton(false);
-                    break;
-                case 2:
-                    settingBean = BaseApplication.readSettings();
-                    if (!settingBean.isRegistered() || null == settingBean.getExploderID() || settingBean.getExploderID().isEmpty()) {
-                        showMessage(R.string.message_not_registered);
-                    } else if (0 == settingBean.getServerHost() && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
-                        showMessage(R.string.message_input_enterprise_code);
-                        startActivity(new Intent(ExplosionRecordActivity.this, EnterpriseActivity.class));
-                    } else {
-                        int count = 0;
-                        for (ExplosionRecordBean b : list)
-                            if (b.isSelected()) {
-                                count++;
-                            }
-                        if (0 == count) {
-                            myApp.myToast(ExplosionRecordActivity.this, R.string.message_no_select_record);
-                        } else {
-                            new AlertDialog.Builder(ExplosionRecordActivity.this, R.style.AlertDialog)
-                                    .setTitle(R.string.dialog_title_upload)
-                                    .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload_all), count, ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
-                                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> checkExploderHandler.sendEmptyMessage(3))
-                                    .setNegativeButton(R.string.btn_cancel, null)
-                                    .create().show();
-                        }
-                    }
-                    break;
-                case 3:
-                    int selected = 0;
-                    for (ExplosionRecordBean b : list)
-                        if (b.isSelected()) {
-                            selected++;
-                        }
-                    uploadIndex = -1;
-                    pDialog = new MyProgressDialog(ExplosionRecordActivity.this);
-                    pDialog.setInverseBackgroundForced(false);
-                    pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-                    pDialog.setTitle(R.string.progress_title);
-                    pDialog.setMessage(getResources().getString(R.string.progress_upload));
-                    pDialog.setMax(selected);
-                    pDialog.setProgress(0);
-                    pDialog.show();
-                    uploadRecord(false);
-                    break;
-                case 4:
-                    myApp.myToast(ExplosionRecordActivity.this, (String) message.obj);
-                    break;
-            }
-            return false;
-        }
-    });
+    }
 
     private void checkboxStatus() {
         cbSelected.setChecked(true);
@@ -181,41 +227,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                 break;
             }
         }
-    }    private final Handler msgHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message message) {
-            switch (message.what) {
-                case MinaHandler.MINA_DATA:
-                    msgHandler.removeMessages(4);
-                    if (((String) message.obj).contains("R")) {
-                        uploadRecord(true);
-                    } else {
-                        if (((String) message.obj).startsWith("#") && ((String) message.obj).endsWith("$"))
-                            receiveCount++;
-                        if (receiveCount >= 3) {
-                            successCount++;
-                            moveFile();
-                            uploadRecord(false);
-                        }
-                    }
-                    break;
-                case MinaHandler.MINA_NORMAL:
-                    msgHandler.removeMessages(4);
-                    if (null != message.obj)
-                        myApp.myToast(ExplosionRecordActivity.this, (String) message.obj);
-                    break;
-                case MinaHandler.MINA_ERROR:
-                    msgHandler.removeMessages(4);
-                    disableButton(false);
-                    showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1));
-                case 4:
-                    disableButton(false);
-                    myApp.myToast(ExplosionRecordActivity.this, R.string.message_network_timeout);
-                    break;
-            }
-            return false;
-        }
-    });
+    }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -357,51 +369,126 @@ public class ExplosionRecordActivity extends BaseActivity {
         return false;
     }
 
-    private void uploadRecord(boolean resend) {
-        if (0 != settingBean.getServerHost()) {
-            if (!resend && -1 == getNextIndex()) {
-                if (successCount >= pDialog.getMax())
-                    showMessage(R.string.message_upload_all_success);
-                else
-                    showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_result), successCount, pDialog.getMax() - successCount));
-                disableButton(false);
-            } else {
-                receiveCount = 0;
-                disableButton(true);
-                msgHandler.sendEmptyMessageDelayed(4, ConstantUtils.UPLOAD_TIMEOUT);
-                new Thread(() -> {
-                    List<DetonatorInfoBean> detonators = new ArrayList<>();
-                    myApp.readFromFile(list.get(uploadIndex).getRecordPath(), detonators, DetonatorInfoBean.class);
-                    if (null == minaClient)
-                        minaClient = new MinaClient();
-                    minaClient.setDetonatorList(detonators);
-                    minaClient.setExplodeTime(list.get(uploadIndex).getExplodeDate());
-                    minaClient.setHandler(msgHandler);
-                    minaClient.setHost(ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][1]);
-                    minaClient.setLng(list.get(uploadIndex).getLng());
-                    minaClient.setLat(list.get(uploadIndex).getLat());
-                    String sn = settingBean.getExploderID();
-                    minaClient.setSn(sn.substring(1, 5) + sn.substring(sn.length() - 4));
-                    minaClient.uploadRecord();
-                }).start();
-            }
-        } else {
-            enterpriseDialog = new EnterpriseDialog(this, enterpriseBean);
-            enterpriseDialog.setClickConfirm(view -> {
-                enterpriseDialog.dismiss();
-                if (-1 == getNextIndex()) {
-                    showMessage(R.string.message_upload_all_success);
-                } else {
-                    disableButton(true);
-                    startUpload();
+    private void uploadRecord() {
+        switch (settingBean.getServerHost()) {
+            case 0:
+                enterpriseDialog = new EnterpriseDialog(ExplosionRecordActivity.this);
+                enterpriseDialog.setClickConfirm(view -> {
+                    enterpriseDialog.dismiss();
+                    if (-1 == getNextIndex()) {
+                        showMessage(R.string.message_upload_all_success);
+                    } else {
+                        disableButton(true);
+                        startUpload();
+                    }
+                });
+                enterpriseDialog.setClickModify(view -> {
+                    enterpriseDialog.dismiss();
+                    disableButton(false);
+                    startActivity(new Intent(ExplosionRecordActivity.this, EnterpriseActivity.class));
+                });
+                enterpriseDialog.show();
+                break;
+            case 2:
+                if (pDialog.getProgress() > 0)
+                    uploadServer(false);
+                else {
+                    enterpriseDialog = new EnterpriseDialog(ExplosionRecordActivity.this);
+                    enterpriseDialog.setClickConfirm(view -> {
+                        disableButton(true);
+                        enterpriseDialog.dismiss();
+                        uploadServer(false);
+                    });
+                    enterpriseDialog.setClickModify(view -> {
+                        enterpriseDialog.dismiss();
+                        pDialog.dismiss();
+                        startActivity(new Intent(ExplosionRecordActivity.this, BaiSeDataActivity.class));
+                    });
+                    enterpriseDialog.show();
                 }
-            });
-            enterpriseDialog.setClickModify(view -> {
-                enterpriseDialog.dismiss();
-                disableButton(false);
-                startActivity(new Intent(ExplosionRecordActivity.this, EnterpriseActivity.class));
-            });
-            enterpriseDialog.show();
+                break;
+            default:
+                uploadServer(false);
+        }
+    }
+
+    private void uploadBaiSe() {
+        try {
+            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+            BaiSeUpload baiSeUpload = myApp.readBaiSeUpload();
+            baiSeUpload.setLngLat(String.format(Locale.CHINA, "%f,%f", list.get(uploadIndex).getLng(), list.get(uploadIndex).getLat()));
+            baiSeUpload.setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
+            baiSeUpload.setDeviceNO(settingBean.getExploderID());
+            baiSeUpload.setBurstTime(df.format(list.get(uploadIndex).getExplodeDate()));
+            baiSeUpload.setDetonatorCount(list.get(uploadIndex).getAmount());
+            myApp.saveBean(baiSeUpload);
+            BaseApplication.writeFile(new Gson().toJson(baiSeUpload));
+            OkHttpUtils.postString().addHeader("access-token", ConstantUtils.ACCESS_TOKEN)
+                    .url(ConstantUtils.BAI_SE_UPLOAD_URL)
+                    .mediaType(MediaType.parse("application/json; charset=utf-8"))
+                    .content(new Gson().toJson(baiSeUpload))
+                    .build().execute(new Callback<BaiSeUploadResult>() {
+                        @Override
+                        public BaiSeUploadResult parseNetworkResponse(Response response, int i) throws Exception {
+                            ResponseBody body = response.body();
+                            if (body != null) {
+                                String string = body.string();
+                                return new Gson().fromJson(string, BaiSeUploadResult.class);
+                            }
+                            return null;
+                        }
+
+                        @Override
+                        public void onError(Call call, Exception e, int i) {
+                            myApp.myToast(ExplosionRecordActivity.this, R.string.message_network_timeout);
+                        }
+
+                        @Override
+                        public void onResponse(BaiSeUploadResult baiSeUploadResult, int i) {
+                            if (baiSeUploadResult != null) {
+                                if (baiSeUploadResult.isSuccess()) {
+                                    BaiSeCheck baiSeCheck = myApp.readBaiSeCheck();
+                                    baiSeCheck.setChecked(false);
+                                    myApp.saveBean(baiSeCheck);
+                                    uploadRecord();
+                                } else if (baiSeUploadResult.getMessage() != null) {
+                                    myApp.myToast(ExplosionRecordActivity.this, baiSeUploadResult.getMessage());
+                                }
+                            }
+                        }
+                    });
+
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
+        }
+    }
+
+    private void uploadServer(boolean resend) {
+        if (!resend && -1 == getNextIndex()) {
+            if (successCount >= pDialog.getMax())
+                showMessage(R.string.message_upload_all_success);
+            else
+                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_result), successCount, pDialog.getMax() - successCount));
+            disableButton(false);
+        } else {
+            receiveCount = 0;
+            disableButton(true);
+            msgHandler.sendEmptyMessageDelayed(4, ConstantUtils.UPLOAD_TIMEOUT);
+            new Thread(() -> {
+                List<DetonatorInfoBean> detonators = new ArrayList<>();
+                myApp.readFromFile(list.get(uploadIndex).getRecordPath(), detonators, DetonatorInfoBean.class);
+                if (null == minaClient)
+                    minaClient = new MinaClient();
+                minaClient.setDetonatorList(detonators);
+                minaClient.setExplodeTime(list.get(uploadIndex).getExplodeDate());
+                minaClient.setHandler(msgHandler);
+                minaClient.setHost(ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][1]);
+                minaClient.setLng(list.get(uploadIndex).getLng());
+                minaClient.setLat(list.get(uploadIndex).getLat());
+                String sn = settingBean.getExploderID();
+                minaClient.setSn(sn.substring(1, 5) + sn.substring(sn.length() - 4));
+                minaClient.uploadRecord();
+            }).start();
         }
     }
 

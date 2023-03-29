@@ -8,10 +8,13 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 import com.google.gson.Gson;
@@ -34,15 +37,25 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private LocalSettingBean settingBean;
     private UpdateVersionBean versionBean;
     private BaseApplication myApp;
+    private Handler myHandler = new Handler(message -> {
+        if (message.what == 1) {
+            new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog)
+                    .setTitle(R.string.progress_title)
+                    .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_found_new_version), versionBean.getVersion()))
+                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
+                    .setNegativeButton(R.string.btn_cancel, null)
+                    .create().show();
+        }
+        return false;
+    });
 
-    @SuppressLint("HardwareIds")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         myApp = (BaseApplication) getApplication();
-        setTitle(R.string.app_name, myApp.isTunnel() ? R.string.tunnel : R.string.open_air);
+        setTitle(R.string.app_name, BaseApplication.isRemote() ? R.string.mode_wireless : myApp.isTunnel() ? R.string.mode_tunnel : R.string.mode_open_air);
         setBackButtonVisibility(false);
         setProgressVisibility(false);
 
@@ -59,19 +72,25 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         findViewById(R.id.tv_settings).setOnClickListener(this);
         findViewById(R.id.tv_cooperate).setOnClickListener(this);
         findViewById(R.id.btn_cooperate).setEnabled(false);
-        new Thread(() -> myApp.uploadExplodeList()).start();
-        LocalSettingBean bean = BaseApplication.readSettings();
-        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE)) {
-            String im = ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
-            if (null == bean.getIMEI() || (null != bean.getIMEI() && null != im && !im.trim().isEmpty() && !bean.getIMEI().equals(im))) {
-                bean.setRegistered(false);
-                myApp.saveSettings(bean);
-            }
-        }
         keyCount = 0;
         initSettings();
-        if (BaseApplication.isNetSystemUsable(this))
+        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE)) {
+            @SuppressLint("HardwareIds") String im = ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
+            if (null == settingBean.getIMEI() || (null != settingBean.getIMEI() && null != im && !im.trim().isEmpty() && !settingBean.getIMEI().equals(im))) {
+                settingBean.setRegistered(false);
+                myApp.saveBean(settingBean);
+            }
+        }
+        if (!myApp.isUploading() && BaseApplication.isNetSystemUsable(this)) {
+            new Thread(() -> {
+                myApp.uploadExplodeList();
+                if (!settingBean.isUploadedLog()) {
+                    myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
+                    myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
+                }
+            }).start();
             new GetVersion().execute();
+        }
     }
 
     private void initSettings() {
@@ -113,6 +132,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        myHandler.removeCallbacksAndMessages(null);
+        myHandler = null;
+        super.onDestroy();
+    }
+
     private void launchActivity(int num) {
         keyCount = 0;
         if (2 == num && 0 != settingBean.getServerHost())
@@ -141,6 +167,17 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     @Override
     protected void onResume() {
         initSettings();
+        if (!myApp.isUploading() && BaseApplication.isNetSystemUsable(this)) {
+            new Thread(() -> {
+                if (BaseApplication.isNetSystemUsable(this)) {
+                    myApp.uploadExplodeList();
+                    if (!settingBean.isUploadedLog()) {
+                        myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
+                        myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
+                    }
+                }
+            }).start();
+        }
         super.onResume();
     }
 
@@ -149,14 +186,24 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         switch (keyCode) {
             case KeyEvent.KEYCODE_STAR:
-                if (keyCount == 5 && launchType <= 1) {
+                if (keyCount == 5) {
                     keyCount = 0;
-                    Intent intent = new Intent();
-                    Class<?>[] menuActivities = {SemiProductActivity.class,
-                            WriteSNActivity.class};
-                    intent.setClass(MainActivity.this, menuActivities[launchType]);
-                    startActivity(intent);
-                    keyCount = 0;
+                    if (launchType == 2) {
+                        settingBean.setRegistered(false);
+                        myApp.saveBean(settingBean);
+                        if (BaseApplication.isNetSystemUsable(this)) {
+                            myApp.registerExploder();
+                            myApp.myToast(MainActivity.this, R.string.message_register_detonator);
+                        } else {
+                            myApp.myToast(MainActivity.this, R.string.message_check_network);
+                        }
+                    } else if (launchType <= 1) {
+                        Intent intent = new Intent();
+                        Class<?>[] menuActivities = {SemiProductActivity.class,
+                                WriteSNActivity.class};
+                        intent.setClass(MainActivity.this, menuActivities[launchType]);
+                        startActivity(intent);
+                    }
                 } else if (keyCount == 0 || keyCount == 1 || keyCount == 4) {
                     keyCount++;
                 } else
@@ -182,8 +229,16 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 } else
                     keyCount = 0;
                 break;
+            case KeyEvent.KEYCODE_9:
+                if (keyCount == 3) {
+                    launchType = 2;
+                    keyCount++;
+                } else
+                    keyCount = 0;
+                break;
             case KeyEvent.KEYCODE_POUND:
-                if (keyCount == 2) {
+                if (keyCount == 2 && !myApp.isUploading() && BaseApplication.isNetSystemUsable(this)) {
+                    myApp.myToast(MainActivity.this, R.string.message_upload_log);
                     myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
                     myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
                 }
@@ -244,13 +299,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         @Override
         protected void onPostExecute(String result) {
-            if (newVersion()) {
-                runOnUiThread(() -> new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog)
-                        .setTitle(R.string.progress_title)
-                        .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_found_new_version), versionBean.getVersion()))
-                        .setPositiveButton(R.string.btn_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
-                        .setNegativeButton(R.string.btn_cancel, null)
-                        .create().show());
+            if (myHandler != null && newVersion()) {
+                myHandler.sendEmptyMessage(1);
             }
             super.onPostExecute(result);
         }

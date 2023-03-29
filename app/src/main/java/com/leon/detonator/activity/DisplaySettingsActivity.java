@@ -83,7 +83,7 @@ public class DisplaySettingsActivity extends BaseActivity {
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
                         if (selectedItem != settingBean.getFontScale()) {
                             settingBean.setFontScale(selectedItem);
-                            myApp.saveSettings(settingBean);
+                            myApp.saveBean(settingBean);
                             runOnUiThread(() -> tvFontScale.setText(fontScaleList[selectedItem]));
                             myApp.initFontScale();
                         }

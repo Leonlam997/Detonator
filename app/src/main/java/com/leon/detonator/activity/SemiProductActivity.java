@@ -8,6 +8,7 @@ import android.os.Message;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.text.method.NumberKeyListener;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -95,6 +96,7 @@ public class SemiProductActivity extends BaseActivity {
                                         put(STEP_READ_BRIDGE, "桥丝断开！");
                                         put(STEP_CHECK_CONFIG, "版本错误！");
                                         put(STEP_CLEAR_STATUS, "数据错误！");
+                                        put(STEP_WRITE_CONFIG, "写入错误！");
                                     }
                                 };
                                 myDialog.setAutoClose(false);
@@ -132,7 +134,11 @@ public class SemiProductActivity extends BaseActivity {
                             flowStep = STEP_SCAN;
                             break;
                         case STEP_SCAN:
-                            flowStep = STEP_READ_SHELL;
+                            if (uID == null || uID.isEmpty()) {
+                                myHandler.sendEmptyMessage(DETECT_FINISH);
+                                return false;
+                            } else
+                                flowStep = STEP_READ_SHELL;
                             break;
                         case STEP_READ_SHELL:
                             flowStep = STEP_READ_BRIDGE;
@@ -245,6 +251,7 @@ public class SemiProductActivity extends BaseActivity {
                         });
                     } else {
                         myHandler.removeMessages(DETECT_SEND_COMMAND);
+                        myHandler.removeMessages(DETECT_NEXT_STEP);
                         if (0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
                             switch (flowStep) {
                                 case STEP_SCAN:

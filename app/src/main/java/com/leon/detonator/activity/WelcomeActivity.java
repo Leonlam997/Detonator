@@ -43,7 +43,7 @@ public class WelcomeActivity extends AppCompatActivity {
             myApp.uploadExplodeList();
         }
         rlWelcome.setOnClickListener(v -> {
-            Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
+            Intent intent = new Intent(WelcomeActivity.this, BaseApplication.isRemote() ? MainActivity.class : LoginActivity.class);
             startActivity(intent);
             finish();
         });

@@ -70,7 +70,7 @@ public class SettingsActivity extends BaseActivity {
                 startActivity(intent);
                 break;
             case 6:
-                intent.setClass(SettingsActivity.this, EnterpriseActivity.class);
+                intent.setClass(SettingsActivity.this, 2 == BaseApplication.readSettings().getServerHost() ? BaiSeDataActivity.class : EnterpriseActivity.class);
                 startActivity(intent);
                 break;
             case 7:

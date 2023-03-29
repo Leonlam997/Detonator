@@ -42,7 +42,8 @@ public class CheckLineActivity extends BaseActivity {
     private final int STEP_SCAN = 3;
     private final int STEP_READ_SHELL = 4;
     private final int STEP_READ_FIELD = 5;
-    private final int STEP_END = 6;
+    private final int STEP_SCAN_CODE = 6;
+    private final int STEP_END = 7;
     private BaseApplication myApp;
     private SerialPortUtil serialPortUtil;
     private SerialDataReceiveListener myReceiveListener;
@@ -66,7 +67,7 @@ public class CheckLineActivity extends BaseActivity {
                     enableButton(true);
                     break;
                 case DETECT_SUCCESS: //检测成功
-                    myHandler.removeMessages(DETECT_SEND_COMMAND);
+                    myHandler.removeCallbacksAndMessages(null);
                     myApp.playSoundVibrate(soundPool, soundSuccess);
                     enableButton(true);
                     break;
@@ -80,7 +81,7 @@ public class CheckLineActivity extends BaseActivity {
 //                    myHandler.sendEmptyMessageDelayed(DETECT_VOLTAGE, ConstantUtils.BOOT_TIME);
                     break;
                 case DETECT_FAIL: //检测失败
-                    myHandler.removeMessages(DETECT_SEND_COMMAND);
+                    myHandler.removeCallbacksAndMessages(null);
                     myApp.playSoundVibrate(soundPool, soundFail);
                     Map<Integer, Integer> failCode = new HashMap<Integer, Integer>() {
                         {
@@ -89,6 +90,7 @@ public class CheckLineActivity extends BaseActivity {
                             put(STEP_READ_FIELD, R.string.message_detonator_read_field_error);
                             put(STEP_CHECK_CONFIG, R.string.message_detect_error);
                             put(STEP_CLEAR_STATUS, R.string.message_detonator_write_error);
+                            put(STEP_SCAN_CODE, R.string.message_scan_timeout);
                         }
                     };
                     Integer i = failCode.get(flowStep);
@@ -157,6 +159,10 @@ public class CheckLineActivity extends BaseActivity {
                             serialPortUtil.sendCmd(tempAddress, SerialCommand.CODE_READ_FIELD, ConstantUtils.UID_LEN, 0, 0, 0);
                             myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_READ_FIELD_CMD_TIMEOUT);
                             break;
+                        case STEP_SCAN_CODE:
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_CODE, ConstantUtils.SCAN_CODE_TIME);
+                            myHandler.sendEmptyMessageDelayed(DETECT_FAIL, ConstantUtils.SCAN_CODE_TIME);
+                            break;
                     }
                     break;
                 default:
@@ -183,6 +189,8 @@ public class CheckLineActivity extends BaseActivity {
                 if (received.length > SerialCommand.CODE_CHAR_AT + 1 && 0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
                     switch (flowStep) {
                         case STEP_SCAN:
+                            if (received[SerialCommand.CODE_CHAR_AT + 3] < 0x30)
+                                received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
                             tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9));
                             if (!Pattern.matches(ConstantUtils.UID_PATTERN, tempAddress)) {
                                 flowStep = STEP_READ_FIELD;
@@ -204,6 +212,15 @@ public class CheckLineActivity extends BaseActivity {
                             myHandler.sendEmptyMessage(DETECT_DELAY);
                             flowStep = STEP_END;
                             myHandler.sendEmptyMessage(DETECT_SUCCESS);
+                            return;
+                        case STEP_SCAN_CODE:
+                            flowStep = STEP_END;
+                            tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
+                            if (Pattern.matches(ConstantUtils.SHELL_PATTERN, tempAddress)) {
+                                myHandler.sendEmptyMessage(DETECT_ADDRESS);
+                                myHandler.sendEmptyMessage(DETECT_SUCCESS);
+                            } else
+                                myHandler.sendEmptyMessage(DETECT_FAIL);
                             return;
                     }
                     myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
@@ -274,10 +291,14 @@ public class CheckLineActivity extends BaseActivity {
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_1) {
-            flowStep = STEP_CHECK_CONFIG;
-            myHandler.sendEmptyMessage(DETECT_CONTINUE);
-        }
+        if (btnDetect.isEnabled())
+            if (keyCode == KeyEvent.KEYCODE_1) {
+                flowStep = STEP_CHECK_CONFIG;
+                myHandler.sendEmptyMessage(DETECT_CONTINUE);
+            } else if (keyCode == KeyEvent.KEYCODE_B) {
+                flowStep = STEP_SCAN_CODE;
+                myHandler.sendEmptyMessage(DETECT_CONTINUE);
+            }
         return super.onKeyUp(keyCode, event);
     }
 

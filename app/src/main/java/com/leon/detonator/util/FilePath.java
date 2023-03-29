@@ -21,8 +21,9 @@ public class FilePath {
             {FILE_OPEN_AIR_DELAY_LIST, FILE_OPEN_AIR_DETECT_LIST, FILE_OPEN_AIR_NOT_FOUND_LIST, FILE_OPEN_AIR_ERROR_LIST, FILE_OPEN_AIR_SELECTED_LIST}};
     public final static String FILE_USER_INFO = APP_PATH + "/Users.dat";
     public final static String FILE_ENTERPRISE_INFO = APP_PATH + "/Enterprise.dat";
+    public final static String FILE_BAI_SE_DATA = APP_PATH + "/BaiSeDataActivity.dat";
+    public final static String FILE_BAI_SE_CHECK = APP_PATH + "/BaiSeCheck.dat";
     public final static String FILE_PROJECT_INFO = APP_PATH + "/Project";
-    public final static String FILE_ERROR_LOG = APP_PATH + "/Error.log";
     public final static String FILE_DEBUG_LOG = APP_PATH + "/Debug.log";
     public final static String FILE_SERIAL_LOG = APP_PATH + "/Serial.log";
     public final static String FILE_CAMERA_CAPTURE = APP_PATH + "/CAMERA/";

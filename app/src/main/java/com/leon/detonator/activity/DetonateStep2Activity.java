@@ -6,11 +6,14 @@ import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
+import android.text.InputFilter;
+import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.fragment.app.Fragment;
@@ -19,14 +22,15 @@ import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
 import com.google.android.material.tabs.TabLayout;
+import com.leon.detonator.R;
 import com.leon.detonator.adapter.DetonatorListAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.DetonatorInfoBean;
+import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.dialog.CustomProgressDialog;
 import com.leon.detonator.fragment.TabFragment;
-import com.leon.detonator.R;
 import com.leon.detonator.serial.SerialCommand;
 import com.leon.detonator.serial.SerialDataReceiveListener;
 import com.leon.detonator.serial.SerialPortUtil;
@@ -65,6 +69,9 @@ public class DetonateStep2Activity extends BaseActivity {
     private final int STEP_READ_SHELL = 12;
     private final int STEP_WRITE_FIELD = 13;
     private final int STEP_READ_FIELD = 14;
+    private final int STEP_LOCK_1 = 15;
+    private final int STEP_LOCK_2 = 16;
+    private final int STEP_LOCK_3 = 17;
     private List<List<DetonatorInfoBean>> lists;
     private List<DetonatorInfoBean> checkList;
     private List<Fragment> fragments;
@@ -106,8 +113,11 @@ public class DetonateStep2Activity extends BaseActivity {
                     myApp.playSoundVibrate(soundPool, soundSuccess);
                     btnCharge.setEnabled(lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size() == 0 && lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size() == 0
                             && lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size() == lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size());
-                    if (pDialog != null && pDialog.isShowing())
-                        pDialog.dismiss();
+                    if (pDialog != null) {
+                        if (pDialog.isShowing())
+                            pDialog.dismiss();
+                        pDialog = null;
+                    }
                     rescanWhich = ConstantUtils.LIST_TYPE.END;
                     btnRescan.setEnabled(tabList.getSelectedTabPosition() == ConstantUtils.LIST_TYPE.DETECTED.ordinal() || lists.get(tabList.getSelectedTabPosition()).size() > 0);
                     setProgressVisibility(false);
@@ -128,29 +138,26 @@ public class DetonateStep2Activity extends BaseActivity {
                             rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal() : ConstantUtils.LIST_TYPE.END.ordinal()).size());
                     pDialog.setProgress(0);
                     pDialog.setSecondaryProgress(0);
-                    pDialog.setOnCancelListener(dialogInterface -> new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
-                            .setTitle(R.string.dialog_title_warning)
-                            .setMessage(getResources().getString(R.string.dialog_exit_detect))
-                            .setCancelable(false)
-                            .setNegativeButton(R.string.cancel, (dialog, which) -> pDialog.show())
-                            .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
-                                nextStep = true;
-                                dialogInterface.dismiss();
-                                finish();
-                            })
-                            .create().show());
+                    pDialog.setOnCancelListener(dialogInterface -> finish());
                     pDialog.setMessage(R.string.progress_detect);
                     btnCharge.setEnabled(false);
                     btnRescan.setEnabled(false);
                     setProgressVisibility(true);
                     myReceiveListener.setStartAutoDetect(false);
                     listIndex = 0;
-                    flowStep = rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? STEP_READ_FIELD : STEP_RELEASE_1;
+                    flowStep = rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? STEP_READ_FIELD : STEP_LOCK_1;
                     countScanZero = 0;
                     myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                     break;
                 case DETECT_NEXT_STEP:
                     switch (flowStep) {
+                        case STEP_LOCK_1:
+                            flowStep = STEP_LOCK_2;
+                            break;
+                        case STEP_LOCK_2:
+                            flowStep = STEP_LOCK_3;
+                            break;
+                        case STEP_LOCK_3:
                         case STEP_SET_PARAM_LEVEL:
                             flowStep = STEP_RELEASE_1;
                             break;
@@ -186,10 +193,14 @@ public class DetonateStep2Activity extends BaseActivity {
                     myHandler.removeMessages(DETECT_SEND_COMMAND);
                     if (null == serialPortUtil)
                         return false;
-                    Log.d("ZBEST", flowStep + "");
                     switch (flowStep) {
                         case STEP_SET_PARAM_LEVEL:
                             serialPortUtil.sendCmd("", SerialCommand.CODE_SET_PARAM_LEVEL, 1);
+                            break;
+                        case STEP_LOCK_1:
+                        case STEP_LOCK_2:
+                        case STEP_LOCK_3:
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_LOCK, 0);
                             break;
                         case STEP_RELEASE_1:
                         case STEP_RELEASE_2:
@@ -336,13 +347,24 @@ public class DetonateStep2Activity extends BaseActivity {
                     myHandler.sendEmptyMessage(DETECT_RESCAN);
                 }
             } else if (received[0] == SerialCommand.INITIAL_FAIL) {
+                closeAllHandler();
+                if (serialPortUtil != null) {
+                    serialPortUtil.closeSerialPort();
+                    serialPortUtil = null;
+                }
                 myApp.myToast(DetonateStep2Activity.this, R.string.message_open_module_fail);
                 nextStep = true;
                 finish();
             } else if (received.length > 5) {
                 myHandler.removeMessages(DETECT_SEND_COMMAND);
+                myHandler.removeMessages(DETECT_NEXT_STEP);
                 if (0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
                     switch (flowStep) {
+                        case STEP_LOCK_1:
+                        case STEP_LOCK_2:
+                        case STEP_LOCK_3:
+                            myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.LOCK_DELAY_TIME);
+                            return;
                         case STEP_RELEASE_1:
                         case STEP_RELEASE_2:
                         case STEP_RELEASE_3:
@@ -365,6 +387,8 @@ public class DetonateStep2Activity extends BaseActivity {
                                             Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 9]), false);//Status
                                     lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).remove(listIndex);
                                 } else {
+                                    if (received[SerialCommand.CODE_CHAR_AT + 3] < 0x30)
+                                        received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
                                     bean = new DetonatorInfoBean(new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9)),
                                             (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 11]) << 16) + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 12]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 13]),//Delay
                                             (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 9]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 10]),//Number
@@ -438,6 +462,8 @@ public class DetonateStep2Activity extends BaseActivity {
                         case STEP_READ_SHELL:
                             pDialog.incrementProgressBy(1);
                             pDialog.setSecondaryProgress(45 + 10 * pDialog.getProgress() / pDialog.getMax());
+                            if (received[SerialCommand.CODE_CHAR_AT + 3] < 0x30)
+                                received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
                             String address = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
                             if (Pattern.matches(ConstantUtils.SHELL_PATTERN, address))
                                 lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).get(listIndex).setAddress(address);
@@ -456,6 +482,11 @@ public class DetonateStep2Activity extends BaseActivity {
                     myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                 } else {
                     switch (flowStep) {
+                        case STEP_LOCK_1:
+                        case STEP_LOCK_2:
+                        case STEP_LOCK_3:
+                            myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.LOCK_DELAY_TIME);
+                            return;
                         case STEP_SCAN:
                             boolean allZero = true;
                             for (int i = SerialCommand.CODE_CHAR_AT + 2; i < SerialCommand.CODE_CHAR_AT + 9; i++) {
@@ -735,6 +766,34 @@ public class DetonateStep2Activity extends BaseActivity {
                     hiddenKeyCount = 0;
                     if (hiddenType == 5)
                         enterCharge();
+                    else if (hiddenType == 3) {
+                        final View view = LayoutInflater.from(DetonateStep2Activity.this).inflate(R.layout.layout_edit_dialog, null);
+                        final EditText etDelay = view.findViewById(R.id.et_dialog);
+                        view.findViewById(R.id.tv_dialog).setVisibility(View.GONE);
+                        etDelay.setHint(R.string.hint_input_voltage);
+                        etDelay.setFilters(new InputFilter[]{new InputFilter.LengthFilter(4)});
+                        etDelay.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                        new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+                                .setTitle(R.string.dialog_title_edit_charge_voltage)
+                                .setView(view)
+                                .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> {
+                                    try {
+                                        float v = Float.parseFloat(etDelay.getText().toString());
+                                        if (v >= 18 && v <= 22) {
+                                            LocalSettingBean bean = BaseApplication.readSettings();
+                                            bean.setChargeVoltage(v);
+                                            myApp.saveBean(bean);
+                                            return;
+                                        }
+                                    } catch (Exception e) {
+                                        BaseApplication.writeErrorLog(e);
+                                    }
+                                    myApp.myToast(DetonateStep2Activity.this, R.string.message_input_voltage_error);
+                                })
+                                .setNegativeButton(R.string.btn_cancel, null)
+                                .show();
+
+                    }
                 } else if (hiddenKeyCount == 0 || hiddenKeyCount == 1 || hiddenKeyCount == 4)
                     hiddenKeyCount++;
                 else
@@ -894,8 +953,15 @@ public class DetonateStep2Activity extends BaseActivity {
                     .setTitle(R.string.progress_title)
                     .setMessage(R.string.dialog_exit_detect)
                     .setCancelable(false)
-                    .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> DetonateStep2Activity.super.finish())
-                    .setNegativeButton(R.string.btn_cancel, null)
+                    .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> {
+                        if (pDialog != null && pDialog.isShowing())
+                            pDialog.dismiss();
+                        DetonateStep2Activity.super.finish();
+                    })
+                    .setNegativeButton(R.string.btn_cancel, (dialogInterface, i) -> {
+                        if (pDialog != null && pDialog.getMax() != pDialog.getProgress())
+                            pDialog.show();
+                    })
                     .show();
         } else
             super.finish();

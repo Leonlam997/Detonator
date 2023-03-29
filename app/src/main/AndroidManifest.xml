@@ -59,10 +59,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".activity.BaiSeDetectorActivity" />
+        <activity android:name=".activity.BaiSeDataActivity" />
         <activity android:name=".activity.ChargeActivity" />
         <activity android:name=".activity.VersionManageActivity" />
         <activity android:name=".activity.CapacityTestActivity" />
-        <activity android:name=".activity.WelcomeActivity" android:exported="true">
+        <activity
+            android:name=".activity.WelcomeActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

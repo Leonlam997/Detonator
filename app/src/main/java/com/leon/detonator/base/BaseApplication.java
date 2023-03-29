@@ -39,6 +39,9 @@ import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.leon.detonator.activity.MainActivity;
+import com.leon.detonator.bean.BaiSeCheck;
+import com.leon.detonator.bean.BaiSeUpload;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.DownloadDetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
@@ -96,6 +99,8 @@ public class BaseApplication extends Application {
     private static PowerManager.WakeLock wakeLock = null;
     private final Uri APN_LIST_URI = Uri.parse("content://telephony/carriers");
     private boolean tunnel;
+    private boolean uploading;
+    private final static boolean remote = false;
     private boolean registerFinished = true;
     private Context mContext;
     private Vibrator vibrator;
@@ -106,7 +111,7 @@ public class BaseApplication extends Application {
         public boolean handleMessage(@NotNull Message msg) {
             if (mToast != null)
                 mToast.cancel();
-            mToast = Toast.makeText(mContext, msg.getData().getString("Message"), Toast.LENGTH_LONG);
+            mToast = Toast.makeText(mContext, (String) msg.obj, Toast.LENGTH_LONG);
             LinearLayout layout = (LinearLayout) mToast.getView();
             TextView tv = (TextView) layout.getChildAt(0);
             tv.setTextSize(26);
@@ -121,7 +126,7 @@ public class BaseApplication extends Application {
     public static void writeErrorLog(Exception e) {
         try {
             SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
-            PrintWriter p = new PrintWriter(new FileOutputStream(FilePath.FILE_ERROR_LOG, true));
+            PrintWriter p = new PrintWriter(new FileOutputStream(FilePath.FILE_DEBUG_LOG, true));
             e.printStackTrace(p);
             p.println(df.format(new Date()));
             p.flush();
@@ -273,33 +278,25 @@ public class BaseApplication extends Application {
                 }
             }
             File file = new File(FilePath.APP_PATH);
-            if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir())) {
+            if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir()))
                 myToast(this, R.string.message_create_folder_fail);
-            }
             file = new File(FilePath.FILE_SERIAL_LOG);
-            if (file.exists() && file.length() > 4 * 1024 * 1024) {
-                if (file.length() > 20 * 1024 * 1024) {
+            if (file.exists() && file.length() > 2 * 1024 * 1024) {
+                if (file.length() > 10 * 1024 * 1024) {
                     if (!file.delete())
                         myToast(this, R.string.message_delete_fail);
                 } else
                     trimFile(FilePath.FILE_SERIAL_LOG);
             }
-            file = new File(FilePath.FILE_ERROR_LOG);
-            if (file.exists() && file.length() > 4 * 1024 * 1024) {
-                trimFile(FilePath.FILE_ERROR_LOG);
-            }
             file = new File(FilePath.FILE_DEBUG_LOG);
-            if (file.exists() && file.length() > 4 * 1024 * 1024) {
+            if (file.exists() && file.length() > 2 * 1024 * 1024)
                 trimFile(FilePath.FILE_DEBUG_LOG);
-            }
             String apnName = "CMIOT";
-            if (!checkApnIsExist(apnName)) {
+            if (!checkApnIsExist(apnName))
                 addApn(apnName);
-            }
             initFontScale();
-            if (!getMobileDataState(this)) {
+            if (!getMobileDataState(this))
                 setMobileDataState(this, true);
-            }
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
@@ -378,29 +375,31 @@ public class BaseApplication extends Application {
 
     public void myToast(@NonNull Context context, String msg) {
         if (msg != null && !msg.isEmpty()) {
-            Message message = toastHandler.obtainMessage();
-            Bundle bundle = new Bundle();
-            bundle.putString("Message", msg);
             mContext = context;
-            message.setData(bundle);
-            toastHandler.sendMessage(message);
+            toastHandler.obtainMessage(1, msg).sendToTarget();
         }
     }
 
     public void myToast(@NonNull Context context, @StringRes int msg) {
-        Message message = toastHandler.obtainMessage();
-        Bundle bundle = new Bundle();
-        bundle.putString("Message", getResources().getString(msg));
         mContext = context;
-        message.setData(bundle);
-        toastHandler.sendMessage(message);
+        toastHandler.obtainMessage(1, getResources().getString(msg)).sendToTarget();
     }
 
-    public void saveSettings(LocalSettingBean settings) {
+    public void saveBean(Object bean) {
         try {
-            settingBean = settings;
-            FileWriter fw = new FileWriter(FilePath.FILE_LOCAL_SETTINGS);
-            fw.append(new Gson().toJson(settings));
+            FileWriter fw;
+            if (bean instanceof EnterpriseBean)
+                fw = new FileWriter(FilePath.FILE_ENTERPRISE_INFO);
+            else if (bean instanceof BaiSeUpload)
+                fw = new FileWriter(FilePath.FILE_BAI_SE_DATA);
+            else if (bean instanceof BaiSeCheck)
+                fw = new FileWriter(FilePath.FILE_BAI_SE_CHECK);
+            else if (bean instanceof LocalSettingBean) {
+                settingBean = (LocalSettingBean) bean;
+                fw = new FileWriter(FilePath.FILE_LOCAL_SETTINGS);
+            } else
+                return;
+            fw.append(new Gson().toJson(bean));
             fw.close();
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
@@ -416,9 +415,8 @@ public class BaseApplication extends Application {
                 BufferedReader br = new BufferedReader(fr);
                 String content;
                 StringBuilder temp = new StringBuilder();
-                while ((content = br.readLine()) != null) {
+                while ((content = br.readLine()) != null)
                     temp.append(content);
-                }
                 br.close();
                 fr.close();
                 bean = new Gson().fromJson(temp.toString(), EnterpriseBean.class);
@@ -430,14 +428,48 @@ public class BaseApplication extends Application {
         return bean;
     }
 
-    public void saveEnterprise(EnterpriseBean enterprise) {
-        try {
-            FileWriter fw = new FileWriter(FilePath.FILE_ENTERPRISE_INFO);
-            fw.append(new Gson().toJson(enterprise));
-            fw.close();
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
+    public BaiSeUpload readBaiSeUpload() {
+        File dataFile = new File(FilePath.FILE_BAI_SE_DATA);
+        BaiSeUpload bean = new BaiSeUpload();
+        if (dataFile.exists()) {
+            try {
+                FileReader fr = new FileReader(dataFile);
+                BufferedReader br = new BufferedReader(fr);
+                String content;
+                StringBuilder temp = new StringBuilder();
+                while ((content = br.readLine()) != null)
+                    temp.append(content);
+                br.close();
+                fr.close();
+                bean = new Gson().fromJson(temp.toString(), BaiSeUpload.class);
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        } else
+            return null;
+        return bean;
+    }
+
+    public BaiSeCheck readBaiSeCheck() {
+        File dataFile = new File(FilePath.FILE_BAI_SE_CHECK);
+        BaiSeCheck bean = new BaiSeCheck();
+        if (dataFile.exists()) {
+            try {
+                FileReader fr = new FileReader(dataFile);
+                BufferedReader br = new BufferedReader(fr);
+                String content;
+                StringBuilder temp = new StringBuilder();
+                while ((content = br.readLine()) != null)
+                    temp.append(content);
+                br.close();
+                fr.close();
+                bean = new Gson().fromJson(temp.toString(), BaiSeCheck.class);
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        } else
+            return null;
+        return bean;
     }
 
     public List<EnterpriseUserBean.ResultBean.PageListBean> readUserList() {
@@ -674,9 +706,10 @@ public class BaseApplication extends Application {
     public synchronized void uploadExplodeList() {
         final List<UploadServerBean> list = new ArrayList<>();
         readFromFile(FilePath.FILE_UPLOAD_LIST, list, UploadServerBean.class);
-        for (final UploadServerBean b : list) {
-            if (!b.isUploadServer()) {
-                File file = new File(FilePath.FILE_DETONATE_RECORDS + "/" + b.getFile());
+        for (final UploadServerBean bean : list) {
+            if (!bean.isUploadServer()) {
+                uploading = true;
+                File file = new File(FilePath.FILE_DETONATE_RECORDS + "/" + bean.getFile());
                 if (file.exists()) {
                     token = makeToken();
                     Map<String, String> params = makeParams(token, MethodUtils.METHOD_UPLOAD_EXPLODE_LIST);
@@ -702,15 +735,15 @@ public class BaseApplication extends Application {
                                 params.put("BlastTime".toLowerCase(), info[1]);
                                 params.put("BlastLat".toLowerCase(), info[3]);
                                 params.put("BlastLng".toLowerCase(), info[4]);
-                                if (null != b.getServer() && !b.getServer().isEmpty()) {
-                                    String[] server = b.getServer().split(":");
+                                if (null != bean.getServer() && !bean.getServer().isEmpty()) {
+                                    String[] server = bean.getServer().split(":");
                                     if (server.length == 2) {
                                         params.put("zbServerIp".toLowerCase(), server[0]);
                                         params.put("zbServerPort".toLowerCase(), server[1]);
                                     }
                                 }
-                                params.put("isZbUploadSuccess".toLowerCase(), b.isUploaded() + "");
-                                params.put("zbUploadSuccessTime".toLowerCase(), null == b.getUploadTime() ? "" : formatter.format(b.getUploadTime()));
+                                params.put("isZbUploadSuccess".toLowerCase(), bean.isUploaded() + "");
+                                params.put("zbUploadSuccessTime".toLowerCase(), null == bean.getUploadTime() ? "" : formatter.format(bean.getUploadTime()));
                                 params.put("detonator", new Gson().toJson(detonatorList));
                                 params.put("signature", signature(params));
                                 OkHttpUtils.post()
@@ -728,15 +761,16 @@ public class BaseApplication extends Application {
 
                                             @Override
                                             public void onError(Call call, Exception e, int i) {
-
+                                                uploading = false;
                                             }
 
                                             @Override
                                             public void onResponse(UploadListResultBean uploadListResultBean, int i) {
+                                                uploading = false;
                                                 if (null != uploadListResultBean) {
                                                     if (uploadListResultBean.getToken().equals(token)) {
                                                         if (uploadListResultBean.isStatus()) {
-                                                            b.setUploadServer(true);
+                                                            bean.setUploadServer(true);
                                                             try {
                                                                 writeToFile(FilePath.FILE_UPLOAD_LIST, list);
                                                             } catch (Exception e) {
@@ -767,6 +801,7 @@ public class BaseApplication extends Application {
                     id = telephonyManager.getDeviceId();
                 final File file = new File(fileName);
                 if (file.exists()) {
+                    uploading = true;
                     OkHttpUtils.post()
                             .url(ConstantUtils.UPLOAD_LOG_URL)
                             .addFile("file", file.getName().replace(".log", ".txt"), file)
@@ -785,15 +820,17 @@ public class BaseApplication extends Application {
 
                                 @Override
                                 public void onError(Call call, Exception e, int i) {
-
+                                    uploading = false;
                                 }
 
                                 @Override
                                 public void onResponse(UploadListResultBean uploadListResultBean, int i) {
+                                    uploading = false;
                                     if (null != uploadListResultBean) {
-                                        if (uploadListResultBean.isStatus())
-                                            myToast(BaseApplication.this, R.string.message_upload_success);
-                                        else
+                                        if (uploadListResultBean.isStatus()) {
+                                            settingBean.setUploadedLog(true);
+                                            saveBean(settingBean);
+                                        } else
                                             myToast(BaseApplication.this, uploadListResultBean.getDescription());
                                     }
                                 }
@@ -844,12 +881,14 @@ public class BaseApplication extends Application {
 
     public static boolean isNetSystemUsable(Context context) {
         boolean isNetUsable = false;
-        ConnectivityManager manager = (ConnectivityManager)
-                context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkCapabilities networkCapabilities =
-                manager.getNetworkCapabilities(manager.getActiveNetwork());
-        if (networkCapabilities != null) {
-            isNetUsable = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+            ConnectivityManager manager = (ConnectivityManager)
+                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkCapabilities networkCapabilities =
+                    manager.getNetworkCapabilities(manager.getActiveNetwork());
+            if (networkCapabilities != null) {
+                isNetUsable = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+            }
         }
         return isNetUsable;
     }
@@ -928,7 +967,7 @@ public class BaseApplication extends Application {
                                     settingBean.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
                                     if (ActivityCompat.checkSelfPermission(BaseApplication.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
                                         BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
-                                        saveSettings(settingBean);
+                                        saveBean(settingBean);
                                     }
                                 } else {
                                     myToast(BaseApplication.this, registerExploderBean.getDescription());
@@ -973,11 +1012,23 @@ public class BaseApplication extends Application {
                             if (null != exploderBean && exploderBean.isStatus() && exploderBean.getToken().equals(token)) {
                                 if (null != exploderBean.getResult()) {
                                     settingBean.setExploderID(exploderBean.getResult().getCodeID());
-                                    saveSettings(settingBean);
+                                    saveBean(settingBean);
                                 }
                             }
                         }
                     });
         }
+    }
+
+    public boolean isUploading() {
+        return uploading;
+    }
+
+    public void setUploading(boolean uploading) {
+        this.uploading = uploading;
+    }
+
+    public static boolean isRemote() {
+        return remote;
     }
 }

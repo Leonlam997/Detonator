@@ -103,7 +103,6 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
         if (null == handler)
             return;
 
-//        ((BaseApplication) mContext.getApplicationContext()).myToast(mContext, data);
         StringBuilder stringBuilder = new StringBuilder();
         if (buffer[0] == SerialCommand.DATA_PREFIX && buffer[1] == SerialCommand.DATA_PREFIX) {
             rcvData = new byte[buffer.length];
