@@ -53,10 +53,6 @@ public class DetonatorListAdapter extends BaseAdapter {
         notifyDataSetChanged();
     }
 
-    public List<DetonatorInfoBean> getList() {
-        return list;
-    }
-
     public void setTunnel(boolean tunnel) {
         this.tunnel = tunnel;
     }
@@ -90,7 +86,7 @@ public class DetonatorListAdapter extends BaseAdapter {
         if (convertView == null) {
             viewHolder = new ViewHolder();
             convertView = inflater.inflate(R.layout.layout_delay_list, parent, false);
-            viewHolder.serialNo = convertView.findViewById(R.id.text_serialNo);
+            viewHolder.serialNo = convertView.findViewById(R.id.text_serial_no);
             viewHolder.address = convertView.findViewById(R.id.text_address);
             viewHolder.delayTime = convertView.findViewById(R.id.text_delay);
             viewHolder.row = convertView.findViewById(R.id.text_row);

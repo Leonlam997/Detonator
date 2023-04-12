@@ -24,6 +24,7 @@ import com.leon.detonator.bean.BaiSeUploadResult;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.bean.LocalSettingBean;
+import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.bean.UploadExplodeRecordsBean;
 import com.leon.detonator.bean.UploadServerBean;
 import com.leon.detonator.dialog.EnterpriseDialog;
@@ -59,7 +60,6 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 public class DetonateStep4Activity extends BaseActivity {
-    private final int STEP_READ_VOLTAGE = 1;
     private final int STEP_PROGRESS = 2;
     private final int STEP_EXPLODE = 3;
     private final int STEP_UPLOAD_TIMEOUT = 5;
@@ -166,7 +166,6 @@ public class DetonateStep4Activity extends BaseActivity {
                     soundPool.stop(soundTicktock);
                 showMessage(R.string.message_explode_success);
                 moveFile();
-                //delaySendCmdHandler.sendEmptyMessage(STEP_READ_VOLTAGE);
                 setProgressVisibility(false);
                 btnExit.setEnabled(true);
                 btnUpload.setEnabled(true);
@@ -197,10 +196,6 @@ public class DetonateStep4Activity extends BaseActivity {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             switch (msg.what) {
-                case STEP_READ_VOLTAGE:
-                    serialPortUtil.sendCmd("", SerialCommand.CODE_MEASURE_VALUE, SerialCommand.MEASURE_CURRENT);
-                    delaySendCmdHandler.sendEmptyMessageDelayed(STEP_READ_VOLTAGE, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
-                    break;
                 case STEP_PROGRESS:
                     if (!uniteExplode)
                         countDown = (int) ((System.currentTimeMillis() - getIntent().getLongExtra(KeyUtils.KEY_EXPLODE_ELAPSED, 0)) / 100);
@@ -225,12 +220,12 @@ public class DetonateStep4Activity extends BaseActivity {
                         showMessage(R.string.message_fill_enterprise);
                         startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
                     } else {
-                        new AlertDialog.Builder(DetonateStep4Activity.this, R.style.AlertDialog)
+                        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep4Activity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_upload)
                                 .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
                                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> uploadRecord())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .create().show();
+                                .show());
                     }
                     break;
                 case MinaHandler.MINA_DATA:
@@ -541,32 +536,38 @@ public class DetonateStep4Activity extends BaseActivity {
             uploadList.add(bean);
             myApp.writeToFile(FilePath.FILE_UPLOAD_LIST, uploadList);
             //myApp.uploadExplodeList();
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
-
-        if (listAll.size() == list.size()) {
-            file = new File(myApp.getListFile());
-            if (file.exists() && !file.delete()) {
-                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
-            }
-        } else {
-            Iterator<DetonatorInfoBean> it = listAll.iterator();
-            while (it.hasNext()) {
-                DetonatorInfoBean bean1 = it.next();
-                for (DetonatorInfoBean bean2 : list)
-                    if (bean1.getAddress().equals(bean2.getAddress())) {
+            List<SchemeBean> allSchemes = new ArrayList<>();
+            myApp.readFromFile(FilePath.FILE_SCHEME_LIST, allSchemes, SchemeBean.class);
+            if (listAll.size() == list.size()) {
+                file = new File(myApp.getListFile());
+                if (file.exists() && !file.delete()) {
+                    showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                }
+                Iterator<SchemeBean> it = allSchemes.iterator();
+                while (it.hasNext()) {
+                    SchemeBean schemeBean = it.next();
+                    if (schemeBean.isTunnel() == myApp.isTunnel() && schemeBean.isSelected()) {
+                        file = new File(FilePath.FILE_SCHEME_PATH + "/" + schemeBean.fileName());
+                        if (file.exists() && !file.delete()) {
+                            showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                        }
                         it.remove();
                         break;
                     }
-            }
-            try {
+                }
+            } else {
+                for (DetonatorInfoBean detonatorInfoBean : list)
+                    listAll.remove(detonatorInfoBean);
                 myApp.writeToFile(myApp.getListFile(), listAll);
-            } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
+                for (SchemeBean schemeBean: allSchemes) {
+                    if (schemeBean.isTunnel() == myApp.isTunnel() && schemeBean.isSelected()) {
+                        schemeBean.setAmount(listAll.size());
+                        myApp.writeToFile(FilePath.FILE_SCHEME_LIST, allSchemes);
+                        BaseApplication.copyFile(myApp.getListFile(), FilePath.FILE_SCHEME_PATH + "/" + schemeBean.fileName());
+                    }
+                }
             }
-        }
-        try {
+            myApp.writeToFile(FilePath.FILE_SCHEME_LIST, allSchemes);
             for (int i = ConstantUtils.LIST_TYPE.ALL.ordinal() + 1; i <= ConstantUtils.LIST_TYPE.END.ordinal(); i++) {
                 file = new File(fileList[i]);
                 if (file.exists() && !file.delete())

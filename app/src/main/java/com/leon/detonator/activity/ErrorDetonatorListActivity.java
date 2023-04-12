@@ -62,7 +62,7 @@ public class ErrorDetonatorListActivity extends BaseActivity {
             adapter.setCanSelect(false);
             adapter.setTunnel(myApp.isTunnel());
 //            adapterList.add(adapter);
-            fragments.add(new TabFragment(adapter));
+            fragments.add(new TabFragment(adapter, null));
         }
         pagerList.setAdapter(new ListPagerAdapter(getSupportFragmentManager()));
         tabList.setupWithViewPager(pagerList);

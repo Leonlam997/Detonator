@@ -84,6 +84,7 @@ public class SemiProductActivity extends BaseActivity {
                                 myApp.playSoundVibrate(soundPool, soundSuccess);
                                 myDialog.setStyle(3);
                                 myDialog.setTitleId(R.string.dialog_qualified);
+                                BaseApplication.writeFile(getString(R.string.dialog_qualified));
                                 myDialog.setCode("");
                                 if (!textViewCode.getText().toString().isEmpty())
                                     textViewCode.setText(String.format(Locale.CHINA, "%s%05d", textViewCode.getText().toString().substring(0, 8), Long.parseLong(textViewCode.getText().toString().substring(8)) + 1));
@@ -106,6 +107,7 @@ public class SemiProductActivity extends BaseActivity {
                                 myDialog.setTitleId(R.string.dialog_unqualified);
                                 myDialog.setSubtitleId(R.string.dialog_unqualified_hint);
                                 myDialog.setCode(failCode.get(flowStep));
+                                BaseApplication.writeFile(failCode.get(flowStep));
                             }
                             myDialog.show();
                         }
@@ -125,8 +127,6 @@ public class SemiProductActivity extends BaseActivity {
                             flowStep = STEP_WRITE_SHELL;
                             break;
                         case STEP_WRITE_SHELL:
-                            flowStep = STEP_CHECK_CONFIG;
-                            break;
                         case STEP_CHECK_CONFIG:
                             flowStep = STEP_CLEAR_STATUS;
                             break;
@@ -210,6 +210,7 @@ public class SemiProductActivity extends BaseActivity {
         setTitle(R.string.semi_product_title);
 
         myApp = (BaseApplication) getApplication();
+        BaseApplication.writeFile(getString(R.string.semi_product_title));
         try {
             initSound();
             serialPortUtil = SerialPortUtil.getInstance();
@@ -220,12 +221,13 @@ public class SemiProductActivity extends BaseActivity {
                         serialPortUtil.closeSerialPort();
                         serialPortUtil = null;
                     }
-                    runOnUiThread(() -> new AlertDialog.Builder(SemiProductActivity.this, R.style.AlertDialog)
+                    BaseApplication.writeFile(getString(R.string.dialog_short_circuit));
+                    runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(SemiProductActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_warning)
                             .setMessage(getResources().getString(R.string.dialog_short_circuit))
                             .setCancelable(false)
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
-                            .create().show());
+                            .show()));
                     myApp.playSoundVibrate(soundPool, soundAlert);
                 } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
                     flowStep = STEP_FINISHED;
@@ -237,14 +239,14 @@ public class SemiProductActivity extends BaseActivity {
                     if (received[SerialCommand.CODE_CHAR_AT] == SerialCommand.CODE_MEASURE_VALUE) {
                         runOnUiThread(() -> {
                             try {
-                                float data = Float.intBitsToFloat((Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 5]) << 24)
+                                textViewVoltage.setText(String.format(Locale.CHINA, "%.2f", Float.intBitsToFloat((Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 5]) << 24)
                                         + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 4]) << 16)
                                         + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 3]) << 8)
-                                        + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 2]));
-                                if (received[SerialCommand.CODE_CHAR_AT] == 1)
-                                    textViewVoltage.setText(String.format(Locale.CHINA, "%.2f", data));
-                                else
-                                    textViewCurrent.setText(String.format(Locale.CHINA, "%.2f", data));
+                                        + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 2]))));
+                                textViewCurrent.setText(String.format(Locale.CHINA, "%.2f", Float.intBitsToFloat((Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 9]) << 24)
+                                        + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 8]) << 16)
+                                        + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 7]) << 8)
+                                        + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 6]))));
                             } catch (Exception e) {
                                 BaseApplication.writeErrorLog(e);
                             }
@@ -268,11 +270,13 @@ public class SemiProductActivity extends BaseActivity {
                                     break;
                                 case STEP_READ_CAPACITY:
                                     try {
-                                        myApp.myToast(SemiProductActivity.this, String.format(Locale.CHINA, "电容：%.2fuF(%dms)",
+                                        final String cap = String.format(Locale.CHINA, "电容：%.2fuF(%dms)",
                                                 Float.intBitsToFloat((Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 5]) << 24)
                                                         + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 4]) << 16)
                                                         + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 3]) << 8)
-                                                        + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 2])), System.currentTimeMillis() - timeCounter));
+                                                        + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 2])), System.currentTimeMillis() - timeCounter);
+                                        BaseApplication.writeFile(cap);
+                                        myApp.myToast(SemiProductActivity.this, cap);
                                     } catch (Exception e) {
                                         BaseApplication.writeErrorLog(e);
                                     }
@@ -281,10 +285,14 @@ public class SemiProductActivity extends BaseActivity {
                                     return;
                                 case STEP_SCAN_CODE:
                                     flowStep = STEP_FINISHED;
-                                    if (received.length < 22)
+                                    if (received.length < 22) {
+                                        BaseApplication.writeFile(getString(R.string.message_scan_timeout));
                                         myApp.myToast(SemiProductActivity.this, R.string.message_scan_timeout);
-                                    else
-                                        textViewCode.setText(new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15)));
+                                    } else {
+                                        final String add = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
+                                        BaseApplication.writeFile(add);
+                                        textViewCode.setText(add);
+                                    }
                                     myHandler.sendEmptyMessage(DETECT_FINISH);
                                     return;
                             }
@@ -321,15 +329,17 @@ public class SemiProductActivity extends BaseActivity {
         if (writeSN && textViewCode.getText().length() != 13) {
             myApp.myToast(SemiProductActivity.this, "请先扫码！");
         } else if (findViewById(R.id.btn_test).isEnabled()) {
+            BaseApplication.writeFile(getString(R.string.button_self_test));
             enabledButton(false);
             timeCounter = System.currentTimeMillis();
-            flowStep = writeSN ? STEP_WRITE_CONFIG : STEP_CHECK_CONFIG;
+            flowStep = writeSN ? STEP_WRITE_CONFIG : STEP_CLEAR_STATUS;
             myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
         }
     }
 
     private void doScan() {
         if (findViewById(R.id.btn_scan).isEnabled()) {
+            BaseApplication.writeFile(getString(R.string.button_scan));
             myHandler.removeCallbacksAndMessages(null);
             enabledButton(false);
             flowStep = STEP_SCAN_CODE;
@@ -354,6 +364,7 @@ public class SemiProductActivity extends BaseActivity {
                 break;
             case KeyEvent.KEYCODE_3:
                 writeSN = !writeSN;
+                BaseApplication.writeFile(writeSN ? "已切换写码模式！" : "已切换读码模式");
                 myApp.myToast(SemiProductActivity.this, writeSN ? "已切换写码模式！" : "已切换读码模式");
                 break;
             case KeyEvent.KEYCODE_POUND:
@@ -380,13 +391,14 @@ public class SemiProductActivity extends BaseActivity {
                             .setView(inputCodeView)
                             .setPositiveButton(R.string.btn_confirm, (dialogInterface, ii) -> {
                                 if (Pattern.matches(ConstantUtils.SHELL_PATTERN, code.getText())) {
+                                    BaseApplication.writeFile(getString(R.string.dialog_title_manual_input) + ": " + code.getText().toString());
                                     runOnUiThread(() -> textViewCode.setText(code.getText()));
                                 } else {
                                     myApp.myToast(SemiProductActivity.this, R.string.message_detonator_input_error);
                                 }
                             })
                             .setNegativeButton(R.string.btn_cancel, null)
-                            .create().show();
+                            .show();
                 }
                 break;
         }

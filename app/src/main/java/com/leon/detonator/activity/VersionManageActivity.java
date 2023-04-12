@@ -66,20 +66,17 @@ public class VersionManageActivity extends BaseActivity {
         if (btnInstall.isEnabled())
             for (final VersionBean bean : list) {
                 if (bean.isSelected()) {
-                    runOnUiThread(() -> {
-                        AlertDialog dialog = new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
-                                .setTitle(R.string.dialog_title_upload)
-                                .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_install), bean.getVersion()))
-                                .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> {
-                                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                                    intent.setDataAndType(Uri.fromFile(new File(String.format(Locale.CHINA, FilePath.FILE_UPDATE_APK, bean.getVersion()))), "application/vnd.android.package-archive");
-                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                    startActivity(intent);
-                                })
-                                .setNegativeButton(R.string.btn_cancel, null)
-                                .create();
-                        dialog.show();
-                    });
+                    runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
+                            .setTitle(R.string.dialog_title_upload)
+                            .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_install), bean.getVersion()))
+                            .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> {
+                                Intent intent = new Intent(Intent.ACTION_VIEW);
+                                intent.setDataAndType(Uri.fromFile(new File(FilePath.FILE_UPDATE_PATH + "/" + bean.getVersion() + ".apk")), "application/vnd.android.package-archive");
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton(R.string.btn_cancel, null)
+                            .show()));
                     break;
                 }
             }
@@ -94,13 +91,13 @@ public class VersionManageActivity extends BaseActivity {
                         count++;
                     }
                 if (0 != count) {
-                    new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
+                    BaseApplication.customDialog(new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_upload)
                             .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_delete_version), count))
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
                                 for (VersionBean bean : list)
                                     if (bean.isSelected()) {
-                                        File file = new File(String.format(Locale.CHINA, FilePath.FILE_UPDATE_APK, bean.getVersion()));
+                                        File file = new File(FilePath.FILE_UPDATE_PATH + "/" + bean.getVersion() + ".apk");
                                         if (file.exists() && !file.delete()) {
                                             myApp.myToast(VersionManageActivity.this,
                                                     String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
@@ -108,7 +105,7 @@ public class VersionManageActivity extends BaseActivity {
                                     }
                             })
                             .setNegativeButton(R.string.btn_cancel, null)
-                            .create().show();
+                            .show());
                 }
             });
     }

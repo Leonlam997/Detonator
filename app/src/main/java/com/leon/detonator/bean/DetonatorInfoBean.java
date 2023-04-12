@@ -2,10 +2,13 @@ package com.leon.detonator.bean;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.leon.detonator.base.BaseJSONBean;
+import com.leon.detonator.util.ConstantUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -140,6 +143,7 @@ public class DetonatorInfoBean implements Parcelable, BaseJSONBean, Comparable<D
         this.downloaded = downloaded;
     }
 
+    @NonNull
     public String toString() {
         return this.address + "," +
                 this.delayTime + "," +
@@ -183,6 +187,14 @@ public class DetonatorInfoBean implements Parcelable, BaseJSONBean, Comparable<D
         this.hole = jsonObject.getInt("hole");
         this.inside = jsonObject.getInt("inside");
         this.downloaded = jsonObject.getBoolean("downloaded");
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (obj instanceof DetonatorInfoBean)
+            return address.length() >= ConstantUtils.UID_LEN && ((DetonatorInfoBean) obj).getAddress().endsWith(address);
+        else
+            return false;
     }
 
     @Override

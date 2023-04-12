@@ -15,7 +15,7 @@
         android:layout_toStartOf="@id/cbDispPsw"
         android:autofillHints=""
         android:gravity="center_vertical"
-        android:hint="@string/hint_inputPassword"
+        android:hint="@string/hint_input_password"
         android:inputType="textPassword"
         android:textColor="@color/colorLabelText"
         android:textColorHint="@color/colorHintText"

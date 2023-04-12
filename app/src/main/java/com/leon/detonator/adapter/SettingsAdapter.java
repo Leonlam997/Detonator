@@ -107,14 +107,12 @@ public class SettingsAdapter extends BaseAdapter {
                 wifiManager = (WifiManager) inflater.getContext().getApplicationContext().getSystemService(WIFI_SERVICE);
                 cbWifi = viewHolder.cbMenu;
                 viewHolder.cbMenu.setChecked(null != wifiManager && wifiManager.getWifiState() == WifiManager.WIFI_STATE_ENABLED);
-                viewHolder.cbMenu.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if (null != wifiManager) {
-                            wifiManager.setWifiEnabled(cbWifi.isChecked());
-                            cbWifi.setEnabled(false);
-                            new CheckWifi(cbWifi.isChecked() ? WifiManager.WIFI_STATE_ENABLED : WifiManager.WIFI_STATE_DISABLED).start();
-                        }
+                viewHolder.cbMenu.setOnClickListener(view -> {
+                    if (null != wifiManager) {
+                        BaseApplication.writeFile(inflater.getContext().getString(R.string.settings_wifi) + ", " + cbWifi.isChecked());
+                        wifiManager.setWifiEnabled(cbWifi.isChecked());
+                        cbWifi.setEnabled(false);
+                        new CheckWifi(cbWifi.isChecked() ? WifiManager.WIFI_STATE_ENABLED : WifiManager.WIFI_STATE_DISABLED).start();
                     }
                 });
             } else if (1 == position) {
@@ -122,12 +120,11 @@ public class SettingsAdapter extends BaseAdapter {
                 cbBT = viewHolder.cbMenu;
                 viewHolder.cbMenu.setChecked(btAdapter.isEnabled());
                 viewHolder.cbMenu.setOnClickListener(view -> {
-                    if (ActivityCompat.checkSelfPermission(inflater.getContext(), Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-                        if (cbBT.isChecked())
-                            btAdapter.enable();
-                        else
-                            btAdapter.disable();
-                    }
+                    BaseApplication.writeFile(inflater.getContext().getString(R.string.settings_bt) + ", " + cbBT.isChecked());
+                    if (cbBT.isChecked())
+                        btAdapter.enable();
+                    else
+                        btAdapter.disable();
                     cbBT.setEnabled(false);
                     new CheckBT(cbBT.isChecked()).start();
                 });

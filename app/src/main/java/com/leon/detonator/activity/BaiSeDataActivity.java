@@ -3,11 +3,15 @@ package com.leon.detonator.activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
+import android.text.method.NumberKeyListener;
 import android.view.KeyEvent;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
 
 import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
@@ -62,6 +66,18 @@ public class BaiSeDataActivity extends BaseActivity {
             ((RadioButton) findViewById(R.id.rb_contract)).setChecked(baiSeUpload.getProjectType().equals(ConstantUtils.ENTERPRISE_CONTRACT));
         }
         etId.requestFocus();
+        etId.setKeyListener(new NumberKeyListener() {
+            @NonNull
+            @Override
+            protected char[] getAcceptedChars() {
+                return ConstantUtils.INPUT_ID_ACCEPT.toCharArray();
+            }
+
+            @Override
+            public int getInputType() {
+                return InputType.TYPE_NUMBER_FLAG_DECIMAL;
+            }
+        });
         etId.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -141,7 +157,7 @@ public class BaiSeDataActivity extends BaseActivity {
                 || !etName.getText().toString().equals(null == baiSeUpload ? "" : baiSeUpload.getBursterName())
                 || !etProjectCode.getText().toString().equals(null == baiSeUpload ? "" : baiSeUpload.getProjectCode())
                 || !etProjectName.getText().toString().equals(null == baiSeUpload ? "" : baiSeUpload.getProjectName())) {
-            new AlertDialog.Builder(BaiSeDataActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(BaiSeDataActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_abort_modify)
                     .setMessage(R.string.dialog_exit_modify)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> BaiSeDataActivity.super.finish())
@@ -152,7 +168,7 @@ public class BaiSeDataActivity extends BaseActivity {
                         }
                         return false;
                     })
-                    .create().show();
+                    .show());
         } else
             super.finish();
     }

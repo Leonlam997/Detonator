@@ -45,25 +45,23 @@ public class BluetoothUtil implements BluetoothServiceInterface {
                     connectedBluetooth.clear();
                     newBluetooth.clear();
                     mSearchListener.startSearch();
-                    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-                        Set<BluetoothDevice> devices = BTAdapter.getBondedDevices();
-                        if (devices.size() > 0) {
-                            for (BluetoothDevice device : devices) {
-                                BluetoothBean blueTooth = new BluetoothBean();
-                                blueTooth.setName(device.getName());
-                                blueTooth.setAddress(device.getAddress());
-                                blueTooth.setType(device.getType());
-                                blueTooth.setDeviceType(device.getBluetoothClass().getDeviceClass());
-                                blueTooth.setUuid(device.getUuids());
-                                try {
-                                    Method isConnectedMethod = BluetoothDevice.class.getDeclaredMethod("isConnected", (Class[]) null);
-                                    isConnectedMethod.setAccessible(true);
-                                    blueTooth.setConnected((boolean) isConnectedMethod.invoke(device, (Object[]) null));
-                                } catch (Exception e) {
-                                    BaseApplication.writeErrorLog(e);
-                                }
-                                mSearchListener.foundDevice(blueTooth, false);
+                    Set<BluetoothDevice> devices = BTAdapter.getBondedDevices();
+                    if (devices.size() > 0) {
+                        for (BluetoothDevice device : devices) {
+                            BluetoothBean blueTooth = new BluetoothBean();
+                            blueTooth.setName(device.getName());
+                            blueTooth.setAddress(device.getAddress());
+                            blueTooth.setType(device.getType());
+                            blueTooth.setDeviceType(device.getBluetoothClass().getDeviceClass());
+                            blueTooth.setUuid(device.getUuids());
+                            try {
+                                Method isConnectedMethod = BluetoothDevice.class.getDeclaredMethod("isConnected", (Class[]) null);
+                                isConnectedMethod.setAccessible(true);
+                                blueTooth.setConnected((boolean) isConnectedMethod.invoke(device, (Object[]) null));
+                            } catch (Exception e) {
+                                BaseApplication.writeErrorLog(e);
                             }
+                            mSearchListener.foundDevice(blueTooth, false);
                         }
                     }
                     break;
@@ -140,7 +138,7 @@ public class BluetoothUtil implements BluetoothServiceInterface {
         if (BTAdapter == null) {
             throw new Exception("设备上没有发现蓝牙设备！");
         }
-        if (!BTAdapter.isEnabled() && ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+        if (!BTAdapter.isEnabled()) {
             BTAdapter.enable();
         }
     }
@@ -160,8 +158,7 @@ public class BluetoothUtil implements BluetoothServiceInterface {
         enableBluetooth();
         BluetoothDevice device = BTAdapter.getRemoteDevice(address);
 
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
-            device.createBond();
+        device.createBond();
     }
 
     public void unPair(String address) throws Exception {
@@ -176,12 +173,10 @@ public class BluetoothUtil implements BluetoothServiceInterface {
         this.mSearchListener = mSearchListener;
         this.context = context;
         enableBluetooth();
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-            if (BTAdapter.isDiscovering()) {
-                BTAdapter.cancelDiscovery();
-            }
-            BTAdapter.startDiscovery();
+        if (BTAdapter.isDiscovering()) {
+            BTAdapter.cancelDiscovery();
         }
+        BTAdapter.startDiscovery();
         IntentFilter iFilter = new IntentFilter();
         iFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
         iFilter.addAction(BluetoothDevice.ACTION_FOUND);
@@ -194,7 +189,7 @@ public class BluetoothUtil implements BluetoothServiceInterface {
     public BluetoothSocket getBluetoothSocket(String address) throws IOException {
         //BluetoothDevice device = BTAdapter.getRemoteDevice(address);
         //BluetoothSocket socket = device.createRfcommSocketToServiceRecord(UUID.fromString(BluetoothBean.MY_UUID));
-        return ActivityCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED ? null : BTAdapter.getRemoteDevice(address).createRfcommSocketToServiceRecord(UUID.fromString(BluetoothBean.MY_UUID));
+        return BTAdapter.getRemoteDevice(address).createRfcommSocketToServiceRecord(UUID.fromString(BluetoothBean.MY_UUID));
     }
 
     @Override

@@ -51,11 +51,11 @@ public class ChargeActivity extends BaseActivity {
                         serialPortUtil = null;
                     }
                     myApp.playSoundVibrate(soundPool, soundAlert);
-                    new AlertDialog.Builder(ChargeActivity.this, R.style.AlertDialog)
+                    BaseApplication.customDialog(new AlertDialog.Builder(ChargeActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_warning)
                             .setMessage(R.string.dialog_short_circuit)
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
-                            .create().show();
+                            .show());
                     break;
                 case DETECT_INITIAL:
                     if (null != pDialog && pDialog.isShowing()) {

@@ -57,7 +57,7 @@ public class OfflineListAdapter extends BaseAdapter {
         if (view == null) {
             viewHolder = new ViewHolder();
             view = inflater.inflate(R.layout.layout_offline_list, parent, false);
-            viewHolder.serialNo = view.findViewById(R.id.text_serialNo);
+            viewHolder.serialNo = view.findViewById(R.id.text_serial_no);
             viewHolder.address = view.findViewById(R.id.text_address);
             viewHolder.isSelected = view.findViewById(R.id.cb_selected);
             view.setTag(viewHolder);

@@ -26,7 +26,6 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
     private boolean semiTest;
     private boolean startDetectShort;
     private int initStep;
-    private byte currentDetectType;
 
     public SerialDataReceiveListener(Context mContext, Runnable runnable) {
         this.mContext = mContext;
@@ -38,7 +37,6 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
         semiTest = false;
         startDetectShort = false;
         initStep = 1;
-        currentDetectType = SerialCommand.MEASURE_CURRENT;
         try {
             serialPortUtil = SerialPortUtil.getInstance();
         } catch (Exception e) {
@@ -57,7 +55,7 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
                 rcvData = new byte[0];
                 switch (msg.what) {
                     case HANDLE_STATUS:
-                        serialPortUtil.sendCmd("", SerialCommand.CODE_MEASURE_VALUE, initStep == 1 ? SerialCommand.MEASURE_VOLTAGE : currentDetectType);
+                        serialPortUtil.sendCmd("", SerialCommand.CODE_MEASURE_VALUE, 0);
                         break;
                     case HANDLE_BUS_VOLTAGE:
                         serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, initStep == 1 ? 0 : 0xFF, 0XFF, semiTest || singleConnect ? 0x12 : 0X16);
@@ -135,33 +133,23 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
                 } else {
                     try {
                         if (code == SerialCommand.CODE_MEASURE_VALUE) {
-                            float data = Float.intBitsToFloat((Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 5]) << 24)
+                            ((BaseActivity) mContext).setVoltage(Float.intBitsToFloat((Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 5]) << 24)
                                     + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 4]) << 16)
                                     + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 3]) << 8)
-                                    + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 2]));
-                            if (initStep == 1) {
-                                initStep = 2;
-                                ((BaseActivity) mContext).setVoltage(data);
-                                myHandler.sendEmptyMessageDelayed(HANDLE_STATUS, ConstantUtils.COMMAND_DELAY_TIME);
-                            } else {
-                                initStep = 1;
-                                ((BaseActivity) mContext).setCurrent(data);
-                                if (data < 3000)
-                                    currentDetectType = SerialCommand.MEASURE_CURRENT_LOW;
-                                else if (data > 30000)
-                                    currentDetectType = SerialCommand.MEASURE_CURRENT_HIGH;
-                                else
-                                    currentDetectType = SerialCommand.MEASURE_CURRENT;
-                                if (data > 20000 && startDetectShort) {
-                                    rcvData = new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT};
-                                    handler.post(runnable);
-                                }
-                                myHandler.sendEmptyMessageDelayed(HANDLE_STATUS, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
-                            }
-                            if (semiTest) {
-                                rcvData[SerialCommand.CODE_CHAR_AT + 1] = (byte) initStep;
+                                    + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 2])));
+                            float data = Float.intBitsToFloat((Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 9]) << 24)
+                                    + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 8]) << 16)
+                                    + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 7]) << 8)
+                                    + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 6]));
+                            ((BaseActivity) mContext).setCurrent(data);
+                            if (data > 20000 && startDetectShort) {
+                                rcvData = new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT};
                                 handler.post(runnable);
                             }
+                            if (semiTest) {
+                                handler.post(runnable);
+                            }
+                            myHandler.sendEmptyMessageDelayed(HANDLE_STATUS, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                         }
                     } catch (Exception e) {
                         BaseApplication.writeErrorLog(e);

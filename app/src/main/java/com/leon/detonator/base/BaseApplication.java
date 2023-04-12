@@ -3,6 +3,7 @@ package com.leon.detonator.base;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Application;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ContentResolver;
@@ -12,6 +13,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
@@ -19,7 +21,6 @@ import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
@@ -39,7 +40,7 @@ import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.leon.detonator.activity.MainActivity;
+import com.leon.detonator.R;
 import com.leon.detonator.bean.BaiSeCheck;
 import com.leon.detonator.bean.BaiSeUpload;
 import com.leon.detonator.bean.DetonatorInfoBean;
@@ -50,10 +51,10 @@ import com.leon.detonator.bean.EnterpriseUserBean;
 import com.leon.detonator.bean.ExploderBean;
 import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.bean.RegisterExploderBean;
+import com.leon.detonator.bean.UpdateVersionBean;
 import com.leon.detonator.bean.UploadDetonatorBean;
 import com.leon.detonator.bean.UploadListResultBean;
 import com.leon.detonator.bean.UploadServerBean;
-import com.leon.detonator.R;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
 import com.leon.detonator.util.MD5;
@@ -68,13 +69,12 @@ import org.json.JSONException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
@@ -100,6 +100,7 @@ public class BaseApplication extends Application {
     private final Uri APN_LIST_URI = Uri.parse("content://telephony/carriers");
     private boolean tunnel;
     private boolean uploading;
+    private boolean getVersion;
     private final static boolean remote = false;
     private boolean registerFinished = true;
     private Context mContext;
@@ -137,16 +138,17 @@ public class BaseApplication extends Application {
     }
 
     public static void writeFile(String s) {
-        try {
-            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
-            PrintWriter p = new PrintWriter(new FileOutputStream(FilePath.FILE_DEBUG_LOG, true));
-            p.println(s);
-            p.println(df.format(new Date()));
-            p.flush();
-            p.close();
-        } catch (Exception e1) {
-            e1.printStackTrace();
-        }
+        if (s != null && !s.isEmpty())
+            try {
+                SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+                PrintWriter p = new PrintWriter(new FileOutputStream(FilePath.FILE_DEBUG_LOG, true));
+                p.println(s);
+                p.println(df.format(new Date()));
+                p.flush();
+                p.close();
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
     }
 
     public static String getMacAddress() {
@@ -268,6 +270,9 @@ public class BaseApplication extends Application {
     public void onCreate() {
         super.onCreate();
         try {
+            File file = new File(FilePath.APP_PATH);
+            if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir()))
+                myToast(this, R.string.message_create_folder_fail);
             vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
             settingBean = readSettings();
             if (isNetSystemUsable(this)) {
@@ -277,20 +282,6 @@ public class BaseApplication extends Application {
                     readExploder();
                 }
             }
-            File file = new File(FilePath.APP_PATH);
-            if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir()))
-                myToast(this, R.string.message_create_folder_fail);
-            file = new File(FilePath.FILE_SERIAL_LOG);
-            if (file.exists() && file.length() > 2 * 1024 * 1024) {
-                if (file.length() > 10 * 1024 * 1024) {
-                    if (!file.delete())
-                        myToast(this, R.string.message_delete_fail);
-                } else
-                    trimFile(FilePath.FILE_SERIAL_LOG);
-            }
-            file = new File(FilePath.FILE_DEBUG_LOG);
-            if (file.exists() && file.length() > 2 * 1024 * 1024)
-                trimFile(FilePath.FILE_DEBUG_LOG);
             String apnName = "CMIOT";
             if (!checkApnIsExist(apnName))
                 addApn(apnName);
@@ -299,25 +290,6 @@ public class BaseApplication extends Application {
                 setMobileDataState(this, true);
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
-        }
-    }
-
-    private void trimFile(String fileName) {
-        try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(fileName)));
-            String read;
-            StringBuilder data = new StringBuilder();
-            while ((read = br.readLine()) != null)
-                data.append(read).append('\n');
-            br.close();
-            if (new File(fileName).delete()) {
-                BufferedWriter bfw = new BufferedWriter(new FileWriter(fileName, false));
-                bfw.write(data.toString(), data.length() / 2, data.length() / 2);
-                bfw.flush();
-                bfw.close();
-            }
-        } catch (Exception e) {
-            writeErrorLog(e);
         }
     }
 
@@ -403,6 +375,25 @@ public class BaseApplication extends Application {
             fw.close();
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
+        }
+    }
+
+    public static void copyFile(String src, String des) {
+        File srcFile = new File(src);
+        File desFile = new File(des);
+        if ((!desFile.exists() || desFile.delete()) && srcFile.exists()) {
+            try {
+                BufferedReader br = new BufferedReader(new FileReader(srcFile));
+                String line;
+                BufferedWriter bw = new BufferedWriter(new FileWriter(desFile));
+                while ((line = br.readLine()) != null)
+                    bw.write(line);
+                bw.flush();
+                br.close();
+                bw.close();
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
+            }
         }
     }
 
@@ -731,6 +722,7 @@ public class BaseApplication extends Application {
                                     b2.setBlastInside(b1.getInside());
                                     detonatorList.add(b2);
                                 }
+                                BaseApplication.writeFile(getString(R.string.message_upload_records) + ", " + file.getName());
                                 params.put("EnvironmentType".toLowerCase(), info[0].startsWith("O") ? "OpenAir" : "DownHole");
                                 params.put("BlastTime".toLowerCase(), info[1]);
                                 params.put("BlastLat".toLowerCase(), info[3]);
@@ -761,6 +753,7 @@ public class BaseApplication extends Application {
 
                                             @Override
                                             public void onError(Call call, Exception e, int i) {
+                                                writeErrorLog(e);
                                                 uploading = false;
                                             }
 
@@ -778,6 +771,7 @@ public class BaseApplication extends Application {
                                                             }
                                                         }
                                                     }
+                                                    writeFile(uploadListResultBean.getDescription());
                                                 }
                                             }
                                         });
@@ -788,6 +782,38 @@ public class BaseApplication extends Application {
                     }
                 }
             }
+        }
+    }
+
+    public void getVersion(Handler handler) {
+        if (!getVersion) {
+            getVersion = true;
+            new Thread(() -> OkHttpUtils.get()
+                    .url(ConstantUtils.VERSION_URL)
+                    .build().execute(new Callback<UpdateVersionBean>() {
+                        @Override
+                        public UpdateVersionBean parseNetworkResponse(Response response, int i) throws Exception {
+                            if (response.body() != null) {
+                                String string = Objects.requireNonNull(response.body()).string();
+                                return new Gson().fromJson(string, UpdateVersionBean.class);
+                            }
+                            return null;
+                        }
+
+                        @Override
+                        public void onError(Call call, Exception e, int i) {
+                            writeErrorLog(e);
+                            getVersion = false;
+                        }
+
+                        @Override
+                        public void onResponse(UpdateVersionBean updateVersionBean, int i) {
+                            getVersion = false;
+                            if (updateVersionBean != null && handler != null) {
+                                handler.obtainMessage(1, updateVersionBean).sendToTarget();
+                            }
+                        }
+                    })).start();
         }
     }
 
@@ -802,6 +828,7 @@ public class BaseApplication extends Application {
                 final File file = new File(fileName);
                 if (file.exists()) {
                     uploading = true;
+                    BaseApplication.writeFile(getString(R.string.message_upload_log) + ", " + fileName);
                     OkHttpUtils.post()
                             .url(ConstantUtils.UPLOAD_LOG_URL)
                             .addFile("file", file.getName().replace(".log", ".txt"), file)
@@ -820,6 +847,7 @@ public class BaseApplication extends Application {
 
                                 @Override
                                 public void onError(Call call, Exception e, int i) {
+                                    writeErrorLog(e);
                                     uploading = false;
                                 }
 
@@ -830,8 +858,10 @@ public class BaseApplication extends Application {
                                         if (uploadListResultBean.isStatus()) {
                                             settingBean.setUploadedLog(true);
                                             saveBean(settingBean);
-                                        } else
+                                        } else {
+                                            writeFile(uploadListResultBean.getDescription());
                                             myToast(BaseApplication.this, uploadListResultBean.getDescription());
+                                        }
                                     }
                                 }
                             });
@@ -953,9 +983,11 @@ public class BaseApplication extends Application {
 
                         @Override
                         public void onError(Call call, Exception e, int i) {
+                            writeErrorLog(e);
                             registerFinished = true;
                         }
 
+                        @SuppressLint("MissingPermission")
                         @Override
                         public void onResponse(RegisterExploderBean registerExploderBean, int i) {
                             registerFinished = true;
@@ -965,16 +997,36 @@ public class BaseApplication extends Application {
                                     settingBean.setRegistered(true);
                                     settingBean.setIMEI(((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId());
                                     settingBean.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
-                                    if (ActivityCompat.checkSelfPermission(BaseApplication.this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
-                                        BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
-                                        saveBean(settingBean);
-                                    }
+                                    BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
+                                    saveBean(settingBean);
                                 } else {
+                                    writeFile(registerExploderBean.getDescription());
                                     myToast(BaseApplication.this, registerExploderBean.getDescription());
                                 }
                             }
                         }
                     });
+        }
+    }
+
+    public static void customDialog(AlertDialog dialog) {
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextSize(26);
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(26);
+        try {
+            @SuppressLint("DiscouragedPrivateApi") Field mAlert = AlertDialog.class.getDeclaredField("mAlert");
+            mAlert.setAccessible(true);
+            Object mAlertController = mAlert.get(dialog);
+            if (mAlertController != null) {
+                Field mMessage = mAlertController.getClass().getDeclaredField("mMessageView");
+                mMessage.setAccessible(true);
+                TextView mMessageView = (TextView) mMessage.get(mAlertController);
+                if (mMessageView != null) {
+                    mMessageView.setTextSize(30);
+                    mMessageView.setTextColor(Color.RED);
+                }
+            }
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
         }
     }
 
@@ -996,13 +1048,14 @@ public class BaseApplication extends Application {
                         public ExploderBean parseNetworkResponse(Response response, int i) throws Exception {
                             if (response.body() != null) {
                                 String string = Objects.requireNonNull(response.body()).string();
-                                return BaseApplication.jsonFromString(string, ExploderBean.class);
+                                return jsonFromString(string, ExploderBean.class);
                             }
                             return null;
                         }
 
                         @Override
                         public void onError(Call call, Exception e, int i) {
+                            writeErrorLog(e);
                             registerFinished = true;
                         }
 
@@ -1013,7 +1066,8 @@ public class BaseApplication extends Application {
                                 if (null != exploderBean.getResult()) {
                                     settingBean.setExploderID(exploderBean.getResult().getCodeID());
                                     saveBean(settingBean);
-                                }
+                                } else
+                                    writeFile(exploderBean.getDescription());
                             }
                         }
                     });

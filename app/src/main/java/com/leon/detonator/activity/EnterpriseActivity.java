@@ -3,11 +3,16 @@ package com.leon.detonator.activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
+import android.text.method.NumberKeyListener;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
+
+import androidx.annotation.NonNull;
 
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
@@ -51,13 +56,23 @@ public class EnterpriseActivity extends BaseActivity {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty()
-                        || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
-                findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty()
-                        && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+                findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
+                findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
             }
         };
         etCode.addTextChangedListener(textWatcher);
+        etId.setKeyListener(new NumberKeyListener() {
+            @NonNull
+            @Override
+            protected char[] getAcceptedChars() {
+                return ConstantUtils.INPUT_ID_ACCEPT.toCharArray();
+            }
+
+            @Override
+            public int getInputType() {
+                return InputType.TYPE_NUMBER_FLAG_DECIMAL;
+            }
+        });
         etId.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -71,10 +86,8 @@ public class EnterpriseActivity extends BaseActivity {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty()
-                        || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
-                findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty()
-                        && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+                findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
+                findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
                 if (editable.toString().contains("."))
                     editable.replace(editable.toString().indexOf("."), editable.toString().indexOf(".") + 1, "X");
             }
@@ -107,10 +120,8 @@ public class EnterpriseActivity extends BaseActivity {
                 enterprise.setCode(etCode.getText().toString());
                 enterprise.setId(etId.getText().toString());
                 enterprise.setCommercial(cbCommercial.isChecked());
-                if (cbCommercial.isChecked()) {
-                    enterprise.setContract(etContract.getText().toString());
-                    enterprise.setProject(etProject.getText().toString());
-                }
+                enterprise.setContract(cbCommercial.isChecked() ? etContract.getText().toString() : "");
+                enterprise.setProject(cbCommercial.isChecked() ? etProject.getText().toString() : "");
                 myApp.saveBean(enterprise);
                 myApp.myToast(EnterpriseActivity.this, R.string.message_save_success);
                 finish();
@@ -124,9 +135,9 @@ public class EnterpriseActivity extends BaseActivity {
         if (!etCode.getText().toString().equals(null == bean ? "" : bean.getCode())
                 || !etId.getText().toString().equals(null == bean ? "" : bean.getId())
                 || cbCommercial.isChecked() != (null != bean && bean.isCommercial())
-                || !etContract.getText().toString().equals(null == bean ? "" : bean.getContract())
-                || !etProject.getText().toString().equals(null == bean ? "" : bean.getProject())) {
-            new AlertDialog.Builder(EnterpriseActivity.this, R.style.AlertDialog)
+                || (cbCommercial.isChecked() && !etContract.getText().toString().equals(null == bean ? "" : bean.getContract()))
+                || (cbCommercial.isChecked() && !etProject.getText().toString().equals(null == bean ? "" : bean.getProject()))) {
+            BaseApplication.customDialog(new AlertDialog.Builder(EnterpriseActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_abort_modify)
                     .setMessage(R.string.dialog_exit_modify)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> EnterpriseActivity.super.finish())
@@ -136,10 +147,8 @@ public class EnterpriseActivity extends BaseActivity {
                             dialog.dismiss();
                         }
                         return false;
-                    })
-                    .create().show();
-        } else
-            super.finish();
+                    }).show());
+        } else super.finish();
     }
 
     private void initData() {
@@ -153,9 +162,7 @@ public class EnterpriseActivity extends BaseActivity {
                 etProject.setText(enterprise.getProject());
             }
         }
-        findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty()
-                || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
-        findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty()
-                && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+        findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
+        findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
     }
 }

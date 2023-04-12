@@ -61,7 +61,7 @@ public class VersionAdapter extends BaseAdapter {
             viewHolder = new ViewHolder();
 
             convertView = inflater.inflate(R.layout.layout_version_list, parent, false);
-            viewHolder.serialNo = convertView.findViewById(R.id.text_serialNo);
+            viewHolder.serialNo = convertView.findViewById(R.id.text_serial_no);
             viewHolder.downloadDate = convertView.findViewById(R.id.text_download_date);
             viewHolder.version = convertView.findViewById(R.id.text_version);
             viewHolder.size = convertView.findViewById(R.id.text_size);

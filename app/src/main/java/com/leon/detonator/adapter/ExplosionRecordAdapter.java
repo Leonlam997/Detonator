@@ -72,7 +72,7 @@ public class ExplosionRecordAdapter extends BaseAdapter {
             viewHolder = new ViewHolder();
 
             convertView = inflater.inflate(R.layout.layout_explode_record_list, parent, false);
-            viewHolder.serialNo = convertView.findViewById(R.id.text_serialNo);
+            viewHolder.serialNo = convertView.findViewById(R.id.text_serial_no);
             viewHolder.explodeDate = convertView.findViewById(R.id.text_explode_date);
             viewHolder.amount = convertView.findViewById(R.id.text_amount);
             viewHolder.uploaded = convertView.findViewById(R.id.text_uploaded);

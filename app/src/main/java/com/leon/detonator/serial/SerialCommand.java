@@ -25,9 +25,9 @@ public class SerialCommand {
     public final static byte CODE_SCAN_UID = (byte) 0xEA;
     public final static byte CODE_DELAY = (byte) 0x65;
     public final static byte CODE_CHECK_ONLINE = (byte) 0xCD;
+    public final static byte CODE_CHECK_STATUS = (byte) 0xDA;
     public final static byte CODE_CHECK_PSW = (byte) 0xCE;
     public final static byte CODE_GET_ALL_STATUS = (byte) 0xE6;
-    public final static byte CODE_GET_SINGLE_STATUS = (byte) 0xDA;
     public final static byte CODE_CHARGE = (byte) 0x0F;
     public final static byte CODE_CHECK_CONFIG = (byte) 0xF4;
     public final static byte CODE_LOCK = (byte) 0x76;

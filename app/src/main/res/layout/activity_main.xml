@@ -43,7 +43,6 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/delay_scheme_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />
@@ -54,7 +53,6 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/detonate_ctrl_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />
@@ -65,14 +63,13 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/detonate_auth_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />
 
 
     <ImageButton
-        android:id="@+id/btn_log"
+        android:id="@+id/btn_records"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
@@ -99,12 +96,11 @@
         android:background="@drawable/btn_settings_style" />
 
     <TextView
-        android:id="@+id/tv_log"
+        android:id="@+id/tv_records"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/detonate_rec_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />
@@ -116,7 +112,6 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/detonate_cooperate_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />
@@ -127,7 +122,6 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/txt_settings_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />

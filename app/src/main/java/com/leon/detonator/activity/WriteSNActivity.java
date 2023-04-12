@@ -153,6 +153,7 @@ public class WriteSNActivity extends BaseActivity {
 
         initData();
         initSound();
+        BaseApplication.writeFile(getString(R.string.write_number));
         try {
             serialPortUtil = SerialPortUtil.getInstance();
             myReceiveListener = new SerialDataReceiveListener(WriteSNActivity.this, bufferRunnable);
@@ -176,8 +177,8 @@ public class WriteSNActivity extends BaseActivity {
             }
         });
 
-        findViewById(R.id.btn_increase).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8),(Long.parseLong(etNumber.getText().toString().substring(8)) + 1)%100000)));
-        findViewById(R.id.btn_decrease).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) - 1)%100000)));
+        findViewById(R.id.btn_increase).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) + 1) % 100000)));
+        findViewById(R.id.btn_decrease).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) - 1) % 100000)));
         //btnWrite.setEnabled(false);
         btnWrite.setOnClickListener(v -> {
             if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, etNumber.getText().toString().toUpperCase())) {
@@ -188,6 +189,7 @@ public class WriteSNActivity extends BaseActivity {
                 myHandler.removeCallbacksAndMessages(null);
                 flowStep = STEP_WRITE_CLOCK;
                 myHandler.sendEmptyMessage(HANDLER_RESEND);
+                BaseApplication.writeFile(getString(R.string.write_number) + ", " + etNumber.getText().toString());
             }
         });
 
@@ -201,6 +203,7 @@ public class WriteSNActivity extends BaseActivity {
                         flowStep = STEP_WRITE_DELAY;
                         myHandler.removeCallbacksAndMessages(null);
                         myHandler.sendEmptyMessage(HANDLER_RESEND);
+                        BaseApplication.writeFile(getString(R.string.button_set_delay) + ", " + etDelay.getText().toString());
                     }
                 } catch (Exception e) {
                     BaseApplication.writeErrorLog(e);
@@ -227,12 +230,14 @@ public class WriteSNActivity extends BaseActivity {
                         switch (flowStep) {
                             case STEP_READ_SHELL:
                                 if (!etNumber.getText().toString().equals(new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15)))) {
+                                    BaseApplication.writeFile(getString(R.string.message_detonator_read_shell_error));
                                     myHandler.sendEmptyMessage(HANDLER_FAIL);
                                     return;
                                 }
                                 break;
                             case STEP_LOCK:
                             case STEP_WRITE_DELAY:
+                                BaseApplication.writeFile(getString(R.string.message_detonator_write_success));
                                 myApp.myToast(WriteSNActivity.this, R.string.message_detonator_write_success);
                                 runOnUiThread(() -> {
                                     try {
@@ -244,9 +249,10 @@ public class WriteSNActivity extends BaseActivity {
                                 myHandler.sendEmptyMessage(HANDLER_SUCCESS);
                                 return;
                             case STEP_SCAN_CODE:
-                                if (received.length < 9)
+                                if (received.length < 9) {
+                                    BaseApplication.writeFile(getString(R.string.message_scan_timeout));
                                     myHandler.sendEmptyMessage(HANDLER_FAIL);
-                                else {
+                                } else {
                                     tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
                                     myHandler.sendEmptyMessage(HANDLER_SCAN);
                                 }
@@ -254,6 +260,7 @@ public class WriteSNActivity extends BaseActivity {
                         }
                         myHandler.sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                     } else {
+                        BaseApplication.writeFile(getString(R.string.message_detonator_not_detected));
                         myHandler.sendEmptyMessage(HANDLER_FAIL);
                     }
                 }
@@ -285,6 +292,7 @@ public class WriteSNActivity extends BaseActivity {
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_B) {
+            BaseApplication.writeFile(getString(R.string.button_scan));
             myReceiveListener.setStartAutoDetect(false);
             setProgressVisibility(true);
             flowStep = STEP_SCAN_CODE;

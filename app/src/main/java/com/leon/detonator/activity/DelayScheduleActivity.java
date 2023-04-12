@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.TextView;
 
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
@@ -15,6 +16,7 @@ import com.leon.detonator.util.KeyUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class DelayScheduleActivity extends BaseActivity implements View.OnClickListener {
     private List<DetonatorInfoBean> list;
@@ -29,14 +31,21 @@ public class DelayScheduleActivity extends BaseActivity implements View.OnClickL
         myApp = (BaseApplication) getApplication();
         list = new ArrayList<>();
         findViewById(R.id.btn_new_schedule).setOnClickListener(this);
-        findViewById(R.id.tv_new_schedule).setOnClickListener(this);
         findViewById(R.id.btn_new_schedule).requestFocus();
-
         findViewById(R.id.btn_check_schedule).setOnClickListener(this);
-        findViewById(R.id.tv_check_schedule).setOnClickListener(this);
-
         findViewById(R.id.btn_check_detonator).setOnClickListener(this);
-        findViewById(R.id.tv_single_detect).setOnClickListener(this);
+        TextView[] textViews = new TextView[]{
+                findViewById(R.id.tv_new_schedule),
+                findViewById(R.id.tv_check_schedule),
+                findViewById(R.id.tv_single_detect)};
+        String[] title = new String[]{
+                getString(R.string.button_add_detonator),
+                getString(R.string.button_check_schedule),
+                getString(R.string.button_check_detonator)};
+        for (int i = 0; i < textViews.length; i++) {
+            textViews[i].setText(String.format(Locale.CHINA, "%d.%s", i + 1, title[i]));
+            textViews[i].setOnClickListener(this);
+        }
     }
 
     @SuppressLint("NonConstantResourceId")

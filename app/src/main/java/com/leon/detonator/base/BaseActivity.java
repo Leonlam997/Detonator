@@ -307,8 +307,6 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void setVoltage(float vol) {
         Message msg = Message.obtain();
         msg.what = CHANGE_VOLTAGE;
-//        if (vol >= 0.13f)
-//            vol -= 0.13f;
         msg.obj = String.format(Locale.CHINA, "%.2fV", vol);
         changeStatus.sendMessage(msg);
     }

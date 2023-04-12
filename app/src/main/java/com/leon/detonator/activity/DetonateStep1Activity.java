@@ -98,12 +98,12 @@ public class DetonateStep1Activity extends BaseActivity {
                             showMessage(R.string.message_fill_enterprise);
                             startActivity(new Intent(DetonateStep1Activity.this, EnterpriseActivity.class));
                         } else {
-                            new AlertDialog.Builder(DetonateStep1Activity.this, R.style.AlertDialog)
+                            BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep1Activity.this, R.style.AlertDialog)
                                     .setTitle(R.string.dialog_title_download)
                                     .setMessage(R.string.dialog_confirm_online_download)
                                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> onlineDownload())
                                     .setNegativeButton(R.string.btn_cancel, null)
-                                    .create().show();
+                                    .show());
                         }
                     } else {
                         if (baiSeCheck == null || baiSeCheck.getData().getUserIdCard().isEmpty()) {
@@ -120,10 +120,6 @@ public class DetonateStep1Activity extends BaseActivity {
                         coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
                         ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(getColor(R.color.colorCoordinateText));
                         ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLUE);
-                    } else if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0) {
-                        ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.BLACK);
-                        ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.GRAY);
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastKnownLocation.getLongitude(), lastKnownLocation.getLatitude());
                     } else if ((int) settingBean.getLatitude() != 0 && (int) settingBean.getLongitude() != 0) {
                         ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.RED);
                         ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLACK);
@@ -136,54 +132,58 @@ public class DetonateStep1Activity extends BaseActivity {
                 case 4:
                     enterpriseDialog = new EnterpriseDialog(DetonateStep1Activity.this);
                     enterpriseDialog.setClickConfirm(view -> {
-                        try {
-                            enabledButton(false);
-                            baiSeCheck.getData().setAppVersion(getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
-                            baiSeCheck.getData().setLngLat(String.format(Locale.CHINA, "%f,%f", validLocation().longitude, validLocation().latitude));
-                            baiSeCheck.getData().setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
-                            baiSeCheck.getData().setDeviceNO(settingBean.getExploderID());
-                            BaseApplication.writeFile(new Gson().toJson(baiSeCheck));
-                            OkHttpUtils.postString().addHeader("access-token", ConstantUtils.ACCESS_TOKEN)
-                                    .url(ConstantUtils.BAI_SE_CHECK_URL)
-                                    .mediaType(MediaType.parse("application/json; charset=utf-8"))
-                                    .content(new Gson().toJson(baiSeCheck.getData()))
-                                    .build().execute(new Callback<BaiSeCheckResult>() {
+                        if (BaseApplication.isNetSystemUsable(DetonateStep1Activity.this)) {
+                            try {
+                                enabledButton(false);
+                                baiSeCheck.getData().setAppVersion(getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
+                                baiSeCheck.getData().setLngLat(String.format(Locale.CHINA, "%f,%f", validLocation().longitude, validLocation().latitude));
+                                baiSeCheck.getData().setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
+                                baiSeCheck.getData().setDeviceNO(settingBean.getExploderID());
+                                BaseApplication.writeFile(new Gson().toJson(baiSeCheck));
+                                OkHttpUtils.postString().addHeader("access-token", ConstantUtils.ACCESS_TOKEN)
+                                        .url(ConstantUtils.BAI_SE_CHECK_URL)
+                                        .mediaType(MediaType.parse("application/json; charset=utf-8"))
+                                        .content(new Gson().toJson(baiSeCheck.getData()))
+                                        .build().execute(new Callback<BaiSeCheckResult>() {
 
-                                        @Override
-                                        public BaiSeCheckResult parseNetworkResponse(Response response, int i) throws Exception {
-                                            ResponseBody body = response.body();
-                                            if (body != null) {
-                                                String string = body.string();
-                                                return new Gson().fromJson(string, BaiSeCheckResult.class);
+                                            @Override
+                                            public BaiSeCheckResult parseNetworkResponse(Response response, int i) throws Exception {
+                                                ResponseBody body = response.body();
+                                                if (body != null) {
+                                                    String string = body.string();
+                                                    return new Gson().fromJson(string, BaiSeCheckResult.class);
+                                                }
+                                                return null;
                                             }
-                                            return null;
-                                        }
 
-                                        @Override
-                                        public void onError(Call call, Exception e, int i) {
-                                            myApp.myToast(DetonateStep1Activity.this, R.string.message_network_timeout);
-                                        }
+                                            @Override
+                                            public void onError(Call call, Exception e, int i) {
+                                                myApp.myToast(DetonateStep1Activity.this, R.string.message_network_timeout);
+                                            }
 
-                                        @Override
-                                        public void onResponse(BaiSeCheckResult baiSeCheckResult, int i) {
-                                            if (baiSeCheckResult != null) {
-                                                if (baiSeCheckResult.isSuccess() && baiSeCheckResult.getData().isIsPass()) {
-                                                    myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_success);
-                                                    baiSeCheck.setChecked(true);
-                                                    myApp.saveBean(baiSeCheck);
-                                                    checkExploderHandler.sendEmptyMessage(1);
-                                                } else if (baiSeCheckResult.getData() != null) {
-                                                    if (baiSeCheckResult.getData().getMsg() != null)
-                                                        myApp.myToast(DetonateStep1Activity.this, baiSeCheckResult.getData().getMsg());
-                                                    else
-                                                        myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_fail);
-                                                    enabledButton(true);
+                                            @Override
+                                            public void onResponse(BaiSeCheckResult baiSeCheckResult, int i) {
+                                                if (baiSeCheckResult != null) {
+                                                    if (baiSeCheckResult.isSuccess() && baiSeCheckResult.getData().isIsPass()) {
+                                                        myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_success);
+                                                        baiSeCheck.setChecked(true);
+                                                        myApp.saveBean(baiSeCheck);
+                                                        checkExploderHandler.sendEmptyMessage(1);
+                                                    } else if (baiSeCheckResult.getData() != null) {
+                                                        if (baiSeCheckResult.getData().getMsg() != null)
+                                                            myApp.myToast(DetonateStep1Activity.this, baiSeCheckResult.getData().getMsg());
+                                                        else
+                                                            myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_fail);
+                                                        enabledButton(true);
+                                                    }
                                                 }
                                             }
-                                        }
-                                    });
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                                        });
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            myApp.myToast(DetonateStep1Activity.this, R.string.message_check_network);
                         }
                         enterpriseDialog.dismiss();
                     });
@@ -259,8 +259,8 @@ public class DetonateStep1Activity extends BaseActivity {
         mapView.getChildAt(2).setPadding(0, 0, 10, 100);
         baiduMap = mapView.getMap();
         baiduMap.setMyLocationEnabled(true);
-
-        MapStatus mMapStatus = new MapStatus.Builder().target(new LatLng(22.551083, 110.950548)).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
+        MapStatus mMapStatus = new MapStatus.Builder().target(new LatLng(settingBean.getLatitude() != 0 ? settingBean.getLatitude() : 22.551083,
+                settingBean.getLongitude() != 0 ? settingBean.getLongitude() : 110.950548)).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
         MapStatusUpdate mMapStatusUpdate = MapStatusUpdateFactory.newMapStatus(mMapStatus);
         baiduMap.setMapStatus(mMapStatusUpdate);//改变地图状态
         baiduMap.setCompassEnable(true);
@@ -331,6 +331,7 @@ public class DetonateStep1Activity extends BaseActivity {
             intent.putExtra(KeyUtils.KEY_EXPLODE_UNITE, getIntent().getBooleanExtra(KeyUtils.KEY_EXPLODE_UNITE, false));
             intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, validLocation().latitude);
             intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, validLocation().longitude);
+            BaseApplication.writeFile("Locate:" + validLocation().latitude + ", " + validLocation().longitude);
             startActivity(intent);
             finish();
         }
@@ -359,8 +360,6 @@ public class DetonateStep1Activity extends BaseActivity {
     private LatLng validLocation() {
         if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0)
             return lastLatLng;
-        if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0)
-            return new LatLng(lastKnownLocation.getLatitude(), lastKnownLocation.getLongitude());
         return new LatLng(settingBean.getLatitude(), settingBean.getLongitude());
     }
 
@@ -424,77 +423,80 @@ public class DetonateStep1Activity extends BaseActivity {
     private void onlineDownload() {
         enterpriseDialog = new EnterpriseDialog(DetonateStep1Activity.this);
         enterpriseDialog.setClickConfirm(view -> {
-            enabledButton(false);
             enterpriseDialog.dismiss();
-            StringBuilder str = new StringBuilder();
-            for (DetonatorInfoBean bean : list) {
-                str.append(bean.getAddress()).append(",");
-            }
-            str.deleteCharAt(str.length() - 1);
-            token = myApp.makeToken();
-            Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_ONLINE_DOWNLOAD);
-            if (null != params) {
-                params.put("dsc", str.toString());
-                params.put("dwdm", enterpriseBean.getCode());
-                params.put("jd", validLocation().longitude + "");
-                params.put("wd", validLocation().latitude + "");
-                if (enterpriseBean.isCommercial()) {
-                    params.put("htid", enterpriseBean.getContract());
-                    params.put("xmbh", enterpriseBean.getProject());
+            if (BaseApplication.isNetSystemUsable(DetonateStep1Activity.this)) {
+                enabledButton(false);
+                StringBuilder str = new StringBuilder();
+                for (DetonatorInfoBean bean : list) {
+                    str.append(bean.getAddress()).append(",");
                 }
-                params.put("signature", myApp.signature(params));
-                OkHttpUtils.post()
-                        .url(ConstantUtils.HOST_URL)
-                        .params(params)
-                        .build().execute(new Callback<DownloadDetonatorBean>() {
-                            @Override
-                            public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
-                                if (response.body() != null) {
-                                    String string = Objects.requireNonNull(response.body()).string();
-                                    return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
+                str.deleteCharAt(str.length() - 1);
+                token = myApp.makeToken();
+                Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_ONLINE_DOWNLOAD);
+                if (null != params) {
+                    params.put("dsc", str.toString());
+                    params.put("dwdm", enterpriseBean.getCode());
+                    params.put("jd", validLocation().longitude + "");
+                    params.put("wd", validLocation().latitude + "");
+                    if (enterpriseBean.isCommercial()) {
+                        params.put("htid", enterpriseBean.getContract());
+                        params.put("xmbh", enterpriseBean.getProject());
+                    }
+                    params.put("signature", myApp.signature(params));
+                    OkHttpUtils.post()
+                            .url(ConstantUtils.HOST_URL)
+                            .params(params)
+                            .build().execute(new Callback<DownloadDetonatorBean>() {
+                                @Override
+                                public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
+                                    if (response.body() != null) {
+                                        String string = Objects.requireNonNull(response.body()).string();
+                                        return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
+                                    }
+                                    return null;
                                 }
-                                return null;
-                            }
 
-                            @Override
-                            public void onError(Call call, Exception e, int i) {
-                                showMessage(R.string.message_check_network);
-                                enabledButton(true);
-                            }
+                                @Override
+                                public void onError(Call call, Exception e, int i) {
+                                    showMessage(R.string.message_check_network);
+                                    enabledButton(true);
+                                }
 
-                            @Override
-                            public void onResponse(DownloadDetonatorBean onlineBean, int i) {
-                                enabledButton(true);
-                                if (null != onlineBean) {
-                                    if (onlineBean.getToken().equals(token)) {
-                                        if (onlineBean.isStatus()) {
-                                            if (null != onlineBean.getResult()) {
-                                                if (onlineBean.getResult().getCwxx().equals("0")) {
-                                                    List<LgBean> detonators = onlineBean.getResult().getLgs().getLg();
-                                                    if (null != detonators) {
-                                                        myApp.saveDownloadList(onlineBean, true);
-                                                        checkList(detonators, true);
+                                @Override
+                                public void onResponse(DownloadDetonatorBean onlineBean, int i) {
+                                    enabledButton(true);
+                                    if (null != onlineBean) {
+                                        if (onlineBean.getToken().equals(token)) {
+                                            if (onlineBean.isStatus()) {
+                                                if (null != onlineBean.getResult()) {
+                                                    if (onlineBean.getResult().getCwxx().equals("0")) {
+                                                        List<LgBean> detonators = onlineBean.getResult().getLgs().getLg();
+                                                        if (null != detonators) {
+                                                            myApp.saveDownloadList(onlineBean, true);
+                                                            checkList(detonators, true);
+                                                        }
+                                                    } else {
+                                                        String error = ErrorCode.downloadErrorCode.get(onlineBean.getResult().getCwxx());
+                                                        if (null == error) {
+                                                            error = getResources().getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
+                                                        }
+                                                        showMessage(error);
                                                     }
-                                                } else {
-                                                    String error = ErrorCode.downloadErrorCode.get(onlineBean.getResult().getCwxx());
-                                                    if (null == error) {
-                                                        error = getResources().getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
-                                                    }
-                                                    showMessage(error);
                                                 }
+                                            } else {
+                                                showMessage(onlineBean.getDescription());
                                             }
                                         } else {
-                                            showMessage(onlineBean.getDescription());
+                                            showMessage(R.string.message_token_error);
                                         }
                                     } else {
-                                        showMessage(R.string.message_token_error);
+                                        showMessage(R.string.message_return_data_error);
                                     }
-                                } else {
-                                    showMessage(R.string.message_return_data_error);
                                 }
-                            }
-                        });
-            }
+                            });
+                }
+            } else
+                myApp.myToast(DetonateStep1Activity.this, R.string.message_check_network);
         });
         enterpriseDialog.setClickModify(view -> {
             enterpriseDialog.dismiss();
@@ -565,26 +567,44 @@ public class DetonateStep1Activity extends BaseActivity {
             if (location == null || mapView == null) {
                 return;
             }
-            MyLocationData locData = new MyLocationData.Builder()
-                    .accuracy(location.getRadius())
-                    // 此处设置开发者获取到的方向信息，顺时针0-360
-                    .direction(location.getDirection()).latitude(location.getLatitude())
-                    .longitude(location.getLongitude()).build();
-            baiduMap.setMyLocationData(locData);
-            if (0 != (int) location.getLatitude() && 0 != (int) location.getLongitude()) {
-                lastLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                checkExploderHandler.sendEmptyMessage(3);
-                if (firstLocate) {
-                    MapStatus mMapStatus = new MapStatus.Builder().target(lastLatLng).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
-                    MapStatusUpdate mMapStatusUpdate = MapStatusUpdateFactory.newMapStatus(mMapStatus);
-                    baiduMap.setMapStatus(mMapStatusUpdate);//改变地图状态
-                    firstLocate = false;
-                    checkExploderHandler.sendEmptyMessage(1);
+            try {
+                MyLocationData locData = new MyLocationData.Builder()
+                        .accuracy(location.getRadius())
+                        // 此处设置开发者获取到的方向信息，顺时针0-360
+                        .direction(location.getDirection()).latitude(location.getLatitude())
+                        .longitude(location.getLongitude()).build();
+                baiduMap.setMyLocationData(locData);
+                if (0 != (int) location.getLatitude() && 0 != (int) location.getLongitude()) {
+                    lastLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                    checkExploderHandler.sendEmptyMessage(3);
+                    if (firstLocate) {
+                        MapStatus mMapStatus = new MapStatus.Builder().target(lastLatLng).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
+                        MapStatusUpdate mMapStatusUpdate = MapStatusUpdateFactory.newMapStatus(mMapStatus);
+                        baiduMap.setMapStatus(mMapStatusUpdate);//改变地图状态
+                        firstLocate = false;
+                        checkExploderHandler.sendEmptyMessage(1);
+                    }
+                    settingBean.setLatitude(location.getLatitude());
+                    settingBean.setLongitude(location.getLongitude());
+                    myApp.saveBean(settingBean);
                 }
-                settingBean.setLatitude(location.getLatitude());
-                settingBean.setLongitude(location.getLongitude());
-                myApp.saveBean(settingBean);
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
             }
+        }
+
+        @Override
+        public void onConnectHotSpotMessage(String s, int i) {
+            BaseApplication.writeFile("onConnectHotSpotMessage:" + s);
+//            myApp.myToast(DetonateStep1Activity.this, s);
+            super.onConnectHotSpotMessage(s, i);
+        }
+
+        @Override
+        public void onLocDiagnosticMessage(int i, int i1, String s) {
+            BaseApplication.writeFile("onLocDiagnosticMessage:" + s);
+//            myApp.myToast(DetonateStep1Activity.this, s);
+            super.onLocDiagnosticMessage(i, i1, s);
         }
     }
 }

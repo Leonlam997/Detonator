@@ -202,6 +202,7 @@ public class SerialPortUtil {
                 break;
             case SerialCommand.CODE_RESEND:
             case SerialCommand.CODE_CHECK_ONLINE:
+            case SerialCommand.CODE_CHECK_STATUS:
             case SerialCommand.CODE_SCAN_CODE:
                 bufferSend = new byte[9];
                 break;
@@ -261,6 +262,7 @@ public class SerialPortUtil {
                 bufferSend[i++] = (byte) (timeout[j] >> 8 & 0xFF);
                 bufferSend[i++] = (byte) (timeout[j++] & 0xFF);
             case SerialCommand.CODE_CHECK_ONLINE:
+            case SerialCommand.CODE_CHECK_STATUS:
             case SerialCommand.CODE_SCAN_CODE:
                 bufferSend[i++] = (byte) (timeout[j] >> 8 & 0xFF);
                 bufferSend[i++] = (byte) (timeout[j] & 0xFF);

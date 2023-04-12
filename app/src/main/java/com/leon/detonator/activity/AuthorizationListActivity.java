@@ -72,7 +72,9 @@ public class AuthorizationListActivity extends BaseActivity {
         myApp = (BaseApplication) getApplication();
         enterpriseBean = myApp.readEnterprise();
         initPage();
-    }    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
+    }
+
+    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
             switch (message.what) {
@@ -84,13 +86,12 @@ public class AuthorizationListActivity extends BaseActivity {
                         showMessage(R.string.message_fill_enterprise);
                         startActivity(new Intent(AuthorizationListActivity.this, EnterpriseActivity.class));
                     } else {
-                        AlertDialog dialog = new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+                        BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_download)
                                 .setMessage(R.string.dialog_confirm_offline_download)
                                 .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> offlineDownload())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .create();
-                        dialog.show();
+                                .show());
                     }
                     break;
                 case 3:
@@ -139,7 +140,7 @@ public class AuthorizationListActivity extends BaseActivity {
                 checkExploderHandler.sendEmptyMessage(2);
             }
         });
-        listFragment.setClickDelete(view -> new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+        listFragment.setClickDelete(view -> BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_delete_detonator)
                 .setMessage(R.string.dialog_confirm_delete_detonator)
                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -173,7 +174,7 @@ public class AuthorizationListActivity extends BaseActivity {
                     }
                     return false;
                 })
-                .create().show());
+                .show()));
 
         controlFragment = new OfflineControlFragment();
         controlFragment.setNewButtonEnabled(list.size() > 0);
@@ -195,7 +196,7 @@ public class AuthorizationListActivity extends BaseActivity {
             listFragment.checkStatus(false);
             saveList();
         });
-        controlFragment.setClickNew(view -> new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+        controlFragment.setClickNew(view -> BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_new_list)
                 .setMessage(R.string.dialog_clear_list)
                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -217,7 +218,7 @@ public class AuthorizationListActivity extends BaseActivity {
                     }
                     return false;
                 })
-                .create().show());
+                .show()));
         fragments.add(listFragment);
         fragments.add(controlFragment);
 
@@ -416,7 +417,6 @@ public class AuthorizationListActivity extends BaseActivity {
         }
 
     }
-
 
 
 }

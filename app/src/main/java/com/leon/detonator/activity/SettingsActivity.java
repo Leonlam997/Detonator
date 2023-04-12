@@ -41,6 +41,7 @@ public class SettingsActivity extends BaseActivity {
 
     private void launchWhich(int which) {
         Intent intent = new Intent();
+        BaseApplication.writeFile(list.get(which).getMenuText());
         switch (which) {
             case 0:
                 intent.setClass(SettingsActivity.this, WifiActivity.class);
@@ -78,7 +79,7 @@ public class SettingsActivity extends BaseActivity {
                 startActivity(intent);
                 break;
             case 8:
-                new AlertDialog.Builder(this, R.style.AlertDialog)
+                BaseApplication.customDialog(new AlertDialog.Builder(this, R.style.AlertDialog)
                         .setTitle(R.string.progress_title)
                         .setMessage(R.string.dialog_exit_delete)
                         .setPositiveButton(R.string.btn_confirm, (dialog, which1) -> {
@@ -95,7 +96,7 @@ public class SettingsActivity extends BaseActivity {
                             }
                         })
                         .setNegativeButton(R.string.btn_cancel, null)
-                        .create().show();
+                        .show());
                 break;
             case 9:
                 intent.setClass(SettingsActivity.this, SystemInfoActivity.class);
@@ -108,14 +109,14 @@ public class SettingsActivity extends BaseActivity {
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode >= KeyEvent.KEYCODE_1 && keyCode <= KeyEvent.KEYCODE_8)
-            launchWhich(keyCode - KeyEvent.KEYCODE_1);
+        if (keyCode >= KeyEvent.KEYCODE_0 && keyCode <= KeyEvent.KEYCODE_9)
+            launchWhich(keyCode == KeyEvent.KEYCODE_0 ? 9 : keyCode - KeyEvent.KEYCODE_1);
         return super.onKeyUp(keyCode, event);
     }
 
     private void initData() {
         list = new ArrayList<>();
-        int[] iconRes = {R.mipmap.ic_settings_wifi,
+        final int[] iconRes = {R.mipmap.ic_settings_wifi,
                 R.mipmap.ic_settings_bt,
                 R.mipmap.ic_settings_disp,
                 R.mipmap.ic_settings_sound,
@@ -125,9 +126,9 @@ public class SettingsActivity extends BaseActivity {
                 R.mipmap.ic_settings_upgrade,
                 R.mipmap.ic_settings_clear,
                 R.mipmap.ic_settings_info};
-        int[] menuTextID = {R.string.settings_wifi,
+        final int[] menuTextID = {R.string.settings_wifi,
                 R.string.settings_bt,
-                R.string.settings_disp,
+                R.string.settings_display,
                 R.string.settings_sound,
                 R.string.settings_finger,
                 R.string.settings_server,
@@ -139,7 +140,7 @@ public class SettingsActivity extends BaseActivity {
         for (int i = 0; i < iconRes.length; i++) {
             SettingsBean bean = new SettingsBean();
             bean.setIcon(iconRes[i]);
-            bean.setMenuText(getResources().getString(menuTextID[i]));
+            bean.setMenuText((i == 9 ? 0 : (i + 1)) + ". " + getString(menuTextID[i]));
             bean.setSubMenu(subMenu[i]);
             bean.setCheckBox(i < 2);
             list.add(bean);

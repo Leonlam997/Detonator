@@ -30,7 +30,7 @@ public class DisplaySettingsActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_settings);
 
-        setTitle(R.string.settings_disp);
+        setTitle(R.string.settings_display);
         myApp = (BaseApplication) getApplication();
         cbAuto = findViewById(R.id.cbAuto);
         sbLight = findViewById(R.id.sbLight);
@@ -69,7 +69,7 @@ public class DisplaySettingsActivity extends BaseActivity {
                                 selectedItem < sleepTimeList.length ? sleepTimeList[selectedItem] * 1000 : Integer.MAX_VALUE);
                         runOnUiThread(() -> tvSleepTime.setText(sleepTimeStringList[selectedItem]));
                     })
-                    .setNegativeButton(R.string.btn_cancel, null).create().show();
+                    .setNegativeButton(R.string.btn_cancel, null).show();
         });
 
         findViewById(R.id.rlFontScale).setOnClickListener(v -> {
@@ -88,7 +88,7 @@ public class DisplaySettingsActivity extends BaseActivity {
                             myApp.initFontScale();
                         }
                     })
-                    .setNegativeButton(R.string.btn_cancel, null).create().show();
+                    .setNegativeButton(R.string.btn_cancel, null).show();
         });
 
         if (!Settings.System.canWrite(this)) {

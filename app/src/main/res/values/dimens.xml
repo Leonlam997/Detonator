@@ -16,4 +16,5 @@
     <dimen name="dialog_sub_text">22sp</dimen>
     <dimen name="dialog_enterprise_text">22sp</dimen>
     <dimen name="button_text_size">30sp</dimen>
+    <dimen name="message_text_size">25sp</dimen>
 </resources>

@@ -10,7 +10,7 @@
         android:background="@color/colorTableLine" />
 
     <TextView
-        android:id="@+id/text_serialNo"
+        android:id="@+id/text_serial_no"
         android:layout_width="0dip"
         android:layout_height="wrap_content"
         android:layout_weight="1"
@@ -18,7 +18,7 @@
         android:paddingTop="3dp"
         android:paddingBottom="3dp"
         android:singleLine="true"
-        android:text="@string/table_serialNo"
+        android:text="@string/table_serial_no"
         android:textColor="#000000"
         android:textSize="@dimen/table_text_size" />
 

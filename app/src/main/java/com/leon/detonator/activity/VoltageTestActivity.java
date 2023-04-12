@@ -84,12 +84,11 @@ public class VoltageTestActivity extends BaseActivity {
             myApp.myToast(VoltageTestActivity.this, R.string.button_start_charge);
         });
 
-        findViewById(R.id.btn_explode).setOnClickListener(v -> new AlertDialog.Builder(VoltageTestActivity.this, R.style.AlertDialog)
+        findViewById(R.id.btn_explode).setOnClickListener(v -> BaseApplication.customDialog(new AlertDialog.Builder(VoltageTestActivity.this, R.style.AlertDialog)
                 .setMessage(R.string.dialog_confirm_explode)
                 .setPositiveButton(R.string.btn_confirm, null)
                 .setNegativeButton(R.string.btn_cancel, null)
-                .create()
-                .show());
+                .show()));
 
         sbVoltage = findViewById(R.id.sbVoltage);
         sbVoltage.setMax(140);

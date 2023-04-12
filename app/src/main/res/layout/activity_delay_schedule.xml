@@ -38,7 +38,6 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/add_detonator_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />
@@ -49,7 +48,6 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/check_schedule_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />
@@ -60,7 +58,6 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
-        android:text="@string/check_detonator_1"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/label_text_size" />

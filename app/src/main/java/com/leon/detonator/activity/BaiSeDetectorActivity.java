@@ -3,10 +3,14 @@ package com.leon.detonator.activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextWatcher;
+import android.text.method.NumberKeyListener;
 import android.view.KeyEvent;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
 
 import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
@@ -47,6 +51,18 @@ public class BaiSeDetectorActivity extends BaseActivity {
             if (!baiSeCheck.getData().getUserIdCard().isEmpty())
                 etId.setText(baiSeCheck.getData().getUserIdCard());
         }
+        etId.setKeyListener(new NumberKeyListener() {
+            @NonNull
+            @Override
+            protected char[] getAcceptedChars() {
+                return ConstantUtils.INPUT_ID_ACCEPT.toCharArray();
+            }
+
+            @Override
+            public int getInputType() {
+                return InputType.TYPE_NUMBER_FLAG_DECIMAL;
+            }
+        });
         etId.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -96,7 +112,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
     public void finish() {
         if (!etCode.getText().toString().equals(null == baiSeCheck ? "" : baiSeCheck.getData().getProjectCode())
                 || !etId.getText().toString().equals(null == baiSeCheck ? "" : baiSeCheck.getData().getUserIdCard())) {
-            new AlertDialog.Builder(BaiSeDetectorActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(BaiSeDetectorActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_abort_modify)
                     .setMessage(R.string.dialog_exit_modify)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> BaiSeDetectorActivity.super.finish())
@@ -107,7 +123,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
                         }
                         return false;
                     })
-                    .create().show();
+                    .show());
         } else
             super.finish();
     }

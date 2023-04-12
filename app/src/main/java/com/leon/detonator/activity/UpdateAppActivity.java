@@ -1,6 +1,7 @@
 package com.leon.detonator.activity;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -9,6 +10,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -21,6 +23,8 @@ import com.leon.detonator.bean.UpdateVersionBean;
 import com.leon.detonator.R;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
+import com.zhy.http.okhttp.OkHttpUtils;
+import com.zhy.http.okhttp.callback.FileCallBack;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -33,6 +37,11 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 public class UpdateAppActivity extends BaseActivity {
     private final int UPDATE_HAS_NEW = 1;
@@ -46,15 +55,30 @@ public class UpdateAppActivity extends BaseActivity {
     private MyButton btnUpdate, btnVersion;
     private UpdateVersionBean versionBean;
     private BaseApplication myApp;
+    private long fileSize;
 
-    private final Handler refreshUI = new Handler(new Handler.Callback() {
+    private Handler refreshUI = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             switch (msg.what) {
                 case UPDATE_HAS_NEW:
-                    tvHints.setText(String.format(Locale.CHINA, getResources().getString(R.string.update_found_new_version), versionBean.getVersion()));
-                    btnUpdate.setEnabled(true);
-                    setProgressVisibility(false);
+                    versionBean = (UpdateVersionBean) msg.obj;
+                    if (versionBean.getVersion() != null) {
+                        String[] version = versionBean.getVersion().split("\\.");
+                        if (version.length == 3) {
+                            try {
+                                int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
+                                version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
+                                if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2])) {
+                                    tvHints.setText(String.format(Locale.CHINA, getResources().getString(R.string.update_found_new_version), versionBean.getVersion()));
+                                    btnUpdate.setEnabled(true);
+                                    setProgressVisibility(false);
+                                }
+                            } catch (Exception e) {
+                                BaseApplication.writeErrorLog(e);
+                            }
+                        }
+                    }
                     break;
                 case UPDATE_NOT_NEED:
                     try {
@@ -112,17 +136,9 @@ public class UpdateAppActivity extends BaseActivity {
         if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir())) {
             myApp.myToast(UpdateAppActivity.this, R.string.message_create_folder_fail);
         }
-        try {
-            file = new File(FilePath.APP_PATH + "/update.apk");
-            if (file.exists() && !file.renameTo(new File(String.format(Locale.CHINA, FilePath.FILE_UPDATE_APK, getPackageManager().getPackageInfo(getPackageName(), 0).versionName)))) {
-                myApp.myToast(UpdateAppActivity.this, R.string.message_delete_fail);
-            }
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
         File[] files = new File(FilePath.FILE_UPDATE_PATH + "/").listFiles();
         btnVersion.setEnabled(files != null && files.length > 0);
-        new GetVersion().execute();
+        myApp.getVersion(refreshUI);
         btnUpdate.setEnabled(false);
         btnUpdate.setOnClickListener(v -> downloadApp());
 
@@ -133,6 +149,45 @@ public class UpdateAppActivity extends BaseActivity {
         Message msg = refreshUI.obtainMessage(UPDATE_DOWNLOADING);
         refreshUI.sendMessage(msg);
         new DownloadTask().execute(versionBean.getUrl());
+//        if (BaseApplication.isNetSystemUsable(UpdateAppActivity.this))
+//            new Thread(() -> {
+//                OkHttpUtils.get()
+//                        .url(versionBean.getUrl())
+//                        .build().execute(new FileCallBack(FilePath.FILE_UPDATE_PATH, versionBean.getVersion() + ".apk") {
+//                            private float lastProgress = -1;
+//
+//                            @Override
+//                            public void onError(Call call, Exception e, int i) {
+//                                BaseApplication.writeErrorLog(e);
+//                                btnVersion.setEnabled(true);
+//                                refreshUI.sendEmptyMessage(UPDATE_DOWNLOAD_FAIL);
+//                            }
+//
+//                            @Override
+//                            public void inProgress(float progress, long total, int id) {
+//                                if (progress > lastProgress + 0.01) {
+//                                    fileSize = total;
+//                                    refreshUI.removeMessages(UPDATE_PROGRESS);
+//                                    refreshUI.obtainMessage(UPDATE_PROGRESS, (int) (progress * 100), (int) total).sendToTarget();
+//                                    lastProgress = progress;
+//                                }
+//                                super.inProgress(progress, total, id);
+//                            }
+//
+//                            @Override
+//                            public void onResponse(File file, int i) {
+//                                //安装应用
+//                                if (file.length() == fileSize) {
+//                                    btnVersion.setEnabled(true);
+//                                    Intent intent = new Intent(Intent.ACTION_VIEW);
+//                                    intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
+//                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//                                    startActivity(intent);
+//                                } else
+//                                    refreshUI.sendEmptyMessage(UPDATE_DOWNLOAD_FAIL);
+//                            }
+//                        });
+//            }).start();
     }
 
     @Override
@@ -147,77 +202,6 @@ public class UpdateAppActivity extends BaseActivity {
                 break;
         }
         return super.onKeyUp(keyCode, event);
-    }
-
-    @SuppressLint("StaticFieldLeak")
-    private class GetVersion extends AsyncTask<Void, Integer, String> {
-        @Override
-        protected String doInBackground(Void... params) {
-            try {
-                URL url = new URL(ConstantUtils.VERSION_URL);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5000);
-                if (HttpURLConnection.HTTP_OK == connection.getResponseCode()) {
-                    InputStream is = connection.getInputStream();
-
-                    int len;
-                    byte[] buf = new byte[1024];
-                    StringBuilder stringBuilder = new StringBuilder();
-                    while ((len = is.read(buf)) != -1) {
-                        String s = new String(buf, 0, len);
-                        stringBuilder.append(s);
-                    }
-                    versionBean = new Gson().fromJson(stringBuilder.toString(), UpdateVersionBean.class);
-                    is.close();
-                }
-            } catch (MalformedURLException e) {
-                BaseApplication.writeErrorLog(e);
-                myApp.myToast(UpdateAppActivity.this, R.string.message_update_url_error);
-            } catch (IOException e) {
-                BaseApplication.writeErrorLog(e);
-                myApp.myToast(UpdateAppActivity.this, R.string.message_update_file_error);
-            }
-            return "success";
-        }
-
-        private boolean newVersion() {
-            if (versionBean.getVersion() != null) {
-                String[] version = versionBean.getVersion().split("\\.");
-                if (version.length == 3) {
-                    try {
-                        int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
-                        version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
-                        if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2])) {
-                            return true;
-                        }
-                    } catch (Exception e) {
-                        BaseApplication.writeErrorLog(e);
-                        myApp.myToast(UpdateAppActivity.this, R.string.message_update_version_error);
-                    }
-                }
-            }
-            return false;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            Message msg = refreshUI.obtainMessage();
-            if (versionBean == null) {
-                msg.what = UPDATE_ERROR;
-            } else if (newVersion()) {
-                msg.what = UPDATE_HAS_NEW;
-            } else {
-                msg.what = UPDATE_NOT_NEED;
-            }
-            refreshUI.sendMessage(msg);
-            super.onPostExecute(result);
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            super.onProgressUpdate(values);
-        }
     }
 
     @SuppressLint("StaticFieldLeak")

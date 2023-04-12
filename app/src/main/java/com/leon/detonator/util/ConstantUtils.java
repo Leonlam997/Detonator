@@ -9,7 +9,7 @@ import com.leon.detonator.base.BaseApplication;
 public class ConstantUtils {
     public final static String HOST_URL = "http://www.zhongbao360.com/open_service_v1";
     //        public final static String HOST_URL = "http://192.168.0.2/open_service_v1";
-    public final static String VERSION_URL = "http://zhongbao360.com/File/Client/Temp/update.json";
+    public final static String VERSION_URL = "http://www.zhongbao360.com/File/Client/ExploderFactory/update.json";
     public final static String UPLOAD_LOG_URL = "http://www.zhongbao360.com/Exploder/UploadLog";
     //    public final static String BAI_SE_UPLOAD_URL = "http://test.99mb.net:810/api/MbSystem/pda/uploadBlastRecord";
 //    public final static String BAI_SE_CHECK_URL = "http://test.99mb.net:810/api/MbSystem/pda/checkAllowDetonate";
@@ -25,7 +25,10 @@ public class ConstantUtils {
             {"贵安民爆", "113.140.1.137:8610"}};
     public final static String DATE_FORMAT_FULL = "yyyy-MM-dd HH:mm:ss";
     public final static String DATE_FORMAT_CHINESE = "yyyy年MM月dd日HH:mm";
+    public final static String DATE_FORMAT_SAVE = "yyyy-MM-dd HH:mm:ss.SSS";
+    public final static String DATE_FORMAT_PART = "MM-dd HH:mm:ss";
     public final static String INPUT_DETONATOR_ACCEPT = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789";
+    public final static String INPUT_ID_ACCEPT = "0123456789.X";
     public final static String EXPLODE_PSW = "772298";
     public final static String SHELL_PATTERN = "\\d{7}[0-9A-Z]\\d{5}$";
     public final static String UID_PATTERN = "\\d[0-9A-Z]\\d{5}$";

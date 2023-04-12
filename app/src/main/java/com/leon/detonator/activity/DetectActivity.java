@@ -20,6 +20,7 @@ import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.R;
+import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.serial.SerialCommand;
 import com.leon.detonator.serial.SerialDataReceiveListener;
 import com.leon.detonator.serial.SerialPortUtil;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -144,7 +146,7 @@ public class DetectActivity extends BaseActivity {
                     myHandler.removeCallbacksAndMessages(null);
                     enabledButton(false);
                     tempAddress = "";
-                    flowStep = scanMode ? STEP_SCAN_CODE : STEP_CHECK_CONFIG;
+                    flowStep = scanMode ? STEP_SCAN_CODE : STEP_CLEAR_STATUS;
                     int row = lastRow, hole = lastHole, inside = lastInside;
                     if (lastDelay != -1) {
                         switch (add_mode) {
@@ -170,8 +172,7 @@ public class DetectActivity extends BaseActivity {
                         if (!myApp.isTunnel()) {
                             delayTime = (row - 1) * settings.getRow() + (row - 1) * settings.getHole() + (hole - 1) * settings.getHole() + (inside - 1) * settings.getHoleInside();
                         }
-                        if (delayTime < 0)
-                            delayTime = 0;
+                        if (delayTime < 0) delayTime = 0;
                     } else {
                         row = 1;
                         hole = 1;
@@ -190,8 +191,10 @@ public class DetectActivity extends BaseActivity {
                     myHandler.removeMessages(DETECT_SEND_COMMAND);
                     if (STEP_END != flowStep) {
                         Integer i = failCode.get(flowStep);
-                        if (null != i)
+                        if (null != i) {
                             myApp.myToast(DetectActivity.this, i);
+                            BaseApplication.writeFile(getString(i));
+                        }
                     }
                     flowStep = STEP_END;
                     myApp.playSoundVibrate(soundPool, soundFail);
@@ -255,12 +258,8 @@ public class DetectActivity extends BaseActivity {
     });
 
     private void saveData(DetonatorInfoBean bean) {
-        for (DetonatorInfoBean b : oldList) {
-            if (b.getAddress().equals(bean.getAddress())) {
-                oldList.remove(b);
-                break;
-            }
-        }
+        int i = oldList.indexOf(bean);
+        if (i >= 0) oldList.remove(i);
 //        myApp.myToast(this, "index:" + insertIndex + ",size" + oldList.size());
         if (insertIndex <= oldList.size() - 1 && insertMode != 0) {
             int period;
@@ -270,10 +269,9 @@ public class DetectActivity extends BaseActivity {
                 period = myApp.isTunnel() ? settings.getSection() : settings.getHole();
             }
 
-            for (int i = insertIndex; i < oldList.size(); i++) {
+            for (i = insertIndex; i < oldList.size(); i++) {
                 DetonatorInfoBean b = oldList.get(i);
-                if (bean.getRow() != b.getRow()
-                        || (insertMode == ConstantUtils.INSERT_INSIDE && bean.getHole() != b.getHole()))
+                if (bean.getRow() != b.getRow() || (insertMode == ConstantUtils.INSERT_INSIDE && bean.getHole() != b.getHole()))
                     break;
                 b.setDownloaded(false);
                 b.setDelayTime(b.getDelayTime() + period);
@@ -287,17 +285,26 @@ public class DetectActivity extends BaseActivity {
         } else {
             oldList.add(bean);
         }
+        BaseApplication.writeFile(bean.toString());
         insertIndex++;
         try {
             myApp.writeToFile(myApp.getListFile(), oldList);
-            String[] fileList = Arrays.copyOfRange(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1], 1,
-                    FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1].length);
+            String[] fileList = Arrays.copyOfRange(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1], 1, FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1].length);
             for (String s : fileList) {
                 File file = new File(s);
                 if (file.exists() && !file.delete()) {
                     myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
                 }
             }
+            List<SchemeBean> schemeBeans = new ArrayList<>();
+            myApp.readFromFile(FilePath.FILE_SCHEME_LIST, schemeBeans, SchemeBean.class);
+            for (SchemeBean schemeBean : schemeBeans)
+                if (myApp.isTunnel() == schemeBean.isTunnel() && schemeBean.isSelected()) {
+                    schemeBean.setAmount(oldList.size());
+                    myApp.writeToFile(FilePath.FILE_SCHEME_LIST, schemeBeans);
+                    BaseApplication.copyFile(myApp.getListFile(), FilePath.FILE_SCHEME_PATH + "/" + schemeBean.fileName());
+                    break;
+                }
         } catch (JSONException e) {
             BaseApplication.writeErrorLog(e);
             myApp.myToast(DetectActivity.this, R.string.message_transfer_error);
@@ -343,8 +350,8 @@ public class DetectActivity extends BaseActivity {
                                 myHandler.sendEmptyMessage(DETECT_FAIL);
                                 return;
                             } else {
-                                int index = isExist(tempAddress);
-                                if (index > 0) {
+                                int index = oldList.indexOf(new DetonatorInfoBean(tempAddress));
+                                if (index >= 0) {
                                     flowStep = STEP_END;
                                     myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_current_detonator_exist), index));
                                     myHandler.sendEmptyMessage(DETECT_FAIL);
@@ -361,10 +368,8 @@ public class DetectActivity extends BaseActivity {
                     }
                     myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                 } else {
-                    if (STEP_WRITE_FIELD == flowStep)
-                        myHandler.sendEmptyMessage(DETECT_SUCCESS);
-                    else
-                        myHandler.sendEmptyMessage(DETECT_FAIL);
+                    if (STEP_WRITE_FIELD == flowStep) myHandler.sendEmptyMessage(DETECT_SUCCESS);
+                    else myHandler.sendEmptyMessage(DETECT_FAIL);
                 }
             }
         }
@@ -385,6 +390,7 @@ public class DetectActivity extends BaseActivity {
         insertIndex = getIntent().getIntExtra(KeyUtils.KEY_INSERT_INDEX, 0);
         setTitle(scanMode ? R.string.scan_line : R.string.register_line);
 
+        BaseApplication.writeFile("row:" + lastRow + ", hole:" + lastHole + ", inside:" + lastInside + ", delay:" + lastDelay + ", mode:" + insertMode + ", index:" + insertIndex);
         tvTube = findViewById(R.id.tv_tube);
         tvTube.setText("--");
         tvDelayTime = findViewById(R.id.tv_delay);
@@ -476,18 +482,8 @@ public class DetectActivity extends BaseActivity {
                             }
                             myApp.saveBean(settings);
                         }
-                    })
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .create().show();
+                    }).setNegativeButton(R.string.btn_cancel, null).show();
         });
-    }
-
-    private int isExist(String id) {
-        for (int i = 0; i < oldList.size(); i++)
-            if (oldList.get(i).getAddress().equals(id)) {
-                return i + 1;
-            }
-        return 0;
     }
 
     private void enabledButton(boolean enable) {
@@ -495,10 +491,8 @@ public class DetectActivity extends BaseActivity {
             myReceiveListener.setStartAutoDetect(enable);
         }
         setProgressVisibility(!enable);
-        if (insertMode > 0)
-            btnNextRow.setEnabled(false);
-        else
-            btnNextRow.setEnabled(enable);
+        if (insertMode > 0) btnNextRow.setEnabled(false);
+        else btnNextRow.setEnabled(enable);
         if (insertMode == ConstantUtils.INSERT_INSIDE) {
             btnNextHole.setEnabled(false);
             btnNextSection.setEnabled(false);
@@ -533,29 +527,38 @@ public class DetectActivity extends BaseActivity {
         switch (which) {
             case KeyEvent.KEYCODE_1:
                 if (btnNextHole.isEnabled() || btnSection.isEnabled()) {
+                    if (btnNextHole.isEnabled())
+                        BaseApplication.writeFile(btnNextHole.getText().toString());
+                    else BaseApplication.writeFile(btnSection.getText().toString());
                     add_mode = myApp.isTunnel() ? ADD_MODE.INSIDE_SECTION : ADD_MODE.NEXT_HOLE;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
                 break;
             case KeyEvent.KEYCODE_2:
                 if (btnNextRow.isEnabled() || btnNextSection.isEnabled()) {
+                    if (btnNextRow.isEnabled())
+                        BaseApplication.writeFile(btnNextRow.getText().toString());
+                    else BaseApplication.writeFile(btnNextSection.getText().toString());
                     add_mode = myApp.isTunnel() ? ADD_MODE.NEXT_SECTION : ADD_MODE.NEXT_ROW;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
                 break;
             case KeyEvent.KEYCODE_3:
                 if (btnInside.isEnabled() && !myApp.isTunnel()) {
+                    BaseApplication.writeFile(btnInside.getText().toString());
                     add_mode = ADD_MODE.INSIDE_HOLE;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
                 break;
             case KeyEvent.KEYCODE_POUND:
                 if (myApp.isTunnel()) {
+                    BaseApplication.writeFile(getString(R.string.txt_section_inside_delay));
                     modifyDelay(true);
                 }
                 break;
             case KeyEvent.KEYCODE_STAR:
                 if (myApp.isTunnel()) {
+                    BaseApplication.writeFile(getString(R.string.txt_section_delay));
                     modifyDelay(false);
                 }
                 break;
@@ -566,16 +569,12 @@ public class DetectActivity extends BaseActivity {
         soundPool = myApp.getSoundPool();
         if (null != soundPool) {
             soundSuccess = soundPool.load(this, R.raw.found, 1);
-            if (0 == soundSuccess)
-                myApp.myToast(this, R.string.message_media_load_error);
+            if (0 == soundSuccess) myApp.myToast(this, R.string.message_media_load_error);
             soundFail = soundPool.load(this, R.raw.fail, 1);
-            if (0 == soundFail)
-                myApp.myToast(this, R.string.message_media_load_error);
+            if (0 == soundFail) myApp.myToast(this, R.string.message_media_load_error);
             soundAlert = soundPool.load(this, R.raw.alert, 1);
-            if (0 == soundAlert)
-                myApp.myToast(this, R.string.message_media_load_error);
-        } else
-            myApp.myToast(this, R.string.message_media_init_error);
+            if (0 == soundAlert) myApp.myToast(this, R.string.message_media_load_error);
+        } else myApp.myToast(this, R.string.message_media_init_error);
     }
 
     @Override
