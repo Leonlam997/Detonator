@@ -78,7 +78,7 @@ public class SettingsActivity extends BaseActivity {
                 startActivity(intent);
                 break;
             case 8:
-                new AlertDialog.Builder(this, R.style.AlertDialog)
+                BaseApplication.customDialog(new AlertDialog.Builder(this, R.style.AlertDialog)
                         .setTitle(R.string.progress_title)
                         .setMessage(R.string.dialog_exit_delete)
                         .setPositiveButton(R.string.btn_confirm, (dialog, which1) -> {
@@ -95,7 +95,7 @@ public class SettingsActivity extends BaseActivity {
                             }
                         })
                         .setNegativeButton(R.string.btn_cancel, null)
-                        .create().show();
+                        .show());
                 break;
             case 9:
                 intent.setClass(SettingsActivity.this, SystemInfoActivity.class);
@@ -139,7 +139,7 @@ public class SettingsActivity extends BaseActivity {
         for (int i = 0; i < iconRes.length; i++) {
             SettingsBean bean = new SettingsBean();
             bean.setIcon(iconRes[i]);
-            bean.setMenuText(getResources().getString(menuTextID[i]));
+            bean.setMenuText(getString(menuTextID[i]));
             bean.setSubMenu(subMenu[i]);
             bean.setCheckBox(i < 2);
             list.add(bean);

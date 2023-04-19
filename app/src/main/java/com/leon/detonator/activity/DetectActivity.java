@@ -144,7 +144,7 @@ public class DetectActivity extends BaseActivity {
                     myHandler.removeCallbacksAndMessages(null);
                     enabledButton(false);
                     tempAddress = "";
-                    flowStep = scanMode ? STEP_SCAN_CODE : STEP_CHECK_CONFIG;
+                    flowStep = scanMode ? STEP_SCAN_CODE : STEP_CLEAR_STATUS;
                     int row = lastRow, hole = lastHole, inside = lastInside;
                     if (lastDelay != -1) {
                         switch (add_mode) {
@@ -183,7 +183,7 @@ public class DetectActivity extends BaseActivity {
                     tvInside.setText(String.format(Locale.CHINA, "%d", inside));
                     tvTube.setText("--");
                     tvDelayTime.setText(String.format(Locale.CHINA, "%dms", delayTime));
-                    tvLastDelay.setText(lastDelay == -1 ? getResources().getString(R.string.no_delay_time) : (lastDelay + "ms"));
+                    tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : (lastDelay + "ms"));
                     myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                     break;
                 case DETECT_FAIL: //检测失败
@@ -255,12 +255,8 @@ public class DetectActivity extends BaseActivity {
     });
 
     private void saveData(DetonatorInfoBean bean) {
-        for (DetonatorInfoBean b : oldList) {
-            if (b.getAddress().equals(bean.getAddress())) {
-                oldList.remove(b);
-                break;
-            }
-        }
+        int i = oldList.indexOf(bean);
+        if (i >= 0) oldList.remove(i);
 //        myApp.myToast(this, "index:" + insertIndex + ",size" + oldList.size());
         if (insertIndex <= oldList.size() - 1 && insertMode != 0) {
             int period;
@@ -270,10 +266,9 @@ public class DetectActivity extends BaseActivity {
                 period = myApp.isTunnel() ? settings.getSection() : settings.getHole();
             }
 
-            for (int i = insertIndex; i < oldList.size(); i++) {
+            for (i = insertIndex; i < oldList.size(); i++) {
                 DetonatorInfoBean b = oldList.get(i);
-                if (bean.getRow() != b.getRow()
-                        || (insertMode == ConstantUtils.INSERT_INSIDE && bean.getHole() != b.getHole()))
+                if (bean.getRow() != b.getRow() || (insertMode == ConstantUtils.INSERT_INSIDE && bean.getHole() != b.getHole()))
                     break;
                 b.setDownloaded(false);
                 b.setDelayTime(b.getDelayTime() + period);
@@ -287,6 +282,7 @@ public class DetectActivity extends BaseActivity {
         } else {
             oldList.add(bean);
         }
+        BaseApplication.writeFile(bean.toString());
         insertIndex++;
         try {
             myApp.writeToFile(myApp.getListFile(), oldList);
@@ -295,7 +291,7 @@ public class DetectActivity extends BaseActivity {
             for (String s : fileList) {
                 File file = new File(s);
                 if (file.exists() && !file.delete()) {
-                    myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                    myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getString(R.string.message_delete_file_fail), file.getName()));
                 }
             }
         } catch (JSONException e) {
@@ -343,10 +339,10 @@ public class DetectActivity extends BaseActivity {
                                 myHandler.sendEmptyMessage(DETECT_FAIL);
                                 return;
                             } else {
-                                int index = isExist(tempAddress);
-                                if (index > 0) {
+                                int index = oldList.indexOf(new DetonatorInfoBean(tempAddress));
+                                if (index >= 0) {
                                     flowStep = STEP_END;
-                                    myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_current_detonator_exist), index));
+                                    myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getString(R.string.message_current_detonator_exist), index));
                                     myHandler.sendEmptyMessage(DETECT_FAIL);
                                     return;
                                 } else if (flowStep == STEP_SCAN_CODE) {
@@ -385,6 +381,7 @@ public class DetectActivity extends BaseActivity {
         insertIndex = getIntent().getIntExtra(KeyUtils.KEY_INSERT_INDEX, 0);
         setTitle(scanMode ? R.string.scan_line : R.string.register_line);
 
+        BaseApplication.writeFile("row:" + lastRow + ", hole:" + lastHole + ", inside:" + lastInside + ", delay:" + lastDelay + ", mode:" + insertMode + ", index:" + insertIndex);
         tvTube = findViewById(R.id.tv_tube);
         tvTube.setText("--");
         tvDelayTime = findViewById(R.id.tv_delay);
@@ -395,7 +392,7 @@ public class DetectActivity extends BaseActivity {
         tvInside = findViewById(R.id.tv_inside);
         tvInside.setText(lastInside == 0 ? "--" : (lastInside + ""));
         tvLastDelay = findViewById(R.id.tv_last_delay);
-        tvLastDelay.setText(lastDelay == -1 ? getResources().getString(R.string.no_delay_time) : (lastDelay + "ms"));
+        tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : (lastDelay + "ms"));
         btnNextRow = findViewById(R.id.btn_next_row);
         btnNextHole = findViewById(R.id.btn_next_hole);
         btnInside = findViewById(R.id.btn_inside);
@@ -476,18 +473,8 @@ public class DetectActivity extends BaseActivity {
                             }
                             myApp.saveBean(settings);
                         }
-                    })
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .create().show();
+                    }).setNegativeButton(R.string.btn_cancel, null).show();
         });
-    }
-
-    private int isExist(String id) {
-        for (int i = 0; i < oldList.size(); i++)
-            if (oldList.get(i).getAddress().equals(id)) {
-                return i + 1;
-            }
-        return 0;
     }
 
     private void enabledButton(boolean enable) {

@@ -84,13 +84,12 @@ public class AuthorizationListActivity extends BaseActivity {
                         showMessage(R.string.message_fill_enterprise);
                         startActivity(new Intent(AuthorizationListActivity.this, EnterpriseActivity.class));
                     } else {
-                        AlertDialog dialog = new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+                        BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_download)
                                 .setMessage(R.string.dialog_confirm_offline_download)
                                 .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> offlineDownload())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .create();
-                        dialog.show();
+                                .show());
                     }
                     break;
                 case 3:
@@ -139,7 +138,7 @@ public class AuthorizationListActivity extends BaseActivity {
                 checkExploderHandler.sendEmptyMessage(2);
             }
         });
-        listFragment.setClickDelete(view -> new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+        listFragment.setClickDelete(view -> BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_delete_detonator)
                 .setMessage(R.string.dialog_confirm_delete_detonator)
                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -173,7 +172,7 @@ public class AuthorizationListActivity extends BaseActivity {
                     }
                     return false;
                 })
-                .create().show());
+                .show()));
 
         controlFragment = new OfflineControlFragment();
         controlFragment.setNewButtonEnabled(list.size() > 0);
@@ -195,7 +194,7 @@ public class AuthorizationListActivity extends BaseActivity {
             listFragment.checkStatus(false);
             saveList();
         });
-        controlFragment.setClickNew(view -> new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+        controlFragment.setClickNew(view -> BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_new_list)
                 .setMessage(R.string.dialog_clear_list)
                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -217,7 +216,7 @@ public class AuthorizationListActivity extends BaseActivity {
                     }
                     return false;
                 })
-                .create().show());
+                .show()));
         fragments.add(listFragment);
         fragments.add(controlFragment);
 
@@ -252,7 +251,7 @@ public class AuthorizationListActivity extends BaseActivity {
 
     private void showMessage(@StringRes int s) {
         Message m = checkExploderHandler.obtainMessage(3);
-        m.obj = getResources().getString(s);
+        m.obj = getString(s);
         checkExploderHandler.sendMessage(m);
     }
 
@@ -319,7 +318,7 @@ public class AuthorizationListActivity extends BaseActivity {
                                                 } else {
                                                     String error = ErrorCode.downloadErrorCode.get(downloadDetonatorBean.getResult().getCwxx());
                                                     if (null == error) {
-                                                        error = getResources().getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
+                                                        error = getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
                                                     }
                                                     showMessage(error);
                                                 }
@@ -372,7 +371,7 @@ public class AuthorizationListActivity extends BaseActivity {
     private void resetTabTitle(boolean init) {
         for (int i = 0; i < title.length; i++) {
             TextView tv = (TextView) LayoutInflater.from(this).inflate(R.layout.layout_tab_view, tabList, false);
-            String text = getResources().getString(title[i]) + (0 == i ? "(" + list.size() + ")" : "");
+            String text = getString(title[i]) + (0 == i ? "(" + list.size() + ")" : "");
             tv.setText(text);
             TabLayout.Tab tab = tabList.getTabAt(i);
             if (tab != null) {

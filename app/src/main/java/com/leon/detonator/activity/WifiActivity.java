@@ -148,16 +148,16 @@ public class WifiActivity extends BaseActivity {
                 if (position > (list.get(1).isConnected() ? 2 : 1) || (list.get(1).isConnected() && position == 1)) {
                     String[] menu;
                     if (position == 1) {
-                        menu = new String[]{getResources().getString(R.string.menu_wifi_forget),
-                                getResources().getString(R.string.menu_wifi_modify)};
+                        menu = new String[]{getString(R.string.menu_wifi_forget),
+                                getString(R.string.menu_wifi_modify)};
                     } else {
                         WifiListBean bean = list.get(position);
                         if (isExist(bean.getSSID()) != null) {
-                            menu = new String[]{getResources().getString(R.string.menu_wifi_connect),
-                                    getResources().getString(R.string.menu_wifi_forget),
-                                    getResources().getString(R.string.menu_wifi_modify)};
+                            menu = new String[]{getString(R.string.menu_wifi_connect),
+                                    getString(R.string.menu_wifi_forget),
+                                    getString(R.string.menu_wifi_modify)};
                         } else {
-                            menu = new String[]{getResources().getString(R.string.menu_wifi_connect)};
+                            menu = new String[]{getString(R.string.menu_wifi_connect)};
                         }
                     }
                     View popupView = WifiActivity.this.getLayoutInflater().inflate(R.layout.layout_popupwindow, parent, false);
@@ -168,13 +168,13 @@ public class WifiActivity extends BaseActivity {
                     lsvMore.setOnItemClickListener((parent1, view1, position1, id1) -> {
                         String title = ((TextView) view1).getText().toString();
                         String ssid = list.get(lastPosition).getSSID();
-                        if (getResources().getString(R.string.menu_wifi_modify).equals(title)) {
+                        if (getString(R.string.menu_wifi_modify).equals(title)) {
                             Intent intent = new Intent();
                             intent.setClass(WifiActivity.this, WifiConnectActivity.class);
                             intent.putExtra(KeyUtils.KEY_WIFI_CONNECT_SSID, ssid);
                             index = lastPosition;
                             launcher.launch(intent);
-                        } else if (getResources().getString(R.string.menu_wifi_forget).equals(title)) {
+                        } else if (getString(R.string.menu_wifi_forget).equals(title)) {
                             WifiConfiguration tempConfig = isExist(ssid);
                             if (tempConfig != null) {
                                 wm.removeNetwork(tempConfig.networkId);
@@ -185,7 +185,7 @@ public class WifiActivity extends BaseActivity {
                                     new ScanWifiThread().start();
                                 }
                             }
-                        } else if (getResources().getString(R.string.menu_wifi_connect).equals(title)) {
+                        } else if (getString(R.string.menu_wifi_connect).equals(title)) {
                             WifiListBean bean = list.get(lastPosition);
                             if (bean.isSaved()) {
                                 bean.setConnecting(true);
@@ -334,7 +334,7 @@ public class WifiActivity extends BaseActivity {
 
             bean = new WifiListBean();
             bean.setSignalLevel(80);
-            bean.setSSID(getResources().getString(R.string.wifi_available_list));
+            bean.setSSID(getString(R.string.wifi_available_list));
             bean.setRescanLine(true);
             bean.setScanning(true);
         }

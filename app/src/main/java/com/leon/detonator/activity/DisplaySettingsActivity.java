@@ -37,19 +37,19 @@ public class DisplaySettingsActivity extends BaseActivity {
         tvSleepTime = findViewById(R.id.tvSleepTime);
         tvFontScale = findViewById(R.id.tvFontScale);
         settingBean = BaseApplication.readSettings();
-        final String[] fontScaleList = {getResources().getString(R.string.choice_normal),
-                getResources().getString(R.string.choice_big),
-                getResources().getString(R.string.choice_large),
-                getResources().getString(R.string.choice_xlarge)
+        final String[] fontScaleList = {getString(R.string.choice_normal),
+                getString(R.string.choice_big),
+                getString(R.string.choice_large),
+                getString(R.string.choice_xlarge)
         };
-        final String[] sleepTimeStringList = {getResources().getString(R.string.choice_15_seconds),
-                getResources().getString(R.string.choice_30_seconds),
-                getResources().getString(R.string.choice_1_minute),
-                getResources().getString(R.string.choice_2_minutes),
-                getResources().getString(R.string.choice_5_minutes),
-                getResources().getString(R.string.choice_10_minutes),
-                getResources().getString(R.string.choice_30_minutes),
-                getResources().getString(R.string.choice_never)
+        final String[] sleepTimeStringList = {getString(R.string.choice_15_seconds),
+                getString(R.string.choice_30_seconds),
+                getString(R.string.choice_1_minute),
+                getString(R.string.choice_2_minutes),
+                getString(R.string.choice_5_minutes),
+                getString(R.string.choice_10_minutes),
+                getString(R.string.choice_30_minutes),
+                getString(R.string.choice_never)
         };
         if (settingBean.getFontScale() > 0 && settingBean.getFontScale() < fontScaleList.length) {
             tvFontScale.setText(fontScaleList[settingBean.getFontScale()]);

@@ -225,12 +225,12 @@ public class DetonateStep4Activity extends BaseActivity {
                         showMessage(R.string.message_fill_enterprise);
                         startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
                     } else {
-                        new AlertDialog.Builder(DetonateStep4Activity.this, R.style.AlertDialog)
+                        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep4Activity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_upload)
-                                .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
+                                .setMessage(String.format(Locale.CHINA, getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
                                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> uploadRecord())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .create().show();
+                                .show());
                     }
                     break;
                 case MinaHandler.MINA_DATA:
@@ -312,7 +312,7 @@ public class DetonateStep4Activity extends BaseActivity {
 
     private void showMessage(@StringRes int s) {
         Message m = delaySendCmdHandler.obtainMessage(STEP_MESSAGE);
-        m.obj = getResources().getString(s);
+        m.obj = getString(s);
         delaySendCmdHandler.sendMessage(m);
     }
 
@@ -548,7 +548,7 @@ public class DetonateStep4Activity extends BaseActivity {
         if (listAll.size() == list.size()) {
             file = new File(myApp.getListFile());
             if (file.exists() && !file.delete()) {
-                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                showMessage(String.format(Locale.CHINA, getString(R.string.message_delete_file_fail), file.getName()));
             }
         } else {
             Iterator<DetonatorInfoBean> it = listAll.iterator();
@@ -570,7 +570,7 @@ public class DetonateStep4Activity extends BaseActivity {
             for (int i = ConstantUtils.LIST_TYPE.ALL.ordinal() + 1; i <= ConstantUtils.LIST_TYPE.END.ordinal(); i++) {
                 file = new File(fileList[i]);
                 if (file.exists() && !file.delete())
-                    myApp.myToast(DetonateStep4Activity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                    myApp.myToast(DetonateStep4Activity.this, String.format(Locale.CHINA, getString(R.string.message_delete_file_fail), file.getName()));
             }
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);

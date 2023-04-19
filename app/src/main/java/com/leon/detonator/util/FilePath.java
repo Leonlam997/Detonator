@@ -26,6 +26,7 @@ public class FilePath {
     public final static String FILE_PROJECT_INFO = APP_PATH + "/Project";
     public final static String FILE_DEBUG_LOG = APP_PATH + "/Debug.log";
     public final static String FILE_SERIAL_LOG = APP_PATH + "/Serial.log";
+    public final static String FILE_TEMP_LOG = FilePath.APP_PATH + "/temp.log";
     public final static String FILE_CAMERA_CAPTURE = APP_PATH + "/CAMERA/";
     public final static String FILE_LOCAL_SETTINGS = APP_PATH + "/LocalSettings.dat";
     public final static String FILE_DETONATE_RECORDS = APP_PATH + "/Records";

@@ -152,7 +152,7 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
                                     currentDetectType = SerialCommand.MEASURE_CURRENT_HIGH;
                                 else
                                     currentDetectType = SerialCommand.MEASURE_CURRENT;
-                                if (data > 20000 && startDetectShort) {
+                                if (data > ConstantUtils.SHORT_CIRCUIT_CURRENT && startDetectShort) {
                                     rcvData = new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT};
                                     handler.post(runnable);
                                 }

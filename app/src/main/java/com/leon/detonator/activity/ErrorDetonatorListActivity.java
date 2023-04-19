@@ -91,7 +91,7 @@ public class ErrorDetonatorListActivity extends BaseActivity {
     private void resetTabTitle(boolean init) {
         for (int i = 0; i < title.length; i++) {
             TextView tv = (TextView) LayoutInflater.from(ErrorDetonatorListActivity.this).inflate(R.layout.layout_tab_view, tabList, false);
-            String text = getResources().getString(title[i]) + "(" + lists.get(i).size() + ")";
+            String text = getString(title[i]) + "(" + lists.get(i).size() + ")";
             tv.setText(text);
             TabLayout.Tab tab = tabList.getTabAt(i);
             if (tab != null) {

@@ -50,7 +50,7 @@ public class LoginActivity extends BaseActivity {
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode() && null != result.getData()) {
             myApp.myToast(LoginActivity.this,
-                    String.format(Locale.CHINA, getResources().getString(R.string.message_user_login_success), result.getData().getStringExtra(KeyUtils.KEY_USER_NAME)));
+                    String.format(Locale.CHINA, getString(R.string.message_user_login_success), result.getData().getStringExtra(KeyUtils.KEY_USER_NAME)));
             Intent intent = new Intent(LoginActivity.this, SelectModeActivity.class);
             startActivity(intent);
             finish();
@@ -160,7 +160,7 @@ public class LoginActivity extends BaseActivity {
 
     private void sendMsg(@StringRes int hint) {
         Message msg = respondUI.obtainMessage(1);
-        msg.obj = getResources().getString(hint);
+        msg.obj = getString(hint);
         respondUI.sendMessage(msg);
     }
 

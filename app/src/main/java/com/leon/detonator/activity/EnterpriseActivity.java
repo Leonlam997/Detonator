@@ -126,7 +126,7 @@ public class EnterpriseActivity extends BaseActivity {
                 || cbCommercial.isChecked() != (null != bean && bean.isCommercial())
                 || !etContract.getText().toString().equals(null == bean ? "" : bean.getContract())
                 || !etProject.getText().toString().equals(null == bean ? "" : bean.getProject())) {
-            new AlertDialog.Builder(EnterpriseActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(EnterpriseActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_abort_modify)
                     .setMessage(R.string.dialog_exit_modify)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> EnterpriseActivity.super.finish())
@@ -137,7 +137,7 @@ public class EnterpriseActivity extends BaseActivity {
                         }
                         return false;
                     })
-                    .create().show();
+                    .show());
         } else
             super.finish();
     }

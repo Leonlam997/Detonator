@@ -192,7 +192,9 @@ public class WriteSNActivity extends BaseActivity {
         });
 
         btnDelay.setOnClickListener(v -> {
-            if (etDelay.getText().toString().isEmpty()) {
+            if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, etNumber.getText().toString().toUpperCase())) {
+                myApp.myToast(WriteSNActivity.this, R.string.message_detonator_input_error);
+            } else if (etDelay.getText().toString().isEmpty()) {
                 myApp.myToast(WriteSNActivity.this, R.string.message_detonator_delay_input_error);
             } else {
                 try {

@@ -220,12 +220,12 @@ public class SemiProductActivity extends BaseActivity {
                         serialPortUtil.closeSerialPort();
                         serialPortUtil = null;
                     }
-                    runOnUiThread(() -> new AlertDialog.Builder(SemiProductActivity.this, R.style.AlertDialog)
+                    runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(SemiProductActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_warning)
-                            .setMessage(getResources().getString(R.string.dialog_short_circuit))
+                            .setMessage(getString(R.string.dialog_short_circuit))
                             .setCancelable(false)
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
-                            .create().show());
+                            .show()));
                     myApp.playSoundVibrate(soundPool, soundAlert);
                 } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
                     flowStep = STEP_FINISHED;

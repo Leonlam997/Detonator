@@ -25,7 +25,10 @@ public class ConstantUtils {
             {"贵安民爆", "113.140.1.137:8610"}};
     public final static String DATE_FORMAT_FULL = "yyyy-MM-dd HH:mm:ss";
     public final static String DATE_FORMAT_CHINESE = "yyyy年MM月dd日HH:mm";
+    public final static String DATE_FORMAT_SAVE = "yyyy-MM-dd HH:mm:ss.SSS";
+    public final static String DATE_FORMAT_PART = "MM-dd HH:mm:ss";
     public final static String INPUT_DETONATOR_ACCEPT = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789";
+    public final static String INPUT_ID_ACCEPT = "0123456789.X";
     public final static String EXPLODE_PSW = "772298";
     public final static String SHELL_PATTERN = "\\d{7}[0-9A-Z]\\d{5}$";
     public final static String UID_PATTERN = "\\d[0-9A-Z]\\d{5}$";
@@ -64,6 +67,7 @@ public class ConstantUtils {
     public final static int SCAN_CODE_TIME = 3000;
     public final static int RESEND_SCAN_TIMEOUT = 3500;
     public final static int SCAN_ZERO_COUNT = 5;
+    public final static int SHORT_CIRCUIT_CURRENT = 20000;
 
     public enum LIST_TYPE {
         ALL,

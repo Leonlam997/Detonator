@@ -13,6 +13,7 @@ import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.MyButton;
 import com.leon.detonator.R;
+import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.serial.SerialCommand;
 import com.leon.detonator.serial.SerialDataReceiveListener;
 import com.leon.detonator.serial.SerialPortUtil;
@@ -52,6 +53,7 @@ public class CheckLineActivity extends BaseActivity {
     private MyButton btnStatus;
     private TextView tvTube;
     private TextView tvDelayTime;
+    private TextView tvLock;
     private String tempAddress;
     private int delayTime;
     private int soundSuccess;
@@ -115,12 +117,12 @@ public class CheckLineActivity extends BaseActivity {
                         serialPortUtil = null;
                     }
                     myApp.playSoundVibrate(soundPool, soundAlert);
-                    new AlertDialog.Builder(CheckLineActivity.this, R.style.AlertDialog)
+                    BaseApplication.customDialog(new AlertDialog.Builder(CheckLineActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_warning)
                             .setCancelable(false)
                             .setMessage(R.string.dialog_short_circuit)
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
-                            .create().show();
+                            .show());
                     break;
                 case DETECT_NEXT_STEP:
                     switch (flowStep) {
@@ -186,14 +188,20 @@ public class CheckLineActivity extends BaseActivity {
                 finish();
             } else {
                 myHandler.removeMessages(DETECT_SEND_COMMAND);
+                myHandler.removeMessages(DETECT_NEXT_STEP);
                 if (received.length > SerialCommand.CODE_CHAR_AT + 1 && 0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
                     switch (flowStep) {
                         case STEP_SCAN:
                             if (received[SerialCommand.CODE_CHAR_AT + 3] < 0x30)
                                 received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
-                            tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9));
+                            DetonatorInfoBean bean = new DetonatorInfoBean(new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9)),
+                                    (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 11]) << 16) + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 12]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 13]),//Delay
+                                    (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 9]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 10]),//Number
+                                    (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 14]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 15]),//Hole
+                                    Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 16]), true);//Status
+                            tempAddress = bean.getAddress();
+                            runOnUiThread(() -> tvLock.setVisibility((bean.getInside() & SerialCommand.MASK_STATUS_LOCK) == 0 ? View.VISIBLE : View.INVISIBLE));
                             if (!Pattern.matches(ConstantUtils.UID_PATTERN, tempAddress)) {
-                                flowStep = STEP_READ_FIELD;
                                 myHandler.sendEmptyMessage(DETECT_FAIL);
                                 return;
                             }
@@ -201,7 +209,6 @@ public class CheckLineActivity extends BaseActivity {
                         case STEP_READ_SHELL:
                             tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
                             if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, tempAddress)) {
-                                flowStep = STEP_READ_FIELD;
                                 myHandler.sendEmptyMessage(DETECT_FAIL);
                                 return;
                             }
@@ -243,6 +250,8 @@ public class CheckLineActivity extends BaseActivity {
         tvTube.setText("--");
         tvDelayTime = findViewById(R.id.tv_delay);
         tvDelayTime.setText(R.string.no_delay_time);
+        tvLock = findViewById(R.id.tv_lock);
+        tvLock.setVisibility(View.INVISIBLE);
         btnDetect = findViewById(R.id.btn_detect);
         btnDetect.setOnClickListener(view -> {
             flowStep = STEP_CHECK_CONFIG;

@@ -96,7 +96,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
     public void finish() {
         if (!etCode.getText().toString().equals(null == baiSeCheck ? "" : baiSeCheck.getData().getProjectCode())
                 || !etId.getText().toString().equals(null == baiSeCheck ? "" : baiSeCheck.getData().getUserIdCard())) {
-            new AlertDialog.Builder(BaiSeDetectorActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(BaiSeDetectorActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_abort_modify)
                     .setMessage(R.string.dialog_exit_modify)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> BaiSeDetectorActivity.super.finish())
@@ -107,7 +107,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
                         }
                         return false;
                     })
-                    .create().show();
+                    .show());
         } else
             super.finish();
     }

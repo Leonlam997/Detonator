@@ -79,7 +79,7 @@ public class DetonateStep2Activity extends BaseActivity {
     private List<DetonatorListAdapter> adapterList;
     private SerialPortUtil serialPortUtil;
     private boolean nextStep = false;
-    private boolean scanNotFound = false;
+    private boolean scanAll = false;
     private MyButton btnCharge, btnRescan;
     private TabLayout tabList;
     private ViewPager pagerList;
@@ -134,8 +134,7 @@ public class DetonateStep2Activity extends BaseActivity {
                     resetTabTitle(false);
                     adapterList.get(pagerList.getCurrentItem()).updateList(lists.get(pagerList.getCurrentItem()));
                     pDialog.show();
-                    pDialog.setMax(lists.get(
-                            rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal() : ConstantUtils.LIST_TYPE.END.ordinal()).size());
+                    pDialog.setMax(lists.get(rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal() : ConstantUtils.LIST_TYPE.END.ordinal()).size());
                     pDialog.setProgress(0);
                     pDialog.setSecondaryProgress(0);
                     pDialog.setOnCancelListener(dialogInterface -> finish());
@@ -145,7 +144,7 @@ public class DetonateStep2Activity extends BaseActivity {
                     setProgressVisibility(true);
                     myReceiveListener.setStartAutoDetect(false);
                     listIndex = 0;
-                    flowStep = rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? STEP_READ_FIELD : STEP_LOCK_1;
+                    flowStep = rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? STEP_READ_FIELD : STEP_RELEASE_1;
                     countScanZero = 0;
                     myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                     break;
@@ -284,8 +283,8 @@ public class DetonateStep2Activity extends BaseActivity {
                             return false;
                         case STEP_WRITE_FIELD:
                             if (listIndex >= lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size()) {
-                                if (scanNotFound && lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size() > 0) {
-                                    scanNotFound = false;
+                                if (scanAll && lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size() > 0) {
+                                    scanAll = false;
                                     rescanWhich = ConstantUtils.LIST_TYPE.NOT_FOUND;
                                     myHandler.sendEmptyMessage(DETECT_RESCAN);
                                 } else {
@@ -330,15 +329,15 @@ public class DetonateStep2Activity extends BaseActivity {
                     serialPortUtil.closeSerialPort();
                     serialPortUtil = null;
                 }
-                runOnUiThread(() -> new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+                runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                         .setTitle(R.string.dialog_title_warning)
-                        .setMessage(getResources().getString(R.string.dialog_short_circuit))
+                        .setMessage(getString(R.string.dialog_short_circuit))
                         .setCancelable(false)
                         .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
                             nextStep = true;
                             finish();
                         })
-                        .create().show());
+                        .show()));
                 myApp.playSoundVibrate(soundPool, soundAlert);
             } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
                 if (rescanWhich == ConstantUtils.LIST_TYPE.END) {
@@ -414,7 +413,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                             }
                                             for (DetonatorInfoBean b2 : lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal())) {
                                                 if (b2.getAddress().equals(b1.getAddress())) {
-                                                    myApp.myToast(DetonateStep2Activity.this, String.format(getResources().getString(R.string.message_detect_multiple), b1.getAddress()));
+                                                    myApp.myToast(DetonateStep2Activity.this, String.format(getString(R.string.message_detect_multiple), b1.getAddress()));
                                                     notFound = false;
                                                     break;
                                                 }
@@ -504,7 +503,7 @@ public class DetonateStep2Activity extends BaseActivity {
                             return;
                         case STEP_CHECK_CONFIG:
                             myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_error);
-                            myHandler.sendEmptyMessage(DETECT_FINISH);
+                            myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                             return;
                         case STEP_READ_SHELL:
                             pDialog.incrementProgressBy(1);
@@ -670,7 +669,7 @@ public class DetonateStep2Activity extends BaseActivity {
         int[] title = {R.string.tab_title_all_list, R.string.tab_title_online, R.string.tab_title_offline, R.string.tab_title_delay_error};
         tabTitle = new HashMap<>();
         for (int i = 0; i < ConstantUtils.LIST_TYPE.END.ordinal(); i++) {
-            tabTitle.put(ConstantUtils.LIST_TYPE.values()[i], getResources().getString(title[i]));
+            tabTitle.put(ConstantUtils.LIST_TYPE.values()[i], getString(title[i]));
         }
         for (int i = 0; i < tabTitle.size(); i++) {
             tabList.addTab(tabList.newTab());
@@ -724,20 +723,29 @@ public class DetonateStep2Activity extends BaseActivity {
         switch (which) {
             case KeyEvent.KEYCODE_1:
                 if (btnRescan.isEnabled()) {
-                    if (maxDelay() > ConstantUtils.MAX_DELAY_TIME) {
-                        new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+                    int max = maxDelay();
+                    if (max > ConstantUtils.MAX_DELAY_TIME) {
+                        BaseApplication.writeFile(getString(R.string.dialog_delay_out_of_range));
+                        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_out_of_range)
                                 .setMessage(R.string.dialog_delay_out_of_range)
                                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> startDetect())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .show();
+                                .show());
+                    } else if (max < 0) {
+                        BaseApplication.writeFile(getString(R.string.dialog_delay_out_of_range_2));
+                        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+                                .setTitle(R.string.dialog_title_out_of_range)
+                                .setMessage(R.string.dialog_delay_out_of_range_2)
+                                .setPositiveButton(R.string.btn_confirm, null)
+                                .show());
                     } else if (btnCharge.isEnabled()) {
-                        new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+                        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_detect_again)
                                 .setMessage(R.string.dialog_detect_again)
                                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> startDetect())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .show();
+                                .show());
                     } else {
                         startDetect();
                     }
@@ -809,18 +817,16 @@ public class DetonateStep2Activity extends BaseActivity {
                 hiddenKeyCount = 0;
                 if (tabList.getSelectedTabPosition() > 0) {
                     TabLayout.Tab tab = tabList.getTabAt(tabList.getSelectedTabPosition() - 1);
-                    if (tab != null) {
+                    if (tab != null)
                         tab.select();
-                    }
                 }
                 break;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 hiddenKeyCount = 0;
                 if (tabList.getSelectedTabPosition() < tabList.getTabCount() - 1) {
                     TabLayout.Tab tab = tabList.getTabAt(tabList.getSelectedTabPosition() + 1);
-                    if (tab != null) {
-                        tab.select();
-                    }
+                    if (tab != null)
+                        tab.select();                    
                 }
                 break;
             default:
@@ -854,6 +860,8 @@ public class DetonateStep2Activity extends BaseActivity {
         for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
             if (bean.getDelayTime() > result)
                 result = bean.getDelayTime();
+            if (bean.getDelayTime() < 0)
+                return -1;
         }
         return result;
     }
@@ -861,8 +869,8 @@ public class DetonateStep2Activity extends BaseActivity {
     private void startDetect() {
         pDialog = new CustomProgressDialog(this);
         pDialog.setCanceledOnTouchOutside(false);
-        scanNotFound = tabList.getSelectedTabPosition() != 2;
-        if (scanNotFound) {
+        scanAll = tabList.getSelectedTabPosition() != 2;
+        if (scanAll) {
             checkList = new ArrayList<>();
             for (int i = ConstantUtils.LIST_TYPE.ALL.ordinal() + 1; i < ConstantUtils.LIST_TYPE.END.ordinal(); i++)
                 lists.get(i).clear();
@@ -870,20 +878,16 @@ public class DetonateStep2Activity extends BaseActivity {
                 d.setDownloaded(false);
             for (DetonatorInfoBean d : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
                 d.setDownloaded(false);
-                try {
-                    boolean notAdd = true;
-                    for (int i = 0; i < checkList.size(); i++)
-                        if (Integer.parseInt(d.getAddress().substring(d.getAddress().length() - 7))
-                                > Integer.parseInt(checkList.get(i).getAddress().substring(checkList.get(i).getAddress().length() - 7))) {
-                            checkList.add(i, d);
-                            notAdd = false;
-                            break;
-                        }
-                    if (notAdd)
-                        checkList.add(d);
-                } catch (Exception e) {
-                    BaseApplication.writeErrorLog(e);
+                boolean notAdd = true;
+                for (int i = 0; i < checkList.size(); i++) {
+                    if (d.getAddress().compareTo(checkList.get(i).getAddress()) > 0) {
+                        checkList.add(i, d);
+                        notAdd = false;
+                        break;
+                    }
                 }
+                if (notAdd)
+                    checkList.add(d);
             }
             rescanWhich = ConstantUtils.LIST_TYPE.ALL;
         } else
@@ -949,7 +953,7 @@ public class DetonateStep2Activity extends BaseActivity {
     @Override
     public void finish() {
         if (!nextStep) {
-            new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                     .setTitle(R.string.progress_title)
                     .setMessage(R.string.dialog_exit_detect)
                     .setCancelable(false)
@@ -962,7 +966,7 @@ public class DetonateStep2Activity extends BaseActivity {
                         if (pDialog != null && pDialog.getMax() != pDialog.getProgress())
                             pDialog.show();
                     })
-                    .show();
+                    .show());
         } else
             super.finish();
     }
@@ -998,7 +1002,7 @@ public class DetonateStep2Activity extends BaseActivity {
                 } else {
                     File file = new File(fileList[i]);
                     if (file.exists() && !file.delete())
-                        myApp.myToast(DetonateStep2Activity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                        myApp.myToast(DetonateStep2Activity.this, String.format(Locale.CHINA, getString(R.string.message_delete_file_fail), file.getName()));
                 }
             }
         } catch (Exception e) {

@@ -27,17 +27,14 @@ public class WelcomeActivity extends AppCompatActivity {
         RelativeLayout rlWelcome = findViewById(R.id.rlWelcome);
         try {
             PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-            //versioncode = packageInfo.versionCode;
-            ((TextView) findViewById(R.id.tv_version)).setText(String.format(Locale.CHINA, getResources().getString(R.string.version_number), packageInfo.versionName));
+            ((TextView) findViewById(R.id.tv_version)).setText(String.format(Locale.CHINA, getString(R.string.version_number), packageInfo.versionName));
             LocalSettingBean bean = BaseApplication.readSettings();
             if (null != bean.getExploderID()) {
-                ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.CHINA, getResources().getString(R.string.device_code), bean.getExploderID()));
+                ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.CHINA, getString(R.string.device_code), bean.getExploderID()));
             }
         } catch (PackageManager.NameNotFoundException e) {
             BaseApplication.writeErrorLog(e);
         }
-        //    private MediaPlayer mediaPlayer;
-        //    private int maxVolume, currentVolume;
         if (BaseApplication.isNetSystemUsable(this)) {
             BaseApplication myApp = (BaseApplication) getApplication();
             myApp.uploadExplodeList();
@@ -45,36 +42,27 @@ public class WelcomeActivity extends AppCompatActivity {
         rlWelcome.setOnClickListener(v -> {
             Intent intent = new Intent(WelcomeActivity.this, BaseApplication.isRemote() ? MainActivity.class : LoginActivity.class);
             startActivity(intent);
-            finish();
         });
-/*
-        try {
-            AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
-            currentVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource("/sdcard/a.mp3");
-            mediaPlayer.prepareAsync();
-            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                @Override
-                public void onPrepared(MediaPlayer mp) {
-                    mediaPlayer.start();
-                }
-            });
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
-*/
     }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode != KeyEvent.KEYCODE_BACK) {
-            Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
+            startActivity(new Intent(WelcomeActivity.this, LoginActivity.class));
         }
         return super.onKeyUp(keyCode, event);
+    }
+
+    @Override
+    protected void onResume() {
+        LocalSettingBean bean = BaseApplication.readSettings();
+        if (null != bean.getExploderID())
+            runOnUiThread(() -> ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.CHINA, getString(R.string.device_code), bean.getExploderID())));
+        super.onResume();
+    }
+
+    @Override
+    public void finish() {
     }
 
     @Override

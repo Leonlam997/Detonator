@@ -184,7 +184,7 @@ public class BluetoothActivity extends BaseActivity {
                     if (sender)
                         sendData();
                     myApp.myToast(BluetoothActivity.this,
-                            String.format(Locale.CHINA, getResources().getString(R.string.bt_connected_device), msg.obj));
+                            String.format(Locale.CHINA, getString(R.string.bt_connected_device), msg.obj));
                     break;
                 case STATUS_DATA:
                     if (!sender) {
@@ -266,8 +266,8 @@ public class BluetoothActivity extends BaseActivity {
                                         }
                                     })
                                     .setPositiveButton(R.string.btn_cover, (d, which) -> saveData(data))
-                                    .create();
-                            alertDialog.show();
+                                    .show();
+                            BaseApplication.customDialog(alertDialog);
                         } else {
                             saveData(data);
                         }
@@ -402,8 +402,8 @@ public class BluetoothActivity extends BaseActivity {
 
     private void showPopupWindow(AdapterView<?> parent, View view, int position) {
         final String[] menu;
-        menu = new String[]{getResources().getString(R.string.menu_send_list),
-                getResources().getString(R.string.menu_cancel_pair)};
+        menu = new String[]{getString(R.string.menu_send_list),
+                getString(R.string.menu_cancel_pair)};
         View popupView = BluetoothActivity.this.getLayoutInflater().inflate(R.layout.layout_popupwindow, parent, false);
         popupView.findViewById(R.id.tvTitle).setVisibility(View.GONE);
         clickIndex = position;
@@ -440,9 +440,9 @@ public class BluetoothActivity extends BaseActivity {
                         pDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
                         pDialog.setCancelable(false);
                         pDialog.setTitle(R.string.progress_title);
-                        pDialog.setMessage(getResources().getString(R.string.progress_connecting));
+                        pDialog.setMessage(getString(R.string.progress_connecting));
                         pDialog.show();
-                        connectHandler.sendMessageDelayed(connectHandler.obtainMessage(STATUS_ERROR, getResources().getString(R.string.bt_connect_timeout)), 10000);
+                        connectHandler.sendMessageDelayed(connectHandler.obtainMessage(STATUS_ERROR, getString(R.string.bt_connect_timeout)), 10000);
                     }
                 }
                 break;
@@ -471,7 +471,7 @@ public class BluetoothActivity extends BaseActivity {
         }
         BluetoothListBean bean = new BluetoothListBean();
         BluetoothBean bt = new BluetoothBean();
-        bt.setName(getResources().getString(R.string.settings_bt));
+        bt.setName(getString(R.string.settings_bt));
         bean.setBluetooth(bt);
         bean.setEnabled(BTAdapter.isEnabled());
         list.add(bean);
@@ -481,20 +481,20 @@ public class BluetoothActivity extends BaseActivity {
         }
         bean = new BluetoothListBean();
         bt = new BluetoothBean();
-        bt.setName(getResources().getString(R.string.bt_device_name));
+        bt.setName(getString(R.string.bt_device_name));
         bt.setAddress(BTAdapter.getName());
         bean.setBluetooth(bt);
         list.add(bean);
         if (BTAdapter.isEnabled()) {
             bean = new BluetoothListBean();
             bt = new BluetoothBean();
-            bt.setName(getResources().getString(R.string.bt_paired_device));
+            bt.setName(getString(R.string.bt_paired_device));
             bean.setBluetooth(bt);
             bean.setRescanLine(true);
             list.add(bean);
             bean = new BluetoothListBean();
             bt = new BluetoothBean();
-            bt.setName(getResources().getString(R.string.bt_available_device));
+            bt.setName(getString(R.string.bt_available_device));
             bean.setBluetooth(bt);
             bean.setRescanLine(true);
             if (discoverable) {

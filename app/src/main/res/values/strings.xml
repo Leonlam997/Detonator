@@ -115,6 +115,7 @@
     <string name="det_charge">正在充电</string>
     <string name="det_check">正在检测</string>
     <string name="det_slide">滑动起爆</string>
+    <string name="text_unlock">雷管未锁定</string>
     <string name="write_number">设置雷管序列号</string>
     <string name="det_up_down_vol">升降法测试</string>
     <string name="det_capacity">电容测试</string>
@@ -212,6 +213,8 @@
     <string name="system_info_imei">IMEI号</string>
     <string name="system_info_iccid">ICCID号</string>
     <string name="system_info_number">移动号码</string>
+    <string name="system_info_board_date">起爆板软件日期</string>
+    <string name="system_info_board_version">起爆板版本号</string>
     <string name="unite_searching_devices">正在搜索联机设备</string>
     <string name="unite_device_not_found">没有搜索到设备！</string>
     <string name="unite_connecting_device">正在连接联机设备</string>
@@ -237,7 +240,7 @@
     <string name="message_detonator_write_error">雷管写入失败！</string>
     <string name="message_detonator_not_detected">检测不到雷管！</string>
     <string name="message_detonator_read_shell_error">管壳码读取错误！</string>
-    <string name="message_detonator_read_field_error">数据读取错误！</string>
+    <string name="message_detonator_read_field_error">延期读取错误！</string>
     <string name="message_detonator_delay_error">管壳码：%1$s\n预设值：%2$dms\n检测值：%3$dms\n延期不一致！</string>
     <string name="message_detonator_tunnel_download_fail">段号：%1$d 段内：%2$d下载失败！</string>
     <string name="message_detonator_open_air_download_fail">排号:%1$d 孔号:%2$d 孔内:%3$d下载失败！</string>
@@ -340,6 +343,7 @@
     <string name="dialog_title_edit_work_voltage">修改工作电压</string>
     <string name="dialog_title_edit_start_voltage">修改启动电压</string>
     <string name="dialog_title_out_of_range">延期超出范围</string>
+    <string name="dialog_delay_out_of_range_2">延期不能小于0，请检查列表！</string>
     <string name="dialog_title_select_mode">请选择模式</string>
     <string name="dialog_title_manual_input">手动输入雷管</string>
     <string name="dialog_title_modify_delay">修改延期</string>
@@ -365,8 +369,7 @@
     <string name="dialog_device_address">设备地址</string>
     <string name="dialog_device_signal">信号强度</string>
     <string name="dialog_clear_list">是否确定清除列表？</string>
-    <string name="dialog_explode_psw_error">起爆密码验证错误！</string>
-    <string name="dialog_explode_status_error">起爆状态验证错误！</string>
+    <string name="dialog_explode_status_error">需要检查线路！</string>
     <string name="dialog_exit_explode">是否退出起爆？</string>
     <string name="dialog_exit_detect">是否退出检测？</string>
     <string name="dialog_exit_download">下载未完成，是否继续退出？</string>
@@ -458,6 +461,7 @@
     <string name="button_self_test">自 检</string>
     <string name="button_rescan">重新搜索</string>
     <string name="button_reconnect">重新联机</string>
+    <string name="button_dialog_start_detect">开始检测</string>
     <string name="button_confirm">确 定</string>
     <string name="button_cancel">取 消</string>
     <string name="button_modify">修 改</string>

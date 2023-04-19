@@ -6,7 +6,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -17,36 +16,68 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
-import com.google.gson.Gson;
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.bean.UpdateVersionBean;
-import com.leon.detonator.R;
-import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
 import com.leon.detonator.util.KeyUtils;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.Locale;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
     private int keyCount = 0, launchType;
     private LocalSettingBean settingBean;
-    private UpdateVersionBean versionBean;
     private BaseApplication myApp;
-    private Handler myHandler = new Handler(message -> {
-        if (message.what == 1) {
-            new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog)
-                    .setTitle(R.string.progress_title)
-                    .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_found_new_version), versionBean.getVersion()))
-                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .create().show();
+    private Handler myHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message message) {
+            if (message.what == 1) {
+                UpdateVersionBean versionBean = (UpdateVersionBean) message.obj;
+                if (versionBean.getVersion() != null) {
+                    String[] version = versionBean.getVersion().split("\\.");
+                    if (version.length == 3) {
+                        try {
+                            int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
+                            version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
+                            if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2])) {
+                                BaseApplication.customDialog(new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog).setTitle(R.string.progress_title)
+                                        .setMessage(String.format(Locale.CHINA, getString(R.string.dialog_found_new_version), versionBean.getVersion()))
+                                        .setPositiveButton(R.string.btn_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
+                                        .setNegativeButton(R.string.btn_cancel, null).show());
+                            }
+                        } catch (Exception e) {
+                            BaseApplication.writeErrorLog(e);
+                        }
+                    }
+                }
+            } else if (message.what == 2) {
+                File file = new File(FilePath.FILE_SERIAL_LOG);
+                if (file.exists() && file.length() > 2 * 1024 * 1024)
+                    trimFile(FilePath.FILE_SERIAL_LOG);
+                file = new File(FilePath.FILE_DEBUG_LOG);
+                if (file.exists() && file.length() > 2 * 1024 * 1024)
+                    trimFile(FilePath.FILE_DEBUG_LOG);
+                if (!myApp.isUploading() && BaseApplication.isNetSystemUsable(MainActivity.this)) {
+                    new Thread(() -> {
+                        myApp.uploadExplodeList();
+                        if (!settingBean.isUploadedLog()) {
+                            myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
+                            myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
+                        }
+                    }).start();
+                    myApp.getVersion(myHandler);
+                }
+                myHandler.sendEmptyMessageDelayed(2, 60 * 1000);
+            }
+            return false;
         }
-        return false;
     });
 
     @Override
@@ -81,23 +112,39 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 myApp.saveBean(settingBean);
             }
         }
-        if (!myApp.isUploading() && BaseApplication.isNetSystemUsable(this)) {
-            new Thread(() -> {
-                myApp.uploadExplodeList();
-                if (!settingBean.isUploadedLog()) {
-                    myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
-                    myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
-                }
-            }).start();
-            new GetVersion().execute();
-        }
+        myHandler.sendEmptyMessage(2);
     }
 
     private void initSettings() {
         settingBean = BaseApplication.readSettings();
-        versionBean = new UpdateVersionBean();
         findViewById(R.id.btn_authorize).setEnabled(0 == settingBean.getServerHost());
     }
+
+    private void trimFile(String fileName) {
+        new Thread(() -> {
+            try {
+                File tempFile = new File(FilePath.FILE_TEMP_LOG);
+                BufferedReader br = new BufferedReader(new FileReader(fileName));
+                long i = br.skip(new File(fileName).length() - 1024 * 1024);
+                if (i > 0) {
+                    String read;
+                    BufferedWriter bw = new BufferedWriter(new FileWriter(tempFile, false));
+                    while ((read = br.readLine()) != null) bw.write(read + "\n");
+                    bw.flush();
+                    bw.close();
+                }
+                br.close();
+                if (new File(fileName).delete()) {
+                    if (!tempFile.renameTo(new File(fileName)))
+                        myApp.myToast(MainActivity.this, R.string.message_delete_fail);
+                } else
+                    myApp.myToast(MainActivity.this, R.string.message_delete_fail);
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
+            }
+        }).start();
+    }
+
 
     @SuppressLint("NonConstantResourceId")
     @Override
@@ -249,65 +296,5 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             launchActivity(keyCode - KeyEvent.KEYCODE_1);
         }
         return super.onKeyUp(keyCode, event);
-    }
-
-    @SuppressLint("StaticFieldLeak")
-    private class GetVersion extends AsyncTask<Void, Integer, String> {
-        @Override
-        protected String doInBackground(Void... params) {
-            try {
-                URL url = new URL(ConstantUtils.VERSION_URL);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5000);
-                if (HttpURLConnection.HTTP_OK == connection.getResponseCode()) {
-                    InputStream is = connection.getInputStream();
-
-                    int len;
-                    byte[] buf = new byte[1024];
-                    StringBuilder stringBuilder = new StringBuilder();
-                    while ((len = is.read(buf)) != -1) {
-                        String s = new String(buf, 0, len);
-                        stringBuilder.append(s);
-                    }
-                    versionBean = new Gson().fromJson(stringBuilder.toString(), UpdateVersionBean.class);
-                    is.close();
-                }
-            } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
-            }
-            return "success";
-        }
-
-        private boolean newVersion() {
-            if (versionBean.getVersion() != null) {
-                String[] version = versionBean.getVersion().split("\\.");
-                if (version.length == 3) {
-                    try {
-                        int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
-                        version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
-                        if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2])) {
-                            return true;
-                        }
-                    } catch (Exception e) {
-                        BaseApplication.writeErrorLog(e);
-                    }
-                }
-            }
-            return false;
-        }
-
-        @Override
-        protected void onPostExecute(String result) {
-            if (myHandler != null && newVersion()) {
-                myHandler.sendEmptyMessage(1);
-            }
-            super.onPostExecute(result);
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            super.onProgressUpdate(values);
-        }
     }
 }
