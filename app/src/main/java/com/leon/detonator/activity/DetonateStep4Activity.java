@@ -10,14 +10,13 @@ import android.view.KeyEvent;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import androidx.annotation.StringRes;
-
 import com.baidu.mapapi.model.LatLng;
 import com.google.gson.Gson;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.CheckRegister;
 import com.leon.detonator.base.MyButton;
+import com.leon.detonator.base.UploadExplodeList;
 import com.leon.detonator.bean.BaiSeCheck;
 import com.leon.detonator.bean.BaiSeUpload;
 import com.leon.detonator.bean.BaiSeUploadResult;
@@ -65,7 +64,6 @@ public class DetonateStep4Activity extends BaseActivity {
     private final int STEP_UPLOAD_TIMEOUT = 5;
     private final int STEP_CHECK_EXPLODER_ERROR = 6;
     private final int STEP_CHECK_EXPLODER_SUCCESS = 7;
-    private final int STEP_MESSAGE = 8;
     private int explodeTime;
     private int countDown;
     private int receiveCount;
@@ -107,14 +105,12 @@ public class DetonateStep4Activity extends BaseActivity {
         latLng = new LatLng(getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0), getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
         try {
             list = new ArrayList<>();
-            myApp.readFromFile(
-                    FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1][ConstantUtils.LIST_TYPE.END.ordinal()],
-                    list, DetonatorInfoBean.class);
+            myApp.readFromFile(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1][ConstantUtils.ListType.END.ordinal() - 1], list, DetonatorInfoBean.class);
             if (list.size() > 0) {
                 Collections.sort(list);
                 explodeTime = list.get(list.size() - 1).getDelayTime();
             } else {
-                showMessage(R.string.message_empty_list);
+                myApp.myToast(DetonateStep4Activity.this, R.string.message_empty_list);
                 finish();
             }
         } catch (Exception e) {
@@ -156,15 +152,15 @@ public class DetonateStep4Activity extends BaseActivity {
             if (countDown < explodeTime / 100) {
                 countDown++;
                 int percent = countDown * ConstantUtils.UPLOAD_TIMEOUT / explodeTime;
-                tvExplode.setText(String.format(Locale.CHINA, "%d%%", percent));
+                tvExplode.setText(String.format(Locale.getDefault(), "%d%%", percent));
                 pbExplode.setProgress(percent);
                 refreshProgressBar.sendEmptyMessageDelayed(1, 100);
             } else {
-                tvExplode.setText(String.format(Locale.CHINA, "%d%%", 100));
+                tvExplode.setText(String.format(Locale.getDefault(), "%d%%", 100));
                 pbExplode.setProgress(100);
                 if (soundTicktock > 0)
                     soundPool.stop(soundTicktock);
-                showMessage(R.string.message_explode_success);
+                myApp.myToast(DetonateStep4Activity.this, R.string.message_explode_success);
                 moveFile();
                 setProgressVisibility(false);
                 btnExit.setEnabled(true);
@@ -215,17 +211,17 @@ public class DetonateStep4Activity extends BaseActivity {
                 case STEP_CHECK_EXPLODER_SUCCESS:
                     settingBean = BaseApplication.readSettings();
                     if (!settingBean.isRegistered() || null == settingBean.getExploderID() || settingBean.getExploderID().isEmpty()) {
-                        showMessage(R.string.message_not_registered);
+                        myApp.myToast(DetonateStep4Activity.this, R.string.message_not_registered);
                     } else if (0 == settingBean.getServerHost() && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
-                        showMessage(R.string.message_fill_enterprise);
+                        myApp.myToast(DetonateStep4Activity.this, R.string.message_fill_enterprise);
                         startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
                     } else {
                         BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep4Activity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_upload)
-                                .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
+                                .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
                                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> uploadRecord())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .show());
+                                .show(), true);
                     }
                     break;
                 case MinaHandler.MINA_DATA:
@@ -262,9 +258,6 @@ public class DetonateStep4Activity extends BaseActivity {
                     disableButton(false);
                     myApp.myToast(DetonateStep4Activity.this, R.string.message_network_timeout);
                     break;
-                case STEP_MESSAGE:
-                    myApp.myToast(DetonateStep4Activity.this, (String) msg.obj);
-                    break;
                 default:
                     break;
             }
@@ -299,18 +292,6 @@ public class DetonateStep4Activity extends BaseActivity {
         }
     }
 
-    private void showMessage(String s) {
-        Message m = delaySendCmdHandler.obtainMessage(STEP_MESSAGE);
-        m.obj = s;
-        delaySendCmdHandler.sendMessage(m);
-    }
-
-    private void showMessage(@StringRes int s) {
-        Message m = delaySendCmdHandler.obtainMessage(STEP_MESSAGE);
-        m.obj = getResources().getString(s);
-        delaySendCmdHandler.sendMessage(m);
-    }
-
     private void uploadRecord() {
         switch (settingBean.getServerHost()) {
             case 0:
@@ -329,7 +310,7 @@ public class DetonateStep4Activity extends BaseActivity {
                         params.put("dsc", str.toString());
                         params.put("dwdm", enterpriseBean.getCode());
                         params.put("bprysfz", enterpriseBean.getId());
-                        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+                        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
                         params.put("bpsj", df.format(new Date()));
                         if (null != latLng) {
                             params.put("jd", latLng.longitude + "");
@@ -355,7 +336,7 @@ public class DetonateStep4Activity extends BaseActivity {
 
                                     @Override
                                     public void onError(Call call, Exception e, int i) {
-                                        showMessage(R.string.message_check_network);
+                                        myApp.myToast(DetonateStep4Activity.this, R.string.message_check_network);
                                         disableButton(false);
                                     }
 
@@ -370,18 +351,18 @@ public class DetonateStep4Activity extends BaseActivity {
                                                             renameRecordFile();
                                                             finish();
                                                         } else {
-                                                            showMessage(R.string.message_upload_fail);
+                                                            myApp.myToast(DetonateStep4Activity.this, R.string.message_upload_fail);
                                                             disableButton(false);
                                                         }
                                                     }
                                                 } else {
-                                                    showMessage(uploadExplodeRecordsBean.getDescription());
+                                                    myApp.myToast(DetonateStep4Activity.this, uploadExplodeRecordsBean.getDescription());
                                                 }
                                             } else {
-                                                showMessage(R.string.message_token_error);
+                                                myApp.myToast(DetonateStep4Activity.this, R.string.message_token_error);
                                             }
                                         } else {
-                                            showMessage(R.string.message_return_data_error);
+                                            myApp.myToast(DetonateStep4Activity.this, R.string.message_return_data_error);
                                         }
                                     }
                                 });
@@ -399,9 +380,9 @@ public class DetonateStep4Activity extends BaseActivity {
                     disableButton(true);
                     enterpriseDialog.dismiss();
                     try {
-                        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+                        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
                         BaiSeUpload baiSeUpload = myApp.readBaiSeUpload();
-                        baiSeUpload.setLngLat(String.format(Locale.CHINA, "%f,%f", latLng.longitude, latLng.latitude));
+                        baiSeUpload.setLngLat(String.format(Locale.getDefault(), "%f,%f", latLng.longitude, latLng.latitude));
                         baiSeUpload.setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
                         baiSeUpload.setDeviceNO(settingBean.getExploderID());
                         baiSeUpload.setDetonatorCount(list.size());
@@ -426,6 +407,7 @@ public class DetonateStep4Activity extends BaseActivity {
                                     @Override
                                     public void onError(Call call, Exception e, int i) {
                                         myApp.myToast(DetonateStep4Activity.this, R.string.message_network_timeout);
+                                        BaseApplication.writeErrorLog(e);
                                     }
 
                                     @Override
@@ -438,6 +420,7 @@ public class DetonateStep4Activity extends BaseActivity {
                                                 uploadServer();
                                             } else if (baiSeUploadResult.getMessage() != null) {
                                                 myApp.myToast(DetonateStep4Activity.this, baiSeUploadResult.getMessage());
+                                                BaseApplication.writeFile(baiSeUploadResult.getMessage());
                                             }
                                         }
                                     }
@@ -481,10 +464,10 @@ public class DetonateStep4Activity extends BaseActivity {
     private void renameRecordFile() {
         File file = new File(FilePath.FILE_DETONATE_RECORDS + "/" + recordFileName);
         if (!file.exists()) {
-            showMessage(R.string.message_file_not_found);
+            myApp.myToast(DetonateStep4Activity.this, R.string.message_file_not_found);
             return;
         } else if (!file.renameTo(new File(FilePath.FILE_DETONATE_RECORDS + "/" + recordFileName.replace("N", "U")))) {
-            showMessage(R.string.message_copy_file_fail);
+            myApp.myToast(DetonateStep4Activity.this, R.string.message_copy_file_fail);
             return;
         }
         List<UploadServerBean> uploadList = new ArrayList<>();
@@ -503,7 +486,8 @@ public class DetonateStep4Activity extends BaseActivity {
         }
         try {
             myApp.writeToFile(FilePath.FILE_UPLOAD_LIST, uploadList);
-            myApp.uploadExplodeList();
+            if (!UploadExplodeList.getInstance().isAlive())
+                UploadExplodeList.getInstance().setApp(myApp).start();
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
@@ -512,19 +496,18 @@ public class DetonateStep4Activity extends BaseActivity {
     private void moveFile() {
         File file = new File(FilePath.FILE_DETONATE_RECORDS);
         if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir())) {
-            showMessage(R.string.message_create_folder_fail);
+            myApp.myToast(DetonateStep4Activity.this, R.string.message_create_folder_fail);
             return;
         }
-        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
         List<DetonatorInfoBean> listAll = new ArrayList<>();
-        String[] fileList = FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1];
         myApp.readFromFile(myApp.getListFile(), listAll, DetonatorInfoBean.class);
-        file = new File(fileList[ConstantUtils.LIST_TYPE.END.ordinal()]);
+        file = new File(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1][ConstantUtils.ListType.END.ordinal() - 1]);
         File newFile = new File(FilePath.FILE_DETONATE_RECORDS +
                 (myApp.isTunnel() ? "/T_" : "/O_")
-                + df.format(new Date()) + "_N_" + String.format(Locale.CHINA, "%.6f_%.6f", latLng.latitude, latLng.longitude) + ".rec");
+                + df.format(new Date()) + "_N_" + String.format(Locale.getDefault(), "%.6f_%.6f", latLng.latitude, latLng.longitude) + ".rec");
         if (file.exists() && !file.renameTo(newFile)) {
-            showMessage(R.string.message_copy_file_fail);
+            myApp.myToast(DetonateStep4Activity.this, R.string.message_copy_file_fail);
             return;
         }
         recordFileName = newFile.getName();
@@ -535,13 +518,12 @@ public class DetonateStep4Activity extends BaseActivity {
             bean.setFile(newFile.getName());
             uploadList.add(bean);
             myApp.writeToFile(FilePath.FILE_UPLOAD_LIST, uploadList);
-            //myApp.uploadExplodeList();
             List<SchemeBean> allSchemes = new ArrayList<>();
             myApp.readFromFile(FilePath.FILE_SCHEME_LIST, allSchemes, SchemeBean.class);
             if (listAll.size() == list.size()) {
                 file = new File(myApp.getListFile());
                 if (file.exists() && !file.delete()) {
-                    showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                    myApp.myToast(DetonateStep4Activity.this, String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
                 }
                 Iterator<SchemeBean> it = allSchemes.iterator();
                 while (it.hasNext()) {
@@ -549,7 +531,7 @@ public class DetonateStep4Activity extends BaseActivity {
                     if (schemeBean.isTunnel() == myApp.isTunnel() && schemeBean.isSelected()) {
                         file = new File(FilePath.FILE_SCHEME_PATH + "/" + schemeBean.fileName());
                         if (file.exists() && !file.delete()) {
-                            showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                            myApp.myToast(DetonateStep4Activity.this, String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
                         }
                         it.remove();
                         break;
@@ -559,7 +541,7 @@ public class DetonateStep4Activity extends BaseActivity {
                 for (DetonatorInfoBean detonatorInfoBean : list)
                     listAll.remove(detonatorInfoBean);
                 myApp.writeToFile(myApp.getListFile(), listAll);
-                for (SchemeBean schemeBean: allSchemes) {
+                for (SchemeBean schemeBean : allSchemes) {
                     if (schemeBean.isTunnel() == myApp.isTunnel() && schemeBean.isSelected()) {
                         schemeBean.setAmount(listAll.size());
                         myApp.writeToFile(FilePath.FILE_SCHEME_LIST, allSchemes);
@@ -568,11 +550,7 @@ public class DetonateStep4Activity extends BaseActivity {
                 }
             }
             myApp.writeToFile(FilePath.FILE_SCHEME_LIST, allSchemes);
-            for (int i = ConstantUtils.LIST_TYPE.ALL.ordinal() + 1; i <= ConstantUtils.LIST_TYPE.END.ordinal(); i++) {
-                file = new File(fileList[i]);
-                if (file.exists() && !file.delete())
-                    myApp.myToast(DetonateStep4Activity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
-            }
+            myApp.deleteDetectTempFiles();
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
@@ -621,6 +599,4 @@ public class DetonateStep4Activity extends BaseActivity {
         }
         super.onDestroy();
     }
-
-
 }

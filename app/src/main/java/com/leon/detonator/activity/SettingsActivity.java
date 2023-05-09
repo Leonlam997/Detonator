@@ -96,7 +96,7 @@ public class SettingsActivity extends BaseActivity {
                             }
                         })
                         .setNegativeButton(R.string.btn_cancel, null)
-                        .show());
+                        .show(), true);
                 break;
             case 9:
                 intent.setClass(SettingsActivity.this, SystemInfoActivity.class);

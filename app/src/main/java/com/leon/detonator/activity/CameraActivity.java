@@ -384,7 +384,7 @@ public class CameraActivity extends BaseActivity {
 //                BaseApplication.writeFile("Create camera path error!");
 //            }
 //
-//            String fileName = FilePath.FILE_CAMERA_CAPTURE + "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.CHINA).format(new Date()) + ".jpg";
+//            String fileName = FilePath.FILE_CAMERA_CAPTURE + "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date()) + ".jpg";
 //            FileOutputStream fos = null;
 //            try {
 //                fos = new FileOutputStream(fileName);

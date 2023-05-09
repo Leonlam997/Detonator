@@ -71,14 +71,14 @@ public class VersionAdapter extends BaseAdapter {
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
-        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_CHINESE, Locale.CHINA);
+        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_CHINESE, Locale.getDefault());
         int textSize = 28;
         String text = (position + 1) + "";
         viewHolder.serialNo.setText(text);
         viewHolder.serialNo.setTextSize(textSize);
         viewHolder.downloadDate.setText(formatter.format(bean.getDownloadDate()));
         viewHolder.downloadDate.setTextSize(textSize);
-        viewHolder.size.setText(String.format(Locale.CHINA, "%.1fMB", bean.getSize() / 1000f / 1000f));
+        viewHolder.size.setText(String.format(Locale.getDefault(), "%.1fMB", bean.getSize() / 1000f / 1000f));
         viewHolder.size.setTextSize(textSize);
         viewHolder.version.setText(bean.getVersion());
         viewHolder.version.setTextSize(textSize);

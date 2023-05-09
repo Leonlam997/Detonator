@@ -177,8 +177,8 @@ public class WriteSNActivity extends BaseActivity {
             }
         });
 
-        findViewById(R.id.btn_increase).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) + 1) % 100000)));
-        findViewById(R.id.btn_decrease).setOnClickListener(v -> etNumber.setText(String.format(Locale.CHINA, "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) - 1) % 100000)));
+        findViewById(R.id.btn_increase).setOnClickListener(v -> etNumber.setText(String.format(Locale.getDefault(), "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) + 1) % 100000)));
+        findViewById(R.id.btn_decrease).setOnClickListener(v -> etNumber.setText(String.format(Locale.getDefault(), "%s%05d", etNumber.getText().toString().substring(0, 8), (Long.parseLong(etNumber.getText().toString().substring(8)) - 1) % 100000)));
         //btnWrite.setEnabled(false);
         btnWrite.setOnClickListener(v -> {
             if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, etNumber.getText().toString().toUpperCase())) {
@@ -241,7 +241,7 @@ public class WriteSNActivity extends BaseActivity {
                                 myApp.myToast(WriteSNActivity.this, R.string.message_detonator_write_success);
                                 runOnUiThread(() -> {
                                     try {
-                                        etNumber.setText(String.format(Locale.CHINA, "%s%06d", etNumber.getText().toString().substring(0, 7), Integer.parseInt(etNumber.getText().toString().substring(7)) + 1));
+                                        etNumber.setText(String.format(Locale.getDefault(), "%s%06d", etNumber.getText().toString().substring(0, 7), Integer.parseInt(etNumber.getText().toString().substring(7)) + 1));
                                     } catch (Exception e) {
                                         BaseApplication.writeErrorLog(e);
                                     }

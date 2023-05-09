@@ -73,11 +73,9 @@ public class DetonateStep2Activity extends BaseActivity {
     private final int STEP_LOCK_1 = 15;
     private final int STEP_LOCK_2 = 16;
     private final int STEP_LOCK_3 = 17;
-    private final int STEP_CHECK_ONLINE = 18;
     private List<List<DetonatorInfoBean>> lists;
-    private List<DetonatorInfoBean> checkList;
     private List<TabFragment> fragments;
-    private Map<ConstantUtils.LIST_TYPE, String> tabTitle;
+    private Map<ConstantUtils.ListType, String> tabTitle;
     private List<DetonatorListAdapter> adapterList;
     private SerialPortUtil serialPortUtil;
     private boolean nextStep;
@@ -95,7 +93,7 @@ public class DetonateStep2Activity extends BaseActivity {
     private int countScanZero;
     private int soundSuccess;
     private int soundAlert;
-    private ConstantUtils.LIST_TYPE rescanWhich;
+    private ConstantUtils.ListType rescanWhich;
     private SerialDataReceiveListener myReceiveListener;
     private SoundPool soundPool;
     private String[] fileList;
@@ -109,22 +107,22 @@ public class DetonateStep2Activity extends BaseActivity {
                     resetTabTitle(false);
                     break;
                 case DETECT_FINISH:
-                    adapterList.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).setEnabled(true);
+                    adapterList.get(ConstantUtils.ListType.ALL.ordinal()).setEnabled(true);
                     BaseApplication.releaseWakeLock(DetonateStep2Activity.this);
                     myApp.playSoundVibrate(soundPool, soundSuccess);
-                    btnCharge.setEnabled(lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size() == 0 && lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size() == 0
-                            && lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size() == lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size());
+                    btnCharge.setEnabled(lists.get(ConstantUtils.ListType.ERROR.ordinal()).size() == 0 && lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size() == 0
+                            && lists.get(ConstantUtils.ListType.END.ordinal()).size() == lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size());
                     if (pDialog != null) {
                         if (pDialog.isShowing())
                             pDialog.dismiss();
                         pDialog = null;
                     }
-                    rescanWhich = ConstantUtils.LIST_TYPE.END;
-                    btnRescan.setEnabled(tabList.getSelectedTabPosition() == ConstantUtils.LIST_TYPE.DETECTED.ordinal() || lists.get(tabList.getSelectedTabPosition()).size() > 0);
+                    rescanWhich = ConstantUtils.ListType.END;
+                    btnRescan.setEnabled(tabList.getSelectedTabPosition() == ConstantUtils.ListType.DETECTED.ordinal() || lists.get(tabList.getSelectedTabPosition()).size() > 0);
                     setProgressVisibility(false);
                     myReceiveListener.setStartAutoDetect(true);
-                    int i = lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size() > 0 ? ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal() :
-                            (lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size() > 0 ? ConstantUtils.LIST_TYPE.ERROR.ordinal() : 0);
+                    int i = lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size() > 0 ? ConstantUtils.ListType.NOT_FOUND.ordinal() :
+                            (lists.get(ConstantUtils.ListType.ERROR.ordinal()).size() > 0 ? ConstantUtils.ListType.ERROR.ordinal() : 0);
                     if (i > 0) {
                         pagerList.setCurrentItem(i, true);
                     }
@@ -132,10 +130,11 @@ public class DetonateStep2Activity extends BaseActivity {
                 case DETECT_RESCAN:
                     BaseApplication.acquireWakeLock(DetonateStep2Activity.this);
                     checkedHint = true;
+                    myReceiveListener.setDetonatorAmount(lists.get(ConstantUtils.ListType.END.ordinal()).size());
                     resetTabTitle(false);
                     adapterList.get(pagerList.getCurrentItem()).updateList(lists.get(pagerList.getCurrentItem()));
                     pDialog.show();
-                    pDialog.setMax(lists.get(rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal() : ConstantUtils.LIST_TYPE.END.ordinal()).size());
+                    pDialog.setMax(lists.get(rescanWhich == ConstantUtils.ListType.NOT_FOUND ? ConstantUtils.ListType.NOT_FOUND.ordinal() : ConstantUtils.ListType.END.ordinal()).size());
                     pDialog.setProgress(0);
                     pDialog.setSecondaryProgress(0);
                     pDialog.setOnCancelListener(dialogInterface -> finish());
@@ -145,7 +144,7 @@ public class DetonateStep2Activity extends BaseActivity {
                     setProgressVisibility(true);
                     myReceiveListener.setStartAutoDetect(false);
                     listIndex = 0;
-                    flowStep = rescanWhich == ConstantUtils.LIST_TYPE.NOT_FOUND ? STEP_READ_FIELD : STEP_LOCK_1;
+                    flowStep = rescanWhich == ConstantUtils.ListType.NOT_FOUND ? STEP_READ_FIELD : STEP_RELEASE_1;
                     countScanZero = 0;
                     myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                     break;
@@ -223,27 +222,29 @@ public class DetonateStep2Activity extends BaseActivity {
                             break;
                         case STEP_SCAN:
                             if (countScanZero < ConstantUtils.SCAN_ZERO_COUNT) {
-                                serialPortUtil.sendCmd(listIndex < checkList.size() ? checkList.get(listIndex).getAddress() : "", SerialCommand.CODE_SCAN_UID, ConstantUtils.UID_LEN);
+                                serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_UID, ConstantUtils.UID_LEN);
                                 myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_SCAN_UID_TIMEOUT);
                                 return false;
                             } else {
                                 listIndex = 0;
                                 int amount = 0;
-                                for (DetonatorInfoBean b : lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()))
+                                for (DetonatorInfoBean b : lists.get(ConstantUtils.ListType.DETECTED.ordinal()))
                                     if (!b.isDownloaded())
                                         amount++;
-                                for (DetonatorInfoBean b : lists.get(ConstantUtils.LIST_TYPE.END.ordinal()))
-                                    if (!lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).contains(b))
-                                        lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).add(b);
+                                for (DetonatorInfoBean b : lists.get(ConstantUtils.ListType.END.ordinal()))
+                                    if (!lists.get(ConstantUtils.ListType.DETECTED.ordinal()).contains(b)) {
+                                        lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).add(b);
+                                        BaseApplication.writeFile("不在线：" + b.getAddress());
+                                    }
                                 myHandler.sendEmptyMessage(DETECT_SUCCESS);
-                                if (0 == amount && lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size() == 0) {
+                                if (0 == amount && lists.get(ConstantUtils.ListType.ERROR.ordinal()).size() == 0) {
                                     myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_finished);
                                     myHandler.sendEmptyMessage(DETECT_FINISH);
                                     return false;
                                 } else {
                                     pDialog.setProgress(0);
-                                    if (lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size() > 0) {
-                                        pDialog.setMax(lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size());
+                                    if (lists.get(ConstantUtils.ListType.ERROR.ordinal()).size() > 0) {
+                                        pDialog.setMax(lists.get(ConstantUtils.ListType.ERROR.ordinal()).size());
                                         pDialog.setMessage(R.string.progress_reading);
                                         flowStep = STEP_READ_SHELL;
                                     } else {
@@ -257,10 +258,10 @@ public class DetonateStep2Activity extends BaseActivity {
                             }
                             break;
                         case STEP_READ_SHELL:
-                            if (listIndex >= lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size()) {
+                            if (listIndex >= lists.get(ConstantUtils.ListType.ERROR.ordinal()).size()) {
                                 listIndex = 0;
                                 int amount = 0;
-                                for (DetonatorInfoBean b : lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()))
+                                for (DetonatorInfoBean b : lists.get(ConstantUtils.ListType.DETECTED.ordinal()))
                                     if (!b.isDownloaded())
                                         amount++;
                                 pDialog.setProgress(0);
@@ -271,13 +272,13 @@ public class DetonateStep2Activity extends BaseActivity {
                                 myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                                 return false;
                             }
-                            serialPortUtil.sendCmd(lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).get(listIndex).getAddress(), SerialCommand.CODE_READ_SHELL, ConstantUtils.UID_LEN);
+                            serialPortUtil.sendCmd(lists.get(ConstantUtils.ListType.ERROR.ordinal()).get(listIndex).getAddress(), SerialCommand.CODE_READ_SHELL, ConstantUtils.UID_LEN);
                             myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
                             return false;
                         case STEP_WRITE_FIELD:
-                            if (listIndex >= lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size()) {
-                                if (rescanWhich != ConstantUtils.LIST_TYPE.NOT_FOUND && lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size() > 0) {
-                                    rescanWhich = ConstantUtils.LIST_TYPE.NOT_FOUND;
+                            if (listIndex >= lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size()) {
+                                if (rescanWhich != ConstantUtils.ListType.NOT_FOUND && lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size() > 0) {
+                                    rescanWhich = ConstantUtils.ListType.NOT_FOUND;
                                     myHandler.sendEmptyMessage(DETECT_RESCAN);
                                 } else {
                                     myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_finished);
@@ -285,26 +286,22 @@ public class DetonateStep2Activity extends BaseActivity {
                                 }
                                 return false;
                             }
-                            DetonatorInfoBean bean = lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(listIndex);
+                            DetonatorInfoBean bean = lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex);
                             serialPortUtil.sendCmd(bean.getAddress(), SerialCommand.CODE_WRITE_FIELD,
-                                    lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).indexOf(lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(listIndex)) + 1
+                                    lists.get(ConstantUtils.ListType.END.ordinal()).indexOf(lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex)) + 1
                                     , bean.getDelayTime(), bean.getHole());
                             myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
                             return false;
                         case STEP_READ_FIELD:
-                            if (listIndex >= lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).size()) {
-                                lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).clear();
+                            if (listIndex >= lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size()) {
+                                lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).clear();
                                 countScanZero = ConstantUtils.SCAN_ZERO_COUNT;
                                 flowStep = STEP_SCAN;
                                 myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                             } else {
-                                serialPortUtil.sendCmd(lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).get(listIndex).getAddress(), SerialCommand.CODE_READ_FIELD, ConstantUtils.UID_LEN, 0, 0, 0);
+                                serialPortUtil.sendCmd(lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).get(listIndex).getAddress(), SerialCommand.CODE_READ_FIELD, ConstantUtils.UID_LEN, 0, 0, 0);
                                 myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_CMD_TIMEOUT);
                             }
-                            return false;
-                        case STEP_CHECK_ONLINE:
-                            serialPortUtil.sendCmd("", SerialCommand.CODE_CHECK_ONLINE, lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size());
-                            myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size() * 2L + ConstantUtils.SCAN_DELAY_TIME);
                             return false;
                     }
                     myHandler.sendEmptyMessageDelayed(DETECT_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
@@ -321,35 +318,31 @@ public class DetonateStep2Activity extends BaseActivity {
         @Override
         public void run() {
             byte[] received = myReceiveListener.getRcvData();
-            if (received[0] == SerialCommand.ALERT_SHORT_CIRCUIT) {
+            if (received[0] == SerialCommand.ALERT_SHORT_CIRCUIT || received[0] == SerialCommand.ALERT_LARGE_CURRENT) {
                 closeAllHandler();
                 if (serialPortUtil != null) {
                     serialPortUtil.closeSerialPort();
                     serialPortUtil = null;
                 }
+                BaseApplication.writeFile(getString(received[0] == SerialCommand.ALERT_SHORT_CIRCUIT ? R.string.dialog_short_circuit : R.string.dialog_large_current));
                 runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                         .setTitle(R.string.dialog_title_warning)
-                        .setMessage(getResources().getString(R.string.dialog_short_circuit))
+                        .setMessage(received[0] == SerialCommand.ALERT_SHORT_CIRCUIT ? R.string.dialog_short_circuit : R.string.dialog_large_current)
                         .setCancelable(false)
                         .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
                             nextStep = true;
                             finish();
                         })
-                        .show()));
+                        .show(), true));
                 myApp.playSoundVibrate(soundPool, soundAlert);
             } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
                 checkBoxStatus();
-                if (rescanWhich == ConstantUtils.LIST_TYPE.END) {
+                if (rescanWhich == ConstantUtils.ListType.END) {
                     myHandler.sendEmptyMessage(DETECT_FINISH);
-                } else if (rescanWhich == ConstantUtils.LIST_TYPE.ALL) {
+                } else if (rescanWhich == ConstantUtils.ListType.ALL) {
                     myHandler.sendEmptyMessage(DETECT_RESCAN);
                 }
             } else if (received[0] == SerialCommand.INITIAL_FAIL) {
-                closeAllHandler();
-                if (serialPortUtil != null) {
-                    serialPortUtil.closeSerialPort();
-                    serialPortUtil = null;
-                }
                 myApp.myToast(DetonateStep2Activity.this, R.string.message_open_module_fail);
                 nextStep = true;
                 finish();
@@ -378,12 +371,12 @@ public class DetonateStep2Activity extends BaseActivity {
                             try {
                                 DetonatorInfoBean bean;
                                 if (flowStep == STEP_READ_FIELD) {
-                                    bean = new DetonatorInfoBean(lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).get(listIndex).getAddress(),
+                                    bean = new DetonatorInfoBean(lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).get(listIndex).getAddress(),
                                             (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 4]) << 16) + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 5]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 6]),//Delay
                                             (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 2]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 3]),//Number
                                             (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 7]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 8]),//Hole
                                             Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 9]), false);//Status
-                                    lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).remove(listIndex);
+                                    lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).remove(listIndex);
                                 } else {
                                     if (received[SerialCommand.CODE_CHAR_AT + 3] < 0x30)
                                         received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
@@ -394,38 +387,39 @@ public class DetonateStep2Activity extends BaseActivity {
                                             Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 16]), false);//Status
                                     listIndex++;
                                 }
+                                BaseApplication.writeFile("雷壳码：" + bean.getAddress());
                                 pDialog.incrementProgressBy(1);
                                 pDialog.setSecondaryProgress(45 * pDialog.getProgress() / (pDialog.getMax() + ConstantUtils.SCAN_ZERO_COUNT));
                                 countScanZero = 0;
                                 if (flowStep == STEP_READ_FIELD || Pattern.matches(ConstantUtils.UID_PATTERN, bean.getAddress())) {
-                                    int i = lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).indexOf(bean);
+                                    int i = lists.get(ConstantUtils.ListType.END.ordinal()).indexOf(bean);
                                     if (i >= 0) {
-                                        DetonatorInfoBean b1 = lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(i);
+                                        DetonatorInfoBean b1 = lists.get(ConstantUtils.ListType.END.ordinal()).get(i);
                                         if (bean.getDelayTime() == b1.getDelayTime() && i + 1 == bean.getRow() && b1.getHole() == bean.getHole()) {
                                             b1.setDownloaded(true);
-                                            int j = lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).indexOf(b1);
+                                            int j = lists.get(ConstantUtils.ListType.ALL.ordinal()).indexOf(b1);
                                             if (j >= 0)
-                                                lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).get(j).setDownloaded(true);
+                                                lists.get(ConstantUtils.ListType.ALL.ordinal()).get(j).setDownloaded(true);
                                         }
-                                        if (lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).contains(b1)) {
-                                            myApp.myToast(DetonateStep2Activity.this, String.format(getResources().getString(R.string.message_detect_multiple), b1.getAddress()));
+                                        if (lists.get(ConstantUtils.ListType.DETECTED.ordinal()).contains(b1)) {
+                                            myApp.myToast(DetonateStep2Activity.this, String.format(getString(R.string.message_detect_multiple), b1.getAddress()));
                                         } else {
-                                            if (lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size() == 0)
-                                                lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).add(b1);
+                                            if (lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size() == 0)
+                                                lists.get(ConstantUtils.ListType.DETECTED.ordinal()).add(b1);
                                             else {
                                                 int k = 0;
-                                                for (; k < lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size(); k++)
-                                                    if (lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).indexOf(lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(k)) > i) {
-                                                        lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).add(k, b1);
+                                                for (; k < lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size(); k++)
+                                                    if (lists.get(ConstantUtils.ListType.END.ordinal()).indexOf(lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(k)) > i) {
+                                                        lists.get(ConstantUtils.ListType.DETECTED.ordinal()).add(k, b1);
                                                         break;
                                                     }
-                                                if (k >= lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size())
-                                                    lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).add(b1);
+                                                if (k >= lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size())
+                                                    lists.get(ConstantUtils.ListType.DETECTED.ordinal()).add(b1);
                                             }
                                             myHandler.sendEmptyMessage(DETECT_SUCCESS);
                                         }
                                     } else
-                                        lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).add(bean);
+                                        lists.get(ConstantUtils.ListType.ERROR.ordinal()).add(bean);
                                 }
                             } catch (Exception e) {
                                 BaseApplication.writeErrorLog(e);
@@ -438,33 +432,24 @@ public class DetonateStep2Activity extends BaseActivity {
                             if (received[SerialCommand.CODE_CHAR_AT + 3] < 0x30)
                                 received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
                             String address = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
-                            if (Pattern.matches(ConstantUtils.SHELL_PATTERN, address))
-                                lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).get(listIndex).setAddress(address);
+                            BaseApplication.writeFile("雷壳码：" + address);
+                            if (Pattern.matches(ConstantUtils.SHELL_PATTERN, address)) {
+                                lists.get(ConstantUtils.ListType.ERROR.ordinal()).get(listIndex).setAddress(address);
+                            }
                             listIndex++;
                             break;
                         case STEP_WRITE_FIELD:
                             pDialog.incrementProgressBy(1);
                             pDialog.setSecondaryProgress(55 + 45 * pDialog.getProgress() / pDialog.getMax());
-                            lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(listIndex).setDownloaded(true);
-                            lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).get(lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).indexOf(lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(listIndex))).setDownloaded(true);
+                            lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex).setDownloaded(true);
+                            lists.get(ConstantUtils.ListType.ALL.ordinal()).get(lists.get(ConstantUtils.ListType.ALL.ordinal()).indexOf(lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex))).setDownloaded(true);
                             nextDownloadIndex();
                             break;
-                        case STEP_CHECK_ONLINE:
-                            for (int i = 0; i < lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size(); i++)
-                                if ((received[SerialCommand.CODE_CHAR_AT + 2 + i / 8] & (1 << (7 - i % 8))) == 0) {
-                                    if (!lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).contains(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(i)))
-                                        lists.get(ConstantUtils.LIST_TYPE.NOT_FOUND.ordinal()).add(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(i));
-                                    int j = lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).indexOf(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).get(i));
-                                    if (j >= 0)
-                                        lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).remove(j);
-                                }
-                            myHandler.sendEmptyMessage(DETECT_SUCCESS);
-                            myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_finished);
-                            myHandler.sendEmptyMessage(DETECT_FINISH);
-                            return;
                     }
                     myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                 } else {
+                    if (flowStep != STEP_SCAN && flowStep != STEP_WRITE_FIELD)
+                        BaseApplication.writeFile("返回错误！");
                     switch (flowStep) {
                         case STEP_LOCK_1:
                         case STEP_LOCK_2:
@@ -480,6 +465,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                 }
                             }
                             if (allZero) {
+                                BaseApplication.writeFile("点名结束！" + countScanZero);
                                 countScanZero++;
                             }
                             listIndex++;
@@ -488,19 +474,18 @@ public class DetonateStep2Activity extends BaseActivity {
                             return;
                         case STEP_CHECK_CONFIG:
                             myApp.myToast(DetonateStep2Activity.this, R.string.message_detect_error);
-                            myHandler.sendEmptyMessage(DETECT_FINISH);
+                            myHandler.sendEmptyMessageDelayed(DETECT_NEXT_STEP, ConstantUtils.COMMAND_DELAY_TIME);
                             return;
                         case STEP_READ_SHELL:
                             pDialog.incrementProgressBy(1);
                             pDialog.setSecondaryProgress(45 + 10 * pDialog.getProgress() / pDialog.getMax());
-                            if (listIndex < lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).size())
-                                lists.get(ConstantUtils.LIST_TYPE.ERROR.ordinal()).remove(listIndex);
+                            listIndex++;
                             break;
                         case STEP_WRITE_FIELD:
                             pDialog.incrementProgressBy(1);
                             pDialog.setSecondaryProgress(55 + 45 * pDialog.getProgress() / pDialog.getMax());
-                            lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(listIndex).setDownloaded(true);
-                            lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).get(lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).indexOf(lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(listIndex))).setDownloaded(true);
+                            lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex).setDownloaded(true);
+                            lists.get(ConstantUtils.ListType.ALL.ordinal()).get(lists.get(ConstantUtils.ListType.ALL.ordinal()).indexOf(lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex))).setDownloaded(true);
                             nextDownloadIndex();
                             break;
                         case STEP_READ_FIELD:
@@ -514,7 +499,7 @@ public class DetonateStep2Activity extends BaseActivity {
     };
 
     private void nextDownloadIndex() {
-        while (listIndex < lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).size() && lists.get(ConstantUtils.LIST_TYPE.DETECTED.ordinal()).get(listIndex).isDownloaded())
+        while (listIndex < lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size() && lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex).isDownloaded())
             listIndex++;
         myHandler.sendEmptyMessage(DETECT_SUCCESS);
     }
@@ -528,7 +513,7 @@ public class DetonateStep2Activity extends BaseActivity {
         if (getIntent().getBooleanExtra(KeyUtils.KEY_EXPLODE_UNITE, false)) {
             setTitle(R.string.check_detonator, R.string.subtitle_unite);
             if (btnCharge.getKeyCode() != -1)
-                btnCharge.setText(String.format(Locale.CHINA, "%d.%s", btnCharge.getKeyCode(), getString(R.string.button_enter_unite)));
+                btnCharge.setText(String.format(Locale.getDefault(), "%d.%s", btnCharge.getKeyCode(), getString(R.string.button_enter_unite)));
             else
                 btnCharge.setText(R.string.button_enter_unite);
         } else
@@ -538,51 +523,47 @@ public class DetonateStep2Activity extends BaseActivity {
 
         lists = new ArrayList<>();
         checkedHint = true;
-        fileList = FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1];
-        rescanWhich = ConstantUtils.LIST_TYPE.END;
+        fileList = new String[FilePath.FILE_LIST[0].length + 1];
+        fileList[0] = myApp.getListFile();
+        System.arraycopy(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1], 0, fileList, 1, FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1].length);
+        rescanWhich = ConstantUtils.ListType.END;
         try {
-            for (int i = 0; i <= ConstantUtils.LIST_TYPE.END.ordinal(); i++) {
+            for (int i = 0; i < fileList.length; i++) {
                 lists.add(new ArrayList<>());
-                if (new File(fileList[i]).exists()) {
-                    myApp.readFromFile(fileList[i], lists.get(i), DetonatorInfoBean.class);
-                }
+                myApp.readFromFile(fileList[i], lists.get(i), DetonatorInfoBean.class);
             }
-            if (lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).size() <= 0) {
+            if (lists.get(ConstantUtils.ListType.ALL.ordinal()).size() <= 0) {
                 myApp.myToast(DetonateStep2Activity.this, R.string.message_list_not_found);
                 nextStep = true;
                 finish();
                 return;
             } else {
-                for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()))
+                for (DetonatorInfoBean bean : lists.get(ConstantUtils.ListType.ALL.ordinal()))
                     bean.setDownloaded(false);
             }
-            if (lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size() > 0) {
-                Iterator<DetonatorInfoBean> iterator = lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).iterator();
+            if (lists.get(ConstantUtils.ListType.END.ordinal()).size() > 0) {
+                Iterator<DetonatorInfoBean> iterator = lists.get(ConstantUtils.ListType.END.ordinal()).iterator();
                 while (iterator.hasNext()) {
-                    int i = lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).indexOf(iterator.next());
+                    int i = lists.get(ConstantUtils.ListType.ALL.ordinal()).indexOf(iterator.next());
                     if (i >= 0)
-                        lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).get(i).setSelected(true);
+                        lists.get(ConstantUtils.ListType.ALL.ordinal()).get(i).setSelected(true);
                     else
                         iterator.remove();
                 }
             } else {
-                lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).addAll(lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()));
-                for (DetonatorInfoBean b : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()))
+                lists.get(ConstantUtils.ListType.END.ordinal()).addAll(lists.get(ConstantUtils.ListType.ALL.ordinal()));
+                for (DetonatorInfoBean b : lists.get(ConstantUtils.ListType.ALL.ordinal()))
                     b.setSelected(true);
             }
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
-
-        initPager();
-        btnCharge.setEnabled(false);
-        btnRescan = findViewById(R.id.btn_rescan);
-        btnRescan.requestFocus();
-        btnRescan.setEnabled(false);
-        try {
+            initPager();
+            btnCharge.setEnabled(false);
+            btnRescan = findViewById(R.id.btn_rescan);
+            btnRescan.requestFocus();
+            btnRescan.setEnabled(false);
             serialPortUtil = SerialPortUtil.getInstance();
             myReceiveListener = new SerialDataReceiveListener(DetonateStep2Activity.this, bufferRunnable);
             serialPortUtil.setOnDataReceiveListener(myReceiveListener);
+            myReceiveListener.setDetonatorAmount(lists.get(ConstantUtils.ListType.END.ordinal()).size());
             btnCharge.setOnClickListener(v -> executeFunction(KeyEvent.KEYCODE_2));
             btnRescan.setOnClickListener(v -> executeFunction(KeyEvent.KEYCODE_1));
         } catch (Exception e) {
@@ -594,8 +575,8 @@ public class DetonateStep2Activity extends BaseActivity {
     private void resetTabTitle(boolean init) {
         for (int i = 0; i < tabTitle.size(); i++) {
             TextView tv = (TextView) LayoutInflater.from(DetonateStep2Activity.this).inflate(R.layout.layout_tab_view, tabList, false);
-            String text = tabTitle.get(ConstantUtils.LIST_TYPE.values()[i]) + "(" + lists.get(i == 0 ? ConstantUtils.LIST_TYPE.END.ordinal() : i).size() +
-                    (i == 0 ? "/" + lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).size() : "") + ")";
+            String text = tabTitle.get(ConstantUtils.ListType.values()[i]) + "(" + lists.get(i == 0 ? ConstantUtils.ListType.END.ordinal() : i).size() +
+                    (i == 0 ? "/" + lists.get(ConstantUtils.ListType.ALL.ordinal()).size() : "") + ")";
             tv.setText(text);
             TabLayout.Tab tab = tabList.getTabAt(i);
             if (tab != null) {
@@ -621,9 +602,9 @@ public class DetonateStep2Activity extends BaseActivity {
         adapterList = new ArrayList<>();
         int[] title = {R.string.tab_title_all_list, R.string.tab_title_online, R.string.tab_title_offline, R.string.tab_title_delay_error};
         tabTitle = new HashMap<>();
-        for (int i = 0; i < ConstantUtils.LIST_TYPE.END.ordinal(); i++) {
-            tabTitle.put(ConstantUtils.LIST_TYPE.values()[i], getResources().getString(title[i]));
-        }
+        for (int i = 0; i < ConstantUtils.ListType.END.ordinal(); i++)
+            tabTitle.put(ConstantUtils.ListType.values()[i], getString(title[i]));
+
         for (int i = 0; i < tabTitle.size(); i++) {
             tabList.addTab(tabList.newTab());
 
@@ -644,7 +625,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                 if (pos == -1)
                                     fragments.get(0).allChecked(!fragments.get(0).isAllChecked());
                             })
-                            .show()));
+                            .show(), true));
                 } else {
                     checked(pos);
                 }
@@ -662,9 +643,9 @@ public class DetonateStep2Activity extends BaseActivity {
                 resetTabTitle(false);
                 pagerList.setCurrentItem(tab.getPosition());
                 adapterList.get(tab.getPosition()).updateList(lists.get(tab.getPosition()));
-                if (rescanWhich == ConstantUtils.LIST_TYPE.END) {
-                    btnRescan.setEnabled(tab.getPosition() == ConstantUtils.LIST_TYPE.DETECTED.ordinal() ||
-                            (tab.getPosition() != ConstantUtils.LIST_TYPE.ERROR.ordinal() && lists.get(tab.getPosition()).size() > 0));
+                if (rescanWhich == ConstantUtils.ListType.END) {
+                    btnRescan.setEnabled(tab.getPosition() == ConstantUtils.ListType.DETECTED.ordinal() ||
+                            (tab.getPosition() != ConstantUtils.ListType.ERROR.ordinal() && lists.get(tab.getPosition()).size() > 0));
                 }
             }
 
@@ -682,36 +663,37 @@ public class DetonateStep2Activity extends BaseActivity {
 
     private void checked(int pos) {
         if (pos >= 0) {
-            if (pos < lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).size()) {
-                DetonatorInfoBean item = lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).get(pos);
+            if (pos < lists.get(ConstantUtils.ListType.ALL.ordinal()).size()) {
+                DetonatorInfoBean item = lists.get(ConstantUtils.ListType.ALL.ordinal()).get(pos);
                 item.setSelected(!item.isSelected());
             }
             checkBoxStatus();
         } else
-            for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()))
+            for (DetonatorInfoBean bean : lists.get(ConstantUtils.ListType.ALL.ordinal()))
                 bean.setSelected(fragments.get(0).isAllChecked());
-        adapterList.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).updateList(lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()));
+        adapterList.get(ConstantUtils.ListType.ALL.ordinal()).updateList(lists.get(ConstantUtils.ListType.ALL.ordinal()));
         if (!btnRescan.isEnabled()) {
             myHandler.sendEmptyMessage(DETECT_FINISH);
         }
-        for (int j = ConstantUtils.LIST_TYPE.ALL.ordinal() + 1; j <= ConstantUtils.LIST_TYPE.END.ordinal(); j++)
+        myReceiveListener.setDetonatorAmount(0);
+        for (int j = ConstantUtils.ListType.ALL.ordinal() + 1; j <= ConstantUtils.ListType.END.ordinal(); j++)
             lists.get(j).clear();
-        for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()))
+        for (DetonatorInfoBean bean : lists.get(ConstantUtils.ListType.ALL.ordinal()))
             if (bean.isSelected())
-                lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).add(bean);
+                lists.get(ConstantUtils.ListType.END.ordinal()).add(bean);
 
-        BaseApplication.writeFile("Change List:" + lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()).size() + " to " + lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size());
+        BaseApplication.writeFile("Change List:" + lists.get(ConstantUtils.ListType.ALL.ordinal()).size() + " to " + lists.get(ConstantUtils.ListType.END.ordinal()).size());
         checkedHint = false;
         runOnUiThread(() -> {
             resetTabTitle(false);
-            btnRescan.setEnabled(lists.get(ConstantUtils.LIST_TYPE.END.ordinal()).size() > 0);
+            btnRescan.setEnabled(lists.get(ConstantUtils.ListType.END.ordinal()).size() > 0);
             btnCharge.setEnabled(false);
         });
     }
 
     private void checkBoxStatus() {
         fragments.get(0).allChecked(true);
-        for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal())) {
+        for (DetonatorInfoBean bean : lists.get(ConstantUtils.ListType.ALL.ordinal())) {
             if (!bean.isSelected()) {
                 fragments.get(0).allChecked(false);
                 break;
@@ -737,14 +719,14 @@ public class DetonateStep2Activity extends BaseActivity {
                                 .setMessage(R.string.dialog_delay_out_of_range)
                                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> startDetect())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .show());
+                                .show(), true);
                     } else if (max < 0) {
                         BaseApplication.writeFile(getString(R.string.dialog_delay_out_of_range_2));
                         BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_out_of_range)
                                 .setMessage(R.string.dialog_delay_out_of_range_2)
                                 .setPositiveButton(R.string.btn_confirm, null)
-                                .show());
+                                .show(), true);
                     } else if (btnCharge.isEnabled()) {
                         BaseApplication.writeFile(getString(R.string.dialog_title_detect_again));
                         BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
@@ -752,7 +734,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                 .setMessage(R.string.dialog_detect_again)
                                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> startDetect())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .show());
+                                .show(), true);
                     } else {
                         startDetect();
                     }
@@ -762,16 +744,6 @@ public class DetonateStep2Activity extends BaseActivity {
                 if (btnCharge.isEnabled()) {
                     BaseApplication.writeFile(getString(R.string.button_charge));
                     enterCharge();
-                }
-                break;
-            case KeyEvent.KEYCODE_3:
-                if (btnRescan.isEnabled()) {
-                    btnCharge.setEnabled(false);
-                    btnRescan.setEnabled(false);
-                    setProgressVisibility(true);
-                    myReceiveListener.setStartAutoDetect(false);
-                    flowStep = STEP_CHECK_ONLINE;
-                    myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                 }
                 break;
             case KeyEvent.KEYCODE_4:
@@ -798,7 +770,7 @@ public class DetonateStep2Activity extends BaseActivity {
                         etDelay.setHint(R.string.hint_input_voltage);
                         etDelay.setFilters(new InputFilter[]{new InputFilter.LengthFilter(4)});
                         etDelay.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                        new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+                        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_edit_charge_voltage)
                                 .setView(view)
                                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> {
@@ -816,7 +788,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                     myApp.myToast(DetonateStep2Activity.this, R.string.message_input_voltage_error);
                                 })
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .show();
+                                .show(), false);
                     }
                 } else if (hiddenKeyCount == 0 || hiddenKeyCount == 1 || hiddenKeyCount == 4)
                     hiddenKeyCount++;
@@ -854,7 +826,7 @@ public class DetonateStep2Activity extends BaseActivity {
     }
 
     private void enterCharge() {
-        new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
+        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                 .setView(R.layout.layout_enter_charge_dialog)
                 .setPositiveButton(R.string.btn_confirm, (dialogInterface, i) -> {
                     closeAllHandler();
@@ -870,12 +842,12 @@ public class DetonateStep2Activity extends BaseActivity {
                     finish();
                 })
                 .setNegativeButton(R.string.btn_cancel, null)
-                .show();
+                .show(), false);
     }
 
     private int maxDelay() {
         int result = 0;
-        for (DetonatorInfoBean bean : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
+        for (DetonatorInfoBean bean : lists.get(ConstantUtils.ListType.END.ordinal())) {
             if (bean.getDelayTime() > result)
                 result = bean.getDelayTime();
             if (bean.getDelayTime() < 0)
@@ -888,33 +860,17 @@ public class DetonateStep2Activity extends BaseActivity {
         pDialog = new CustomProgressDialog(this);
         pDialog.setCanceledOnTouchOutside(false);
         if (tabList.getSelectedTabPosition() != 2) {
-            BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_online));
-            checkList = new ArrayList<>();
-            for (int i = ConstantUtils.LIST_TYPE.ALL.ordinal() + 1; i < ConstantUtils.LIST_TYPE.END.ordinal(); i++)
+            BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_online) + ":" + lists.get(ConstantUtils.ListType.END.ordinal()).size());
+            for (int i = ConstantUtils.ListType.ALL.ordinal() + 1; i < ConstantUtils.ListType.END.ordinal(); i++)
                 lists.get(i).clear();
-            for (DetonatorInfoBean d : lists.get(ConstantUtils.LIST_TYPE.ALL.ordinal()))
+            for (DetonatorInfoBean d : lists.get(ConstantUtils.ListType.ALL.ordinal()))
                 d.setDownloaded(false);
-            for (DetonatorInfoBean d : lists.get(ConstantUtils.LIST_TYPE.END.ordinal())) {
+            for (DetonatorInfoBean d : lists.get(ConstantUtils.ListType.END.ordinal()))
                 d.setDownloaded(false);
-                try {
-                    boolean notAdd = true;
-                    for (int i = 0; i < checkList.size(); i++)
-                        if (Integer.parseInt(d.getAddress().substring(d.getAddress().length() - 7))
-                                > Integer.parseInt(checkList.get(i).getAddress().substring(checkList.get(i).getAddress().length() - 7))) {
-                            checkList.add(i, d);
-                            notAdd = false;
-                            break;
-                        }
-                    if (notAdd)
-                        checkList.add(d);
-                } catch (Exception e) {
-                    BaseApplication.writeErrorLog(e);
-                }
-            }
-            rescanWhich = ConstantUtils.LIST_TYPE.ALL;
+            rescanWhich = ConstantUtils.ListType.ALL;
         } else {
-            BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_offline));
-            rescanWhich = ConstantUtils.LIST_TYPE.NOT_FOUND;
+            BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_offline) + ":" + lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size());
+            rescanWhich = ConstantUtils.ListType.NOT_FOUND;
         }
         myReceiveListener.setStartAutoDetect(false);
         myHandler.sendEmptyMessage(DETECT_RESCAN);
@@ -958,7 +914,7 @@ public class DetonateStep2Activity extends BaseActivity {
                         if (pDialog != null && pDialog.getMax() != pDialog.getProgress())
                             pDialog.show();
                     })
-                    .show());
+                    .show(), true);
         } else
             super.finish();
     }
@@ -986,15 +942,15 @@ public class DetonateStep2Activity extends BaseActivity {
 
     private void saveList() {
         try {
-            for (int i = ConstantUtils.LIST_TYPE.ALL.ordinal() + 1; i < ConstantUtils.LIST_TYPE.END.ordinal(); i++)
+            for (int i = ConstantUtils.ListType.ALL.ordinal() + 1; i < ConstantUtils.ListType.END.ordinal(); i++)
                 lists.get(i).clear();
-            for (int i = ConstantUtils.LIST_TYPE.ALL.ordinal(); i <= ConstantUtils.LIST_TYPE.END.ordinal(); i++) {
+            for (int i = ConstantUtils.ListType.ALL.ordinal(); i <= ConstantUtils.ListType.END.ordinal(); i++) {
                 if (lists.get(i).size() > 0) {
                     myApp.writeToFile(fileList[i], lists.get(i));
                 } else {
                     File file = new File(fileList[i]);
                     if (file.exists() && !file.delete())
-                        myApp.myToast(DetonateStep2Activity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                        myApp.myToast(DetonateStep2Activity.this, String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
                 }
             }
         } catch (Exception e) {

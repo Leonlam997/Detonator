@@ -68,7 +68,7 @@ public class VersionManageActivity extends BaseActivity {
                 if (bean.isSelected()) {
                     runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_upload)
-                            .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_install), bean.getVersion()))
+                            .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_confirm_install), bean.getVersion()))
                             .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> {
                                 Intent intent = new Intent(Intent.ACTION_VIEW);
                                 intent.setDataAndType(Uri.fromFile(new File(FilePath.FILE_UPDATE_PATH + "/" + bean.getVersion() + ".apk")), "application/vnd.android.package-archive");
@@ -76,7 +76,7 @@ public class VersionManageActivity extends BaseActivity {
                                 startActivity(intent);
                             })
                             .setNegativeButton(R.string.btn_cancel, null)
-                            .show()));
+                            .show(), true));
                     break;
                 }
             }
@@ -93,19 +93,19 @@ public class VersionManageActivity extends BaseActivity {
                 if (0 != count) {
                     BaseApplication.customDialog(new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_upload)
-                            .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_delete_version), count))
+                            .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_confirm_delete_version), count))
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
                                 for (VersionBean bean : list)
                                     if (bean.isSelected()) {
                                         File file = new File(FilePath.FILE_UPDATE_PATH + "/" + bean.getVersion() + ".apk");
                                         if (file.exists() && !file.delete()) {
                                             myApp.myToast(VersionManageActivity.this,
-                                                    String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                                                    String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
                                         }
                                     }
                             })
                             .setNegativeButton(R.string.btn_cancel, null)
-                            .show());
+                            .show(), true);
                 }
             });
     }

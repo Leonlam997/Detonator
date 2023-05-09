@@ -88,7 +88,7 @@ public class ExplosionRecordBean {
     }
 
     public String toStirng() {
-        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
         return formatter.format(this.explodeDate) + "," +
                 this.amount + "," +
                 this.recordPath + "," +

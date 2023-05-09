@@ -67,7 +67,7 @@ public class OfflineListAdapter extends BaseAdapter {
         viewHolder.isSelected.setChecked(detonatorInfoBean.isSelected());
         viewHolder.isSelected.setClickable(false);
         int textSize = 34;
-        viewHolder.serialNo.setText(String.format(Locale.CHINA, "%d", i + 1));
+        viewHolder.serialNo.setText(String.format(Locale.getDefault(), "%d", i + 1));
         viewHolder.serialNo.setTextSize(textSize);
         viewHolder.address.setText(detonatorInfoBean.getAddress());
         viewHolder.address.setTextSize(textSize);

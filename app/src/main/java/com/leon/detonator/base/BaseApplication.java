@@ -18,7 +18,7 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.net.ConnectivityManager;
-import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
@@ -43,7 +43,6 @@ import com.google.gson.reflect.TypeToken;
 import com.leon.detonator.R;
 import com.leon.detonator.bean.BaiSeCheck;
 import com.leon.detonator.bean.BaiSeUpload;
-import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.DownloadDetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.bean.EnterpriseProjectBean;
@@ -52,9 +51,7 @@ import com.leon.detonator.bean.ExploderBean;
 import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.bean.RegisterExploderBean;
 import com.leon.detonator.bean.UpdateVersionBean;
-import com.leon.detonator.bean.UploadDetonatorBean;
 import com.leon.detonator.bean.UploadListResultBean;
-import com.leon.detonator.bean.UploadServerBean;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
 import com.leon.detonator.util.MD5;
@@ -126,7 +123,7 @@ public class BaseApplication extends Application {
 
     public static void writeErrorLog(Exception e) {
         try {
-            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.getDefault());
             PrintWriter p = new PrintWriter(new FileOutputStream(FilePath.FILE_DEBUG_LOG, true));
             e.printStackTrace(p);
             p.println(df.format(new Date()));
@@ -140,14 +137,14 @@ public class BaseApplication extends Application {
     public static void writeFile(String s) {
         if (s != null && !s.isEmpty())
             try {
-                SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+                SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.getDefault());
                 PrintWriter p = new PrintWriter(new FileOutputStream(FilePath.FILE_DEBUG_LOG, true));
                 p.println(s);
                 p.println(df.format(new Date()));
                 p.flush();
                 p.close();
-            } catch (Exception e1) {
-                e1.printStackTrace();
+            } catch (Exception e) {
+                writeErrorLog(e);
             }
     }
 
@@ -176,7 +173,7 @@ public class BaseApplication extends Application {
     }
 
     public static void acquireWakeLock(Activity activity) {
-        if (null == wakeLock) {
+        if (null == wakeLock)
             try {
                 PowerManager pm = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
                 if (null != pm) {
@@ -189,7 +186,6 @@ public class BaseApplication extends Application {
             } catch (Exception e) {
                 BaseApplication.writeErrorLog(e);
             }
-        }
     }
 
     public static void releaseWakeLock(Activity activity) {
@@ -275,13 +271,6 @@ public class BaseApplication extends Application {
                 myToast(this, R.string.message_create_folder_fail);
             vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
             settingBean = readSettings();
-            if (isNetSystemUsable(this)) {
-                if (!settingBean.isRegistered()) {
-                    registerExploder();
-                } else if (null == readSettings().getExploderID() || (null != readSettings().getExploderID() && readSettings().getExploderID().isEmpty())) {
-                    readExploder();
-                }
-            }
             String apnName = "CMIOT";
             if (!checkApnIsExist(apnName))
                 addApn(apnName);
@@ -290,6 +279,14 @@ public class BaseApplication extends Application {
                 setMobileDataState(this, true);
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
+        }
+    }
+
+    public void deleteDetectTempFiles() {
+        for (String s : FilePath.FILE_LIST[isTunnel() ? 0 : 1]) {
+            File file = new File(s);
+            if (file.exists() && !file.delete())
+                myToast(this, String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
         }
     }
 
@@ -302,7 +299,7 @@ public class BaseApplication extends Application {
             File file = new File(path);
             if (file.exists()) {
                 if (!file.delete()) {
-                    myToast(this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                    myToast(this, String.format(Locale.getDefault(), getResources().getString(R.string.message_delete_file_fail), file.getName()));
                     return;
                 }
             }
@@ -694,97 +691,6 @@ public class BaseApplication extends Application {
         return tunnel ? FilePath.FILE_TUNNEL_DELAY_LIST : FilePath.FILE_OPEN_AIR_DELAY_LIST;
     }
 
-    public synchronized void uploadExplodeList() {
-        final List<UploadServerBean> list = new ArrayList<>();
-        readFromFile(FilePath.FILE_UPLOAD_LIST, list, UploadServerBean.class);
-        for (final UploadServerBean bean : list) {
-            if (!bean.isUploadServer()) {
-                uploading = true;
-                File file = new File(FilePath.FILE_DETONATE_RECORDS + "/" + bean.getFile());
-                if (file.exists()) {
-                    token = makeToken();
-                    Map<String, String> params = makeParams(token, MethodUtils.METHOD_UPLOAD_EXPLODE_LIST);
-                    if (null != params) {
-                        try {
-                            SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
-                            List<DetonatorInfoBean> temp = new ArrayList<>();
-                            readFromFile(file.getAbsolutePath(), temp, DetonatorInfoBean.class);
-                            String[] info = file.getName().split("_");
-                            if (5 == info.length) {
-                                info[4] = info[4].substring(0, info[4].length() - 4);
-                                List<UploadDetonatorBean> detonatorList = new ArrayList<>();
-                                for (DetonatorInfoBean b1 : temp) {
-                                    UploadDetonatorBean b2 = new UploadDetonatorBean();
-                                    b2.setDSC(b1.getAddress());
-                                    b2.setBlastDelayTime(b1.getDelayTime());
-                                    b2.setBlastHole(b1.getHole());
-                                    b2.setBlastRow(b1.getRow());
-                                    b2.setBlastInside(b1.getInside());
-                                    detonatorList.add(b2);
-                                }
-                                BaseApplication.writeFile(getString(R.string.message_upload_records) + ", " + file.getName());
-                                params.put("EnvironmentType".toLowerCase(), info[0].startsWith("O") ? "OpenAir" : "DownHole");
-                                params.put("BlastTime".toLowerCase(), info[1]);
-                                params.put("BlastLat".toLowerCase(), info[3]);
-                                params.put("BlastLng".toLowerCase(), info[4]);
-                                if (null != bean.getServer() && !bean.getServer().isEmpty()) {
-                                    String[] server = bean.getServer().split(":");
-                                    if (server.length == 2) {
-                                        params.put("zbServerIp".toLowerCase(), server[0]);
-                                        params.put("zbServerPort".toLowerCase(), server[1]);
-                                    }
-                                }
-                                params.put("isZbUploadSuccess".toLowerCase(), bean.isUploaded() + "");
-                                params.put("zbUploadSuccessTime".toLowerCase(), null == bean.getUploadTime() ? "" : formatter.format(bean.getUploadTime()));
-                                params.put("detonator", new Gson().toJson(detonatorList));
-                                params.put("signature", signature(params));
-                                OkHttpUtils.post()
-                                        .url(ConstantUtils.HOST_URL)
-                                        .params(params)
-                                        .build().execute(new Callback<UploadListResultBean>() {
-                                            @Override
-                                            public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
-                                                if (response.body() != null) {
-                                                    String string = Objects.requireNonNull(response.body()).string();
-                                                    return BaseApplication.jsonFromString(string, UploadListResultBean.class);
-                                                }
-                                                return null;
-                                            }
-
-                                            @Override
-                                            public void onError(Call call, Exception e, int i) {
-                                                writeErrorLog(e);
-                                                uploading = false;
-                                            }
-
-                                            @Override
-                                            public void onResponse(UploadListResultBean uploadListResultBean, int i) {
-                                                uploading = false;
-                                                if (null != uploadListResultBean) {
-                                                    if (uploadListResultBean.getToken().equals(token)) {
-                                                        if (uploadListResultBean.isStatus()) {
-                                                            bean.setUploadServer(true);
-                                                            try {
-                                                                writeToFile(FilePath.FILE_UPLOAD_LIST, list);
-                                                            } catch (Exception e) {
-                                                                writeErrorLog(e);
-                                                            }
-                                                        }
-                                                    }
-                                                    writeFile(uploadListResultBean.getDescription());
-                                                }
-                                            }
-                                        });
-                            }
-                        } catch (Exception e) {
-                            writeErrorLog(e);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     public void getVersion(Handler handler) {
         if (!getVersion) {
             getVersion = true;
@@ -847,7 +753,6 @@ public class BaseApplication extends Application {
 
                                 @Override
                                 public void onError(Call call, Exception e, int i) {
-                                    writeErrorLog(e);
                                     uploading = false;
                                 }
 
@@ -859,7 +764,6 @@ public class BaseApplication extends Application {
                                             settingBean.setUploadedLog(true);
                                             saveBean(settingBean);
                                         } else {
-                                            writeFile(uploadListResultBean.getDescription());
                                             myToast(BaseApplication.this, uploadListResultBean.getDescription());
                                         }
                                     }
@@ -912,13 +816,14 @@ public class BaseApplication extends Application {
     public static boolean isNetSystemUsable(Context context) {
         boolean isNetUsable = false;
         if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
-            ConnectivityManager manager = (ConnectivityManager)
-                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkCapabilities networkCapabilities =
-                    manager.getNetworkCapabilities(manager.getActiveNetwork());
-            if (networkCapabilities != null) {
-                isNetUsable = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
-            }
+            ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            //NetworkCapabilities networkCapabilities = manager.getNetworkCapabilities(manager.getActiveNetwork());
+//            if (networkCapabilities != null) {
+//                isNetUsable = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+//            }
+            NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+            if (networkInfo != null)
+                isNetUsable = networkInfo.isAvailable();
         }
         return isNetUsable;
     }
@@ -1009,25 +914,26 @@ public class BaseApplication extends Application {
         }
     }
 
-    public static void customDialog(AlertDialog dialog) {
+    public static void customDialog(AlertDialog dialog, boolean setText) {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextSize(26);
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(26);
-        try {
-            @SuppressLint("DiscouragedPrivateApi") Field mAlert = AlertDialog.class.getDeclaredField("mAlert");
-            mAlert.setAccessible(true);
-            Object mAlertController = mAlert.get(dialog);
-            if (mAlertController != null) {
-                Field mMessage = mAlertController.getClass().getDeclaredField("mMessageView");
-                mMessage.setAccessible(true);
-                TextView mMessageView = (TextView) mMessage.get(mAlertController);
-                if (mMessageView != null) {
-                    mMessageView.setTextSize(30);
-                    mMessageView.setTextColor(Color.RED);
+        if (setText)
+            try {
+                @SuppressLint("DiscouragedPrivateApi") Field mAlert = AlertDialog.class.getDeclaredField("mAlert");
+                mAlert.setAccessible(true);
+                Object mAlertController = mAlert.get(dialog);
+                if (mAlertController != null) {
+                    Field mMessage = mAlertController.getClass().getDeclaredField("mMessageView");
+                    mMessage.setAccessible(true);
+                    TextView mMessageView = (TextView) mMessage.get(mAlertController);
+                    if (mMessageView != null) {
+                        mMessageView.setTextSize(30);
+                        mMessageView.setTextColor(Color.RED);
+                    }
                 }
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
             }
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
     }
 
     private class GetExploder extends Thread {
@@ -1076,10 +982,6 @@ public class BaseApplication extends Application {
 
     public boolean isUploading() {
         return uploading;
-    }
-
-    public void setUploading(boolean uploading) {
-        this.uploading = uploading;
     }
 
     public static boolean isRemote() {

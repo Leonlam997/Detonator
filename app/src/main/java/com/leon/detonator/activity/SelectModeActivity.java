@@ -8,11 +8,13 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.CheckBox;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.R;
+import com.leon.detonator.util.KeyUtils;
 
 public class SelectModeActivity extends AppCompatActivity implements View.OnClickListener {
     private BaseApplication myApp;
@@ -26,8 +28,10 @@ public class SelectModeActivity extends AppCompatActivity implements View.OnClic
         findViewById(R.id.rl_open_air).setOnClickListener(this);
         findViewById(R.id.ib_tunnel).setOnClickListener(this);
         findViewById(R.id.rl_tunnel).setOnClickListener(this);
+        findViewById(R.id.cb_scheme).setVisibility(View.INVISIBLE);
         myApp = (BaseApplication) getApplication();
     }
+
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
@@ -54,7 +58,9 @@ public class SelectModeActivity extends AppCompatActivity implements View.OnClic
             default:
                 return;
         }
+        boolean scheme = ((CheckBox) findViewById(R.id.cb_scheme)).isChecked();
         Intent intent = new Intent(SelectModeActivity.this, MainActivity.class);
+        intent.putExtra(KeyUtils.KEY_SCHEME, scheme);
         startActivity(intent);
         finish();
     }
@@ -62,7 +68,7 @@ public class SelectModeActivity extends AppCompatActivity implements View.OnClic
     @SuppressLint("NonConstantResourceId")
     @Override
     public void onClick(View view) {
-        switch (view.getId()){
+        switch (view.getId()) {
             case R.id.ib_open_air:
             case R.id.rl_open_air:
                 enterApp(1);

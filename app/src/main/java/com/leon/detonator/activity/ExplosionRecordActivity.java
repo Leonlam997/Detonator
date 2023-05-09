@@ -13,10 +13,12 @@ import android.widget.ListView;
 import androidx.annotation.StringRes;
 
 import com.google.gson.Gson;
+import com.leon.detonator.R;
 import com.leon.detonator.adapter.ExplosionRecordAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.CheckRegister;
+import com.leon.detonator.base.UploadExplodeList;
 import com.leon.detonator.bean.BaiSeCheck;
 import com.leon.detonator.bean.BaiSeUpload;
 import com.leon.detonator.bean.BaiSeUploadResult;
@@ -30,7 +32,6 @@ import com.leon.detonator.dialog.EnterpriseDialog;
 import com.leon.detonator.dialog.MyProgressDialog;
 import com.leon.detonator.mina.client.MinaClient;
 import com.leon.detonator.mina.client.MinaHandler;
-import com.leon.detonator.R;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
 import com.leon.detonator.util.KeyUtils;
@@ -105,7 +106,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                     if (null != message.obj)
                         BaseApplication.writeFile((String) message.obj);
                     disableButton(false);
-                    showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1));
+                    showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1));
                 case 4:
                     disableButton(false);
                     BaseApplication.writeFile(getString(R.string.message_network_timeout));
@@ -140,10 +141,10 @@ public class ExplosionRecordActivity extends BaseActivity {
                         else {
                             BaseApplication.customDialog(new AlertDialog.Builder(ExplosionRecordActivity.this, R.style.AlertDialog)
                                     .setTitle(R.string.dialog_title_upload)
-                                    .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_upload_all), count, ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
+                                    .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_confirm_upload_all), count, ConstantUtils.UPLOAD_HOST[settingBean.getServerHost()][0]))
                                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> checkExploderHandler.sendEmptyMessage(3))
                                     .setNegativeButton(R.string.btn_cancel, null)
-                                    .show());
+                                    .show(), true);
                         }
                     }
                     break;
@@ -158,7 +159,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                     pDialog.setInverseBackgroundForced(false);
                     pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
                     pDialog.setTitle(R.string.progress_title);
-                    pDialog.setMessage(getResources().getString(R.string.progress_upload));
+                    pDialog.setMessage(getString(R.string.progress_upload));
                     pDialog.setMax(selected);
                     pDialog.setProgress(0);
                     pDialog.show();
@@ -248,7 +249,7 @@ public class ExplosionRecordActivity extends BaseActivity {
     }
 
     private void showMessage(@StringRes int s) {
-        checkExploderHandler.obtainMessage(4, getString(s)).getTarget();
+        checkExploderHandler.obtainMessage(4, getString(s)).sendToTarget();
     }
 
     private boolean launchWhich(int which) {
@@ -311,7 +312,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                                     if (b.isSelected()) {
                                         File file = new File(b.getRecordPath());
                                         if (file.exists() && !file.delete()) {
-                                            showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                                            showMessage(String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
                                         }
                                         BaseApplication.writeFile(getString(R.string.dialog_title_delete_record) + ", " + b.getRecordPath());
                                         Iterator<UploadServerBean> it1 = uploadList.iterator();
@@ -333,7 +334,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                                 adapter.updateList(list);
                             })
                             .setNegativeButton(R.string.btn_cancel, null)
-                            .show());
+                            .show(), true);
                 }
                 break;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
@@ -422,9 +423,9 @@ public class ExplosionRecordActivity extends BaseActivity {
 
     private void uploadBaiSe() {
         try {
-            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
             BaiSeUpload baiSeUpload = myApp.readBaiSeUpload();
-            baiSeUpload.setLngLat(String.format(Locale.CHINA, "%f,%f", list.get(uploadIndex).getLng(), list.get(uploadIndex).getLat()));
+            baiSeUpload.setLngLat(String.format(Locale.getDefault(), "%f,%f", list.get(uploadIndex).getLng(), list.get(uploadIndex).getLat()));
             baiSeUpload.setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
             baiSeUpload.setDeviceNO(settingBean.getExploderID());
             baiSeUpload.setBurstTime(df.format(list.get(uploadIndex).getExplodeDate()));
@@ -477,7 +478,7 @@ public class ExplosionRecordActivity extends BaseActivity {
             if (successCount >= pDialog.getMax())
                 showMessage(R.string.message_upload_all_success);
             else
-                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_result), successCount, pDialog.getMax() - successCount));
+                showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_result), successCount, pDialog.getMax() - successCount));
             disableButton(false);
         } else {
             BaseApplication.writeFile(getString(R.string.button_upload) + ", " + ConstantUtils.UPLOAD_HOST[1][0] + ", " + list.get(uploadIndex).getRecordPath());
@@ -520,7 +521,7 @@ public class ExplosionRecordActivity extends BaseActivity {
             params.put("dsc", str.toString());
             params.put("dwdm", enterpriseBean.getCode());
             params.put("bprysfz", enterpriseBean.getId());
-            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
             params.put("bpsj", df.format(list.get(uploadIndex).getExplodeDate()));
             params.put("jd", list.get(uploadIndex).getLng() + "");
             params.put("wd", list.get(uploadIndex).getLat() + "");
@@ -556,13 +557,13 @@ public class ExplosionRecordActivity extends BaseActivity {
                                     if (uploadExplodeRecordsBean.isStatus()) {
                                         if (null != uploadExplodeRecordsBean.getResult()) {
                                             if (!uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1));
+                                                showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1));
                                             } else {
                                                 moveFile();
                                             }
                                         }
                                     } else {
-                                        showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_fail_number), uploadIndex + 1)
+                                        showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1)
                                                 + uploadExplodeRecordsBean.getDescription());
                                     }
                                     if (-1 != getNextIndex()) {
@@ -592,7 +593,7 @@ public class ExplosionRecordActivity extends BaseActivity {
             String oldFileName = file.getName();
             String newFileName = list.get(uploadIndex).getRecordPath().replace("N", "U");
             if (file.renameTo(new File(newFileName))) {
-                showMessage(String.format(Locale.CHINA, getResources().getString(R.string.message_upload_success_number), uploadIndex + 1));
+                showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_success_number), uploadIndex + 1));
                 try {
                     for (UploadServerBean bean : uploadList) {
                         if (bean.getFile().equals(oldFileName)) {
@@ -607,17 +608,18 @@ public class ExplosionRecordActivity extends BaseActivity {
                         }
                     }
                     myApp.writeToFile(FilePath.FILE_UPLOAD_LIST, uploadList);
-                    myApp.uploadExplodeList();
+                    if (!UploadExplodeList.getInstance().isAlive())
+                        UploadExplodeList.getInstance().setApp(myApp).start();
                 } catch (Exception e) {
                     BaseApplication.writeErrorLog(e);
                 }
                 list.get(uploadIndex).setRecordPath(newFileName);
                 list.get(uploadIndex).setUploaded(true);
             } else {
-                showMessage(getResources().getString(R.string.message_file_not_found));
+                showMessage(getString(R.string.message_file_not_found));
             }
         } else {
-            showMessage(getResources().getString(R.string.message_file_not_found));
+            showMessage(getString(R.string.message_file_not_found));
         }
         adapter.updateList(list);
     }
@@ -648,7 +650,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                         .setMessage(R.string.dialog_confirm_exit_upload)
                         .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> ExplosionRecordActivity.super.finish())
                         .setNegativeButton(R.string.btn_cancel, null)
-                        .show());
+                        .show(), true);
             });
         } else
             super.finish();
@@ -685,7 +687,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                 });
 
                 for (File file : files) {
-                    SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+                    SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
                     List<DetonatorInfoBean> temp = new ArrayList<>();
                     myApp.readFromFile(file.getAbsolutePath(), temp, DetonatorInfoBean.class);
                     String[] info = file.getName().split("_");

@@ -24,6 +24,7 @@ import com.leon.detonator.adapter.SchemeAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.MyButton;
+import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
@@ -71,6 +72,7 @@ public class SchemeActivity extends BaseActivity {
         findViewById(R.id.btn_new_scheme).setOnClickListener(v -> launchTask(2));
         myApp.readFromFile(FilePath.FILE_SCHEME_LIST, allList, SchemeBean.class);
         refreshList(false);
+        initData();
         adapter = new SchemeAdapter(this, list, pos -> {
             btnRegister.setEnabled(true);
             btnModify.setEnabled(list.get(pos).getAmount() > 0);
@@ -103,6 +105,15 @@ public class SchemeActivity extends BaseActivity {
         });
         listView.setOnItemClickListener((adapterView, view, i, l) -> showPopupWindow(adapterView, view, i));
         listView.requestFocus();
+    }
+
+    private void initData() {
+        for (SchemeBean bean : list) {
+            List<DetonatorInfoBean> beans = new ArrayList<>();
+            myApp.readFromFile(bean.fileName(), beans, DetonatorInfoBean.class);
+            if (bean.getAmount() != beans.size())
+                bean.setAmount(beans.size());
+        }
     }
 
     private void refreshList(boolean save) {
@@ -178,7 +189,7 @@ public class SchemeActivity extends BaseActivity {
                             refreshList(true);
                         })
                         .setNegativeButton(R.string.btn_cancel, null)
-                        .show());
+                        .show(), true);
                 break;
         }
     }
@@ -214,7 +225,7 @@ public class SchemeActivity extends BaseActivity {
             tvDelay.setVisibility(View.GONE);
             if (!newScheme)
                 etName.setText(list.get(clickIndex).getName());
-            AlertDialog alertDialog = new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
                     .setTitle(newScheme ? R.string.dialog_title_new_scheme : R.string.dialog_title_modify_scheme)
                     .setView(v)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -243,21 +254,13 @@ public class SchemeActivity extends BaseActivity {
                             myApp.myToast(SchemeActivity.this, R.string.message_name_input_error);
                     })
                     .setNegativeButton(R.string.btn_cancel, null)
-                    .show();
-            alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextSize(26);
-            alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(26);
+                    .show(), false);
         });
     }
 
     private void change(String name) {
         BaseApplication.copyFile(FilePath.FILE_SCHEME_PATH + "/" + name, myApp.getListFile());
-        String[] fileList = Arrays.copyOfRange(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1], 1,
-                FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1].length);
-        for (String s : fileList) {
-            File file = new File(s);
-            if (file.exists() && !file.delete())
-                myApp.myToast(SchemeActivity.this, R.string.message_transfer_error);
-        }
+        myApp.deleteDetectTempFiles();
     }
 
     @Override
@@ -280,11 +283,10 @@ public class SchemeActivity extends BaseActivity {
             if (list.size() > 0) {
                 for (SchemeBean bean : list)
                     if (bean.isSelected()) {
-                        if (!oldFile.delete())
-                            change(bean.fileName());
+                        change(bean.fileName());
                         break;
                     }
-            } else if (!oldFile.delete())
+            } else if (oldFile.exists() && !oldFile.delete())
                 myApp.myToast(SchemeActivity.this, R.string.message_delete_fail);
         } else {
             if (list.size() > 0) {
@@ -294,7 +296,7 @@ public class SchemeActivity extends BaseActivity {
                             change(bean.fileName());
                         break;
                     }
-            } else if (!oldFile.delete())
+            } else if (oldFile.exists() && !oldFile.delete())
                 myApp.myToast(SchemeActivity.this, R.string.message_delete_fail);
         }
         super.onDestroy();

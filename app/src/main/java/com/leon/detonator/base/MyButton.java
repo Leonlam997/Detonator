@@ -30,7 +30,7 @@ public class MyButton extends AppCompatButton {
         setBackground(ContextCompat.getDrawable(context, a.getBoolean(R.styleable.MyButton_bigButton, true) ? R.drawable.btn_big_button_style : R.drawable.btn_small_button_style));
         keyCode = a.getInt(R.styleable.MyButton_keyCode, -1);
         if (keyCode != -1) {
-            setText(String.format(Locale.CHINA, "%d.%s", keyCode, getText()));
+            setText(String.format(Locale.getDefault(), "%d.%s", keyCode, getText()));
         }
         a.recycle();
     }
@@ -47,7 +47,7 @@ public class MyButton extends AppCompatButton {
         setBackground(ContextCompat.getDrawable(context, a.getBoolean(R.styleable.MyButton_bigButton, true) ? R.drawable.btn_big_button_style : R.drawable.btn_small_button_style));
         keyCode = a.getInt(R.styleable.MyButton_keyCode, -1);
         if (keyCode != -1) {
-            setText(String.format(Locale.CHINA, "%d.%s", keyCode, getText()));
+            setText(String.format(Locale.getDefault(), "%d.%s", keyCode, getText()));
         }
         a.recycle();
     }
@@ -67,6 +67,6 @@ public class MyButton extends AppCompatButton {
     }
 
     public void setTextId(@StringRes int id) {
-        setText(String.format(Locale.CHINA, "%d.%s", keyCode, mContext.getString(id)));
+        setText(String.format(Locale.getDefault(), "%d.%s", keyCode, mContext.getString(id)));
     }
 }

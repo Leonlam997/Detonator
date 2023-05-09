@@ -1,13 +1,11 @@
 package com.leon.detonator.activity;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -27,7 +25,6 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.ActivityCompat;
 
 import com.leon.detonator.adapter.BluetoothListAdapter;
 import com.leon.detonator.base.BaseActivity;
@@ -137,7 +134,7 @@ public class BluetoothActivity extends BaseActivity {
                 etDelay.setInputType(InputType.TYPE_CLASS_TEXT);
                 tvDelay.setVisibility(View.GONE);
 
-                new AlertDialog.Builder(BluetoothActivity.this, R.style.AlertDialog)
+                BaseApplication.customDialog(new AlertDialog.Builder(BluetoothActivity.this, R.style.AlertDialog)
                         .setTitle(R.string.dialog_title_edit_name)
                         .setView(v)
                         .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -147,7 +144,7 @@ public class BluetoothActivity extends BaseActivity {
                             }
                         })
                         .setNegativeButton(R.string.btn_cancel, null)
-                        .show();
+                        .show(), false);
             } else {
                 if (searching) {
                     searching = false;
@@ -181,7 +178,7 @@ public class BluetoothActivity extends BaseActivity {
                     if (sender)
                         sendData();
                     myApp.myToast(BluetoothActivity.this,
-                            String.format(Locale.CHINA, getString(R.string.bt_connected_device), msg.obj));
+                            String.format(Locale.getDefault(), getString(R.string.bt_connected_device), msg.obj));
                     break;
                 case STATUS_DATA:
                     if (!sender) {
@@ -264,7 +261,7 @@ public class BluetoothActivity extends BaseActivity {
                                     })
                                     .setPositiveButton(R.string.btn_cover, (d, which) -> saveData(data))
                                     .show();
-                            BaseApplication.customDialog(alertDialog);
+                            BaseApplication.customDialog(alertDialog, true);
                         } else {
                             saveData(data);
                         }
@@ -378,7 +375,7 @@ public class BluetoothActivity extends BaseActivity {
     });
 
     private void saveData(String data) {
-        final File file = new File(myApp.getListFile());
+        File file = new File(myApp.getListFile());
         if (file.exists() && !file.delete()) {
             myApp.myToast(BluetoothActivity.this, R.string.message_delete_fail);
             return;
@@ -391,24 +388,27 @@ public class BluetoothActivity extends BaseActivity {
             myApp.myToast(BluetoothActivity.this, R.string.message_save_list_success);
             List<SchemeBean> schemeBeans = new ArrayList<>();
             myApp.readFromFile(FilePath.FILE_SCHEME_LIST, schemeBeans, SchemeBean.class);
-            boolean notFound=true;
+            List<DetonatorInfoBean> beanList = new ArrayList<>();
+            myApp.readFromFile(myApp.getListFile(), beanList, DetonatorInfoBean.class);
+            boolean notFound = true;
             for (SchemeBean bean : schemeBeans)
                 if (myApp.isTunnel() == bean.isTunnel() && bean.isSelected()) {
-                    bean.setAmount(list.size());
+                    bean.setAmount(beanList.size());
                     myApp.writeToFile(FilePath.FILE_SCHEME_LIST, schemeBeans);
                     BaseApplication.copyFile(myApp.getListFile(), FilePath.FILE_SCHEME_PATH + "/" + bean.fileName());
                     notFound = false;
                     break;
                 }
-            if (notFound){
+            if (notFound) {
                 SchemeBean bean = new SchemeBean();
                 bean.setName(getString(R.string.received_list));
                 bean.setTunnel(myApp.isTunnel());
-                bean.setAmount(list.size());
+                bean.setAmount(beanList.size());
                 schemeBeans.add(bean);
                 myApp.writeToFile(FilePath.FILE_SCHEME_LIST, schemeBeans);
                 BaseApplication.copyFile(myApp.getListFile(), FilePath.FILE_SCHEME_PATH + "/" + bean.fileName());
             }
+            myApp.deleteDetectTempFiles();
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
@@ -417,7 +417,7 @@ public class BluetoothActivity extends BaseActivity {
     private void showPopupWindow(AdapterView<?> parent, View view, int position) {
         final String[] menu;
         menu = new String[]{getString(R.string.menu_send_list),
-                 getString(R.string.menu_cancel_pair)};
+                getString(R.string.menu_cancel_pair)};
         for (int i = 0; i < menu.length; i++)
             menu[i] = (i + 1) + "." + menu[i];
         View popupView = BluetoothActivity.this.getLayoutInflater().inflate(R.layout.layout_popupwindow, parent, false);

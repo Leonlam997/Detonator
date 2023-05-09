@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -20,6 +21,7 @@ import androidx.core.app.ActivityCompat;
 import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
+import com.leon.detonator.base.UploadExplodeList;
 import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.bean.UpdateVersionBean;
 import com.leon.detonator.util.FilePath;
@@ -37,6 +39,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private LocalSettingBean settingBean;
     private BaseApplication myApp;
     private String[] title;
+    private boolean scheme;
+    private AlertDialog alertDialog;
     private Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message message) {
@@ -48,11 +52,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                         try {
                             int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
                             version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
-                            if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2])) {
-                                BaseApplication.customDialog(new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog).setTitle(R.string.progress_title)
-                                        .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_found_new_version), versionBean.getVersion()))
+                            if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]) && alertDialog == null) {
+                                alertDialog = new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog).setTitle(R.string.progress_title)
+                                        .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_found_new_version), versionBean.getVersion()))
                                         .setPositiveButton(R.string.btn_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
-                                        .setNegativeButton(R.string.btn_cancel, null).show());
+                                        .setNegativeButton(R.string.btn_cancel, null)
+                                        .setOnDismissListener(dialog -> alertDialog = null).show();
+                                BaseApplication.customDialog(alertDialog, true);
                             }
                         } catch (Exception e) {
                             BaseApplication.writeErrorLog(e);
@@ -61,14 +67,16 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 }
             } else if (message.what == 2) {
                 File file = new File(FilePath.FILE_SERIAL_LOG);
-                if (file.exists() && file.length() > 2 * 1024 * 1024)
+                if (file.exists() && file.length() > 3 * 1024 * 1024)
                     trimFile(FilePath.FILE_SERIAL_LOG);
                 file = new File(FilePath.FILE_DEBUG_LOG);
-                if (file.exists() && file.length() > 2 * 1024 * 1024)
+                if (file.exists() && file.length() > 3 * 1024 * 1024)
                     trimFile(FilePath.FILE_DEBUG_LOG);
                 if (!myApp.isUploading() && BaseApplication.isNetSystemUsable(MainActivity.this)) {
+                    if (!UploadExplodeList.getInstance().isAlive())
+                        UploadExplodeList.getInstance().setApp(myApp).start();
                     new Thread(() -> {
-                        myApp.uploadExplodeList();
+                        settingBean = BaseApplication.readSettings();
                         if (!settingBean.isUploadedLog()) {
                             myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
                             myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
@@ -89,8 +97,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         myApp = (BaseApplication) getApplication();
         setTitle(R.string.app_name, BaseApplication.isRemote() ? R.string.mode_wireless : myApp.isTunnel() ? R.string.mode_tunnel : R.string.mode_open_air);
-        setBackButtonVisibility(false);
+        //setBackButtonVisibility(false);
         setProgressVisibility(false);
+        scheme = getIntent().getBooleanExtra(KeyUtils.KEY_SCHEME, false);
 
         findViewById(R.id.btn_delay).setOnClickListener(this);
         findViewById(R.id.btn_authorize).setOnClickListener(this);
@@ -98,7 +107,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         findViewById(R.id.btn_control).setOnClickListener(this);
         findViewById(R.id.btn_settings).setOnClickListener(this);
         findViewById(R.id.btn_cooperate).setOnClickListener(this);
-        findViewById(R.id.btn_cooperate).setEnabled(false);
+//        findViewById(R.id.btn_cooperate).setEnabled(false);
         TextView[] textViews = new TextView[]{
                 findViewById(R.id.tv_delay),
                 findViewById(R.id.tv_control),
@@ -112,11 +121,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 getString(R.string.detonate_ctrl),
                 getString(R.string.detonate_auth),
                 getString(R.string.detonate_rec),
-                getString(R.string.detonate_cooperate),
+                getString(R.string.button_check_detonator),
                 getString(R.string.txt_settings)
         };
         for (int i = 0; i < textViews.length; i++) {
-            textViews[i].setText(String.format(Locale.CHINA, "%d.%s", i + 1, title[i]));
+            textViews[i].setText(String.format(Locale.getDefault(), "%d.%s", i + 1, title[i]));
             textViews[i].setOnClickListener(this);
         }
         keyCount = 0;
@@ -207,19 +216,19 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         if (2 == num && 0 != settingBean.getServerHost()) return;
         if (num >= 0 && num <= 5) {
             Intent intent = new Intent();
-            Class<?>[] menuActivities = {DelayScheduleActivity.class,
+            Class<?>[] menuActivities = {scheme ? SchemeActivity.class : DelayScheduleActivity.class,
                     DetonateStep1Activity.class,
                     AuthorizationListActivity.class,
                     ExplosionRecordActivity.class,
                     CheckLineActivity.class,
                     SettingsActivity.class,
             };
-            if (4 == num) {
-                if (!findViewById(R.id.btn_cooperate).isEnabled()) {
-                    return;
-                }
-                intent.putExtra(KeyUtils.KEY_EXPLODE_UNITE, true);
-            }
+//            if (4 == num) {
+//                if (!findViewById(R.id.btn_cooperate).isEnabled()) {
+//                    return;
+//                }
+//                intent.putExtra(KeyUtils.KEY_EXPLODE_UNITE, true);
+//            }
             intent.setClass(MainActivity.this, menuActivities[num]);
             BaseApplication.writeFile(title[num]);
             startActivity(intent);

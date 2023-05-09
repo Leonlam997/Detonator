@@ -7,6 +7,7 @@ public class SerialCommand {
     public final static String RESPOND_CHARGE = "Charge!";
     public final static String RESPOND_CHARGE_FINISHED = "Done!";
     public final static byte ALERT_SHORT_CIRCUIT = (byte) 0xAA;
+    public final static byte ALERT_LARGE_CURRENT = (byte) 0xAB;
     public final static int CODE_CHAR_AT = 3;
     public final static byte DATA_PREFIX = (byte) 0xC5;
     public final static byte DATA_SUFFIX = (byte) 0xE5;
@@ -49,6 +50,7 @@ public class SerialCommand {
     public final static byte CODE_VERSION = (byte) 0x14;
     public final static byte CODE_SET_PARAM_LEVEL = (byte) 0x0C;
     public final static byte CODE_RESEND = (byte) 0xFF;
+    public final static byte CODE_ERROR = (byte) 0xFF;
     public final static byte CODE_SCAN_CODE = (byte) 0x27;
     public final static int MEASURE_CURRENT = 0x11;
     public final static int MEASURE_VOLTAGE = 0x00;
@@ -58,5 +60,4 @@ public class SerialCommand {
     public final static int MASK_STATUS_PSW = 1 << 5;
     public final static int MASK_STATUS_CHARGE_FULL = 1 << 4;
     public final static int MASK_STATUS_DELAY_FLAG = 1 << 3;
-
 }

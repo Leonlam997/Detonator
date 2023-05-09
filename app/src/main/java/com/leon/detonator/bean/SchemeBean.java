@@ -27,7 +27,7 @@ public class SchemeBean implements BaseJSONBean {
     }
 
     public String fileName() {
-        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.CHINA);
+        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.getDefault());
         return df.format(createTime);
     }
 
@@ -73,7 +73,7 @@ public class SchemeBean implements BaseJSONBean {
 
     @Override
     public JSONObject toJSON() throws JSONException {
-        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.CHINA);
+        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.getDefault());
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("name", name);
         jsonObject.put("date", df.format(createTime));
@@ -85,7 +85,7 @@ public class SchemeBean implements BaseJSONBean {
 
     @Override
     public void fromJSON(JSONObject jsonObject) throws JSONException {
-        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.CHINA);
+        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_SAVE, Locale.getDefault());
         name = jsonObject.getString("name");
         try {
             String date = jsonObject.getString("date");

@@ -65,15 +65,15 @@ public class SchemeAdapter extends BaseAdapter {
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
-        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_PART, Locale.CHINA);
+        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_PART, Locale.getDefault());
         int textSize = 30;
-        viewHolder.serialNo.setText(String.format(Locale.CHINA, "%d", position + 1));
+        viewHolder.serialNo.setText(String.format(Locale.getDefault(), "%d", position + 1));
         viewHolder.serialNo.setTextSize(textSize);
         viewHolder.name.setText(bean.getName());
         viewHolder.name.setTextSize(textSize);
         viewHolder.createTime.setText(formatter.format(bean.getCreateTime()));
         viewHolder.createTime.setTextSize(textSize);
-        viewHolder.amount.setText(String.format(Locale.CHINA, "%d", bean.getAmount()));
+        viewHolder.amount.setText(String.format(Locale.getDefault(), "%d", bean.getAmount()));
         viewHolder.amount.setTextSize(textSize);
         viewHolder.isSelected.setVisibility(View.VISIBLE);
         viewHolder.isSelected.setChecked(bean.isSelected());

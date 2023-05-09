@@ -16,6 +16,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.leon.detonator.R;
 import com.leon.detonator.base.BaseApplication;
+import com.leon.detonator.base.CheckRegister;
+import com.leon.detonator.base.UploadExplodeList;
 import com.leon.detonator.bean.LocalSettingBean;
 
 import java.util.Locale;
@@ -26,29 +28,36 @@ public class WelcomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
+
+        BaseApplication myApp = (BaseApplication) getApplication();
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
         RelativeLayout rlWelcome = findViewById(R.id.rlWelcome);
         try {
-            if (!hasShortcut()) {
-                Intent addIntent = new Intent("com.android.launcher.action.INSTALL_SHORTCUT");
-                addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, R.string.app_name);
-                addIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, R.mipmap.ic_launcher);
-                addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, new Intent(WelcomeActivity.this, WelcomeActivity.class));
-                sendBroadcast(addIntent);
-            }
             PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-            ((TextView) findViewById(R.id.tv_version)).setText(String.format(Locale.CHINA, getResources().getString(R.string.version_number), packageInfo.versionName));
+            ((TextView) findViewById(R.id.tv_version)).setText(String.format(Locale.getDefault(), getString(R.string.version_number), packageInfo.versionName));
             LocalSettingBean bean = BaseApplication.readSettings();
-            if (null != bean.getExploderID()) {
-                ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.CHINA, getResources().getString(R.string.device_code), bean.getExploderID()));
+            if (BaseApplication.isNetSystemUsable(this)) {
+                if (!bean.isRegistered()) {
+                    myApp.registerExploder();
+                    new CheckRegister() {
+                        @Override
+                        public void onError() {
+                        }
+
+                        @Override
+                        public void onSuccess() {
+                            runOnUiThread(() -> ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.getDefault(), getString(R.string.device_code), bean.getExploderID())));
+                        }
+                    }.setActivity(this).start();
+                } else if (null != bean.getExploderID() || (null != bean.getExploderID() && bean.getExploderID().isEmpty())) {
+                    ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.getDefault(), getString(R.string.device_code), bean.getExploderID()));
+                }
+                if (!UploadExplodeList.getInstance().isAlive())
+                    UploadExplodeList.getInstance().setApp(myApp).start();
             }
             BaseApplication.writeFile(getString(R.string.app_name) + packageInfo.versionName);
         } catch (PackageManager.NameNotFoundException e) {
             BaseApplication.writeErrorLog(e);
-        }
-        if (BaseApplication.isNetSystemUsable(this)) {
-            BaseApplication myApp = (BaseApplication) getApplication();
-            myApp.uploadExplodeList();
         }
         rlWelcome.setOnClickListener(v -> {
             Intent intent = new Intent(WelcomeActivity.this, BaseApplication.isRemote() ? MainActivity.class : LoginActivity.class);
@@ -57,30 +66,23 @@ public class WelcomeActivity extends AppCompatActivity {
         });
     }
 
-    private boolean hasShortcut() {
-        final ContentResolver cr = getContentResolver();
-        final Uri CONTENT_URI = Uri.parse("content://com.android.launcher.settings/favorites?notify=true");
-        try {
-            Cursor c = cr.query(CONTENT_URI, new String[]{"title", "iconResource"}, "title=?",
-                    new String[]{getString(R.string.app_name)}, null);
-            if (c != null && c.getCount() > 0) {
-                c.close();
-                return true;
-            }
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
-        return false;
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode != KeyEvent.KEYCODE_BACK)
+            startActivity(new Intent(WelcomeActivity.this, LoginActivity.class));
+        return super.onKeyUp(keyCode, event);
     }
 
     @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if (keyCode != KeyEvent.KEYCODE_BACK) {
-            Intent intent = new Intent(WelcomeActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
-        }
-        return super.onKeyUp(keyCode, event);
+    protected void onResume() {
+        LocalSettingBean bean = BaseApplication.readSettings();
+        if (null != bean.getExploderID())
+            runOnUiThread(() -> ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.getDefault(), getString(R.string.device_code), bean.getExploderID())));
+        super.onResume();
+    }
+
+    @Override
+    public void finish() {
     }
 
     @Override

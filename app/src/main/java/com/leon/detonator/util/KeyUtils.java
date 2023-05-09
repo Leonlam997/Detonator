@@ -26,4 +26,5 @@ public class KeyUtils {
     public final static String KEY_WIFI_CONNECT_PASSWORD = "ConnectPassword";
     public final static String KEY_ERROR_RESULT = "ErrorResult";
     public final static String KEY_WAVEFORM_DATA = "WaveformData";
+    public final static String KEY_SCHEME = "Scheme";
 }

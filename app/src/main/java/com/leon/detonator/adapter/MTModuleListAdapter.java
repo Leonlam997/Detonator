@@ -69,7 +69,7 @@ public class MTModuleListAdapter extends BaseAdapter {
         viewHolder.tvName.setTextSize(textSize);
         viewHolder.tvAddress.setText(list.get(i).getMacAddress());
         viewHolder.tvAddress.setTextSize(textSize);
-        viewHolder.tvSignal.setText(String.format(Locale.CHINA, "%ddb", list.get(i).getRssi()));
+        viewHolder.tvSignal.setText(String.format(Locale.getDefault(), "%ddb", list.get(i).getRssi()));
         viewHolder.tvSignal.setTextSize(textSize);
         if (null != mac && list.get(i).getMacAddress().contains(mac)) {
             viewHolder.tvName.setTextColor(inflater.getContext().getColor(R.color.colorLastConnected));

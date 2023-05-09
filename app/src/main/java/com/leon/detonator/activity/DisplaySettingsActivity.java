@@ -37,19 +37,19 @@ public class DisplaySettingsActivity extends BaseActivity {
         tvSleepTime = findViewById(R.id.tvSleepTime);
         tvFontScale = findViewById(R.id.tvFontScale);
         settingBean = BaseApplication.readSettings();
-        final String[] fontScaleList = {getResources().getString(R.string.choice_normal),
-                getResources().getString(R.string.choice_big),
-                getResources().getString(R.string.choice_large),
-                getResources().getString(R.string.choice_xlarge)
+        final String[] fontScaleList = {getString(R.string.choice_normal),
+                getString(R.string.choice_big),
+                getString(R.string.choice_large),
+                getString(R.string.choice_xlarge)
         };
-        final String[] sleepTimeStringList = {getResources().getString(R.string.choice_15_seconds),
-                getResources().getString(R.string.choice_30_seconds),
-                getResources().getString(R.string.choice_1_minute),
-                getResources().getString(R.string.choice_2_minutes),
-                getResources().getString(R.string.choice_5_minutes),
-                getResources().getString(R.string.choice_10_minutes),
-                getResources().getString(R.string.choice_30_minutes),
-                getResources().getString(R.string.choice_never)
+        final String[] sleepTimeStringList = {getString(R.string.choice_15_seconds),
+                getString(R.string.choice_30_seconds),
+                getString(R.string.choice_1_minute),
+                getString(R.string.choice_2_minutes),
+                getString(R.string.choice_5_minutes),
+                getString(R.string.choice_10_minutes),
+                getString(R.string.choice_30_minutes),
+                getString(R.string.choice_never)
         };
         if (settingBean.getFontScale() > 0 && settingBean.getFontScale() < fontScaleList.length) {
             tvFontScale.setText(fontScaleList[settingBean.getFontScale()]);
@@ -61,7 +61,7 @@ public class DisplaySettingsActivity extends BaseActivity {
             for (i = 0; i < sleepTimeStringList.length; i++)
                 if (sleepTimeStringList[i].equals(tvSleepTime.getText().toString()))
                     break;
-            new AlertDialog.Builder(DisplaySettingsActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(DisplaySettingsActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_select_sleep_time)
                     .setSingleChoiceItems(sleepTimeStringList, i < sleepTimeStringList.length ? i : 1, (dialog, which) -> selectedItem = which)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -69,7 +69,7 @@ public class DisplaySettingsActivity extends BaseActivity {
                                 selectedItem < sleepTimeList.length ? sleepTimeList[selectedItem] * 1000 : Integer.MAX_VALUE);
                         runOnUiThread(() -> tvSleepTime.setText(sleepTimeStringList[selectedItem]));
                     })
-                    .setNegativeButton(R.string.btn_cancel, null).show();
+                    .setNegativeButton(R.string.btn_cancel, null).show(), false);
         });
 
         findViewById(R.id.rlFontScale).setOnClickListener(v -> {
@@ -77,7 +77,7 @@ public class DisplaySettingsActivity extends BaseActivity {
             for (i = 0; i < fontScaleList.length; i++)
                 if (fontScaleList[i].equals(tvFontScale.getText().toString()))
                     break;
-            new AlertDialog.Builder(DisplaySettingsActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(DisplaySettingsActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_select_scale)
                     .setSingleChoiceItems(fontScaleList, settingBean.getFontScale() < fontScaleList.length ? settingBean.getFontScale() : 0, (dialog, which) -> selectedItem = which)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -88,7 +88,7 @@ public class DisplaySettingsActivity extends BaseActivity {
                             myApp.initFontScale();
                         }
                     })
-                    .setNegativeButton(R.string.btn_cancel, null).show();
+                    .setNegativeButton(R.string.btn_cancel, null).show(), false);
         });
 
         if (!Settings.System.canWrite(this)) {

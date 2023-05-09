@@ -23,7 +23,7 @@ import java.util.Locale;
  */
 public class SerialPortUtil {
     private static SerialPortUtil portUtil;
-    private boolean test = true;
+    private boolean recordLog = true;
     private SerialPort mSerialPort;
     private OutputStream mOutputStream;
     private InputStream mInputStream;
@@ -64,7 +64,6 @@ public class SerialPortUtil {
             mReadThread = new ReadThread();
             isStop = false;
             mReadThread.start();
-
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
             throw new IOException();
@@ -120,16 +119,16 @@ public class SerialPortUtil {
     }
 
     public void writeToFile(byte[] cmd, boolean send) {
-        if (test) {
+        if (recordLog) {
             try {
-                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.", Locale.CHINA);
+                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.", Locale.getDefault());
                 BufferedWriter bfw = new BufferedWriter(new FileWriter(FilePath.FILE_SERIAL_LOG, true));
                 bfw.write(send ? "S:" : "R:");
                 bfw.newLine();
                 for (byte i : cmd)
                     bfw.write(String.format("%02X", i) + " ");
                 bfw.newLine();
-                bfw.write(df.format(new Date()) + String.format(Locale.CHINA, "%03d", System.currentTimeMillis() % 1000));
+                bfw.write(df.format(new Date()) + String.format(Locale.getDefault(), "%03d", System.currentTimeMillis() % 1000));
                 bfw.newLine();
                 bfw.newLine();
                 bfw.flush();
@@ -141,15 +140,15 @@ public class SerialPortUtil {
     }
 
     private void writeToFile(String cmd) {
-        if (test) {
+        if (recordLog) {
             try {
-                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.", Locale.CHINA);
+                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.", Locale.getDefault());
                 BufferedWriter bfw = new BufferedWriter(new FileWriter(FilePath.FILE_SERIAL_LOG, true));
                 bfw.write("S:");
                 bfw.newLine();
                 bfw.write(cmd);
                 bfw.newLine();
-                bfw.write(df.format(new Date()) + String.format(Locale.CHINA, "%03d", System.currentTimeMillis() % 1000));
+                bfw.write(df.format(new Date()) + String.format(Locale.getDefault(), "%03d", System.currentTimeMillis() % 1000));
                 bfw.newLine();
                 bfw.newLine();
                 bfw.flush();
@@ -301,16 +300,107 @@ public class SerialPortUtil {
         bufferSend[i++] = SerialCommand.DATA_SUFFIX;
         bufferSend[i] = SerialCommand.DATA_SUFFIX;
         lastAction = action;
+        if (recordLog) {
+            StringBuilder data = new StringBuilder("发送：");
+            switch (lastAction) {
+                case SerialCommand.CODE_WRITE_FIELD:
+                    data.append("写延期:").append(timeout[1]).append(",序号：").append(timeout[2]);
+                    break;
+                case SerialCommand.CODE_READ_FIELD:
+                    data.append("读延期");
+                    break;
+                case SerialCommand.CODE_READ_SHELL:
+                    data.append("读管壳码");
+                    break;
+                case SerialCommand.CODE_BRIDGE_RESISTANCE:
+                    data.append("读桥丝");
+                    break;
+                case SerialCommand.CODE_CAPACITOR:
+                    data.append("读电容");
+                    break;
+                case SerialCommand.CODE_CLEAR_READ_STATUS:
+                    data.append("清除");
+                    break;
+                case SerialCommand.CODE_INITIAL:
+                    data.append("雷管初始化");
+                    break;
+                case SerialCommand.CODE_EXPLODE:
+                    data.append("起爆");
+                    break;
+                case SerialCommand.CODE_RESET:
+                    data.append("复位");
+                    break;
+                case SerialCommand.CODE_SCAN_UID:
+                    data.append("点名");
+                    break;
+                case SerialCommand.CODE_DELAY:
+                    data.append("延期标定");
+                    break;
+                case SerialCommand.CODE_CHECK_ONLINE:
+                    data.append("在线检测");
+                    break;
+                case SerialCommand.CODE_CHECK_STATUS:
+                    data.append("逐发检测");
+                    break;
+                case SerialCommand.CODE_CHECK_PSW:
+                    data.append("密码检验");
+                    break;
+                case SerialCommand.CODE_GET_ALL_STATUS:
+                    data.append("检查状态");
+                    break;
+                case SerialCommand.CODE_CHARGE:
+                    data.append(timeout[0] == 0 ? "放电" : "充电");
+                    break;
+                case SerialCommand.CODE_CHECK_CONFIG:
+                    data.append("检查配置信息");
+                    break;
+                case SerialCommand.CODE_LOCK:
+                    data.append("锁码");
+                    break;
+                case SerialCommand.CODE_WRITE_UID:
+                    data.append("写UID");
+                    break;
+                case SerialCommand.CODE_WRITE_PSW:
+                    data.append("写密码");
+                    break;
+                case SerialCommand.CODE_WRITE_SHELL:
+                    data.append("写管壳码");
+                    break;
+                case SerialCommand.CODE_SINGLE_WRITE_CONFIG:
+                    data.append("单发写配置");
+                    break;
+                case SerialCommand.CODE_SINGLE_READ_CONFIG:
+                    data.append("单发读配置");
+                    break;
+                case SerialCommand.CODE_SINGLE_WRITE_FIELD:
+                    data.append("单发写延期");
+                    break;
+                case SerialCommand.CODE_WRITE_CLOCK:
+                    data.append("写时钟");
+                    break;
+                case SerialCommand.CODE_BUS_CONTROL:
+                    data.append("总线：").append(timeout[0] == 0 ? "断电" : "供电")
+                            .append(timeout[1] == 0 ? ",关闭DCDC," : ",使能DCDC,")
+                            .append(timeout[0] == 0 ? "" : String.format("%X", timeout[2])).append("V");
+                    break;
+                default:
+                    data = null;
+            }
+            if (data != null)
+                BaseApplication.writeFile(data.toString());
+        }
+
         return sendCmd(bufferSend);
     }
 
-    public void setTest(boolean test) {
-        this.test = test;
+    public void setRecordLog(boolean recordLog) {
+        this.recordLog = recordLog;
     }
 
     public boolean checkData(byte[] data) {
         try {
-            return data.length >= 5 + data[2] && data[0] == SerialCommand.DATA_PREFIX && data[1] == SerialCommand.DATA_PREFIX && data[3] == lastAction
+            return data.length >= 5 + data[2] && data[0] == SerialCommand.DATA_PREFIX && data[1] == SerialCommand.DATA_PREFIX
+                    && (data[3] == lastAction || data[3] == SerialCommand.CODE_ERROR)
                     && data[3 + data[2]] == CRC8.calcCRC(Arrays.copyOfRange(data, 3, 3 + data[2]));
         } catch (Exception e) {
             return false;

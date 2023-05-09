@@ -277,8 +277,7 @@ public class UniteExplodeActivity extends BaseActivity {
         BaseApplication.acquireWakeLock(this);
         LocalSettingBean bean = BaseApplication.readSettings();
         List<DetonatorInfoBean> list = new ArrayList<>();
-        myApp.readFromFile(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1][ConstantUtils.LIST_TYPE.END.ordinal()],
-                list, DetonatorInfoBean.class);
+        myApp.readFromFile(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1][ConstantUtils.ListType.END.ordinal() - 1], list, DetonatorInfoBean.class);
         amount = list.size();
         mtMac = bean.getMtMac();
         exploderID = bean.getExploderID();

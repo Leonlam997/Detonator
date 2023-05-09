@@ -147,7 +147,7 @@ public class EnterpriseActivity extends BaseActivity {
                             dialog.dismiss();
                         }
                         return false;
-                    }).show());
+                    }).show(), true);
         } else super.finish();
     }
 

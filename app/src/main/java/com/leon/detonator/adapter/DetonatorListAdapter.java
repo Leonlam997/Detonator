@@ -98,22 +98,22 @@ public class DetonatorListAdapter extends BaseAdapter {
             viewHolder = (ViewHolder) convertView.getTag();
         }
         int textSize = 30;
-        viewHolder.serialNo.setText(String.format(Locale.CHINA, "%d", position + 1));
+        viewHolder.serialNo.setText(String.format(Locale.getDefault(), "%d", position + 1));
         viewHolder.serialNo.setTextSize(textSize);
         viewHolder.address.setText(detonatorInfoBean.getAddress());
         viewHolder.address.setTextSize(textSize + 4);
-        viewHolder.delayTime.setText(String.format(Locale.CHINA, "%dms", detonatorInfoBean.getDelayTime()));
+        viewHolder.delayTime.setText(String.format(Locale.getDefault(), "%dms", detonatorInfoBean.getDelayTime()));
         viewHolder.delayTime.setTextSize(textSize);
         if (tunnel) {
             convertView.findViewById(R.id.line_row).setVisibility(View.GONE);
             convertView.findViewById(R.id.text_row).setVisibility(View.GONE);
         } else {
-            viewHolder.row.setText(String.format(Locale.CHINA, "%d", detonatorInfoBean.getRow()));
+            viewHolder.row.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getRow()));
             viewHolder.row.setTextSize(textSize);
         }
-        viewHolder.hole.setText(String.format(Locale.CHINA, "%d", detonatorInfoBean.getHole()));
+        viewHolder.hole.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getHole()));
         viewHolder.hole.setTextSize(textSize);
-        viewHolder.inside.setText(String.format(Locale.CHINA, "%d", detonatorInfoBean.getInside()));
+        viewHolder.inside.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getInside()));
         viewHolder.inside.setTextSize(textSize);
         if (canSelect) {
             viewHolder.isSelected.setChecked(detonatorInfoBean.isSelected());

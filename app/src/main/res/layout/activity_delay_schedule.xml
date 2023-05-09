@@ -24,7 +24,7 @@
         android:background="@drawable/btn_new_schedule_style" />
 
     <ImageButton
-        android:id="@+id/btn_check_detonator"
+        android:id="@+id/btn_single_detect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"

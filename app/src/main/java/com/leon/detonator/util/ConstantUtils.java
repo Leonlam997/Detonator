@@ -9,7 +9,7 @@ import com.leon.detonator.base.BaseApplication;
 public class ConstantUtils {
     public final static String HOST_URL = "http://www.zhongbao360.com/open_service_v1";
     //        public final static String HOST_URL = "http://192.168.0.2/open_service_v1";
-    public final static String VERSION_URL = "http://www.zhongbao360.com/File/Client/ExploderFactory/update.json";
+    public final static String VERSION_URL = "http://www.zhongbao360.com/File/Client/ExploderV2/update.json";
     public final static String UPLOAD_LOG_URL = "http://www.zhongbao360.com/Exploder/UploadLog";
     //    public final static String BAI_SE_UPLOAD_URL = "http://test.99mb.net:810/api/MbSystem/pda/uploadBlastRecord";
 //    public final static String BAI_SE_CHECK_URL = "http://test.99mb.net:810/api/MbSystem/pda/checkAllowDetonate";
@@ -41,7 +41,7 @@ public class ConstantUtils {
     public final static int HISTORY_LIST = 3;
     public final static int AUTHORIZED_LIST = 4;
     public final static int REFRESH_STATUS_BAR_PERIOD = 1000;
-    public final static int MAX_DELAY_TIME = 60000;
+    public final static int MAX_DELAY_TIME = 16000;
     public final static int BOOST_TIME = 600;
     public final static int UPLOAD_TIMEOUT = 10000;
     public final static int MAX_VOLUME = 5;
@@ -67,8 +67,13 @@ public class ConstantUtils {
     public final static int SCAN_CODE_TIME = 3000;
     public final static int RESEND_SCAN_TIMEOUT = 3500;
     public final static int SCAN_ZERO_COUNT = 5;
+    public final static int SHORT_CIRCUIT_CURRENT = 20000;
+    public final static int CURRENT_DETECT_COUNT = 2;
+    public final static int CURRENT_PER_DETONATOR = 30;
+    public final static float CURRENT_OVER_PERCENTAGE = 1.5f;
+    public final static int FAST_CLICK_DELAY_TIME = 500;
 
-    public enum LIST_TYPE {
+    public enum ListType {
         ALL,
         DETECTED,
         NOT_FOUND,

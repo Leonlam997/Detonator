@@ -55,7 +55,7 @@ public class ChargeActivity extends BaseActivity {
                             .setTitle(R.string.dialog_title_warning)
                             .setMessage(R.string.dialog_short_circuit)
                             .setPositiveButton(R.string.btn_confirm, (dialog, which) -> finish())
-                            .show());
+                            .show(), true);
                     break;
                 case DETECT_INITIAL:
                     if (null != pDialog && pDialog.isShowing()) {
@@ -132,7 +132,7 @@ public class ChargeActivity extends BaseActivity {
                     pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
                     pDialog.setCanceledOnTouchOutside(false);
                     pDialog.setTitle(R.string.progress_title);
-                    pDialog.setMessage(getResources().getString(R.string.progress_charging));
+                    pDialog.setMessage(getString(R.string.progress_charging));
                     pDialog.setMax(100);
                     pDialog.setProgress(0);
                     pDialog.setOnCancelListener(dialog -> {

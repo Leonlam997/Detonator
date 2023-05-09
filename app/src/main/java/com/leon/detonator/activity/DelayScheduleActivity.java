@@ -33,7 +33,7 @@ public class DelayScheduleActivity extends BaseActivity implements View.OnClickL
         findViewById(R.id.btn_new_schedule).setOnClickListener(this);
         findViewById(R.id.btn_new_schedule).requestFocus();
         findViewById(R.id.btn_check_schedule).setOnClickListener(this);
-        findViewById(R.id.btn_check_detonator).setOnClickListener(this);
+        findViewById(R.id.btn_single_detect).setOnClickListener(this);
         TextView[] textViews = new TextView[]{
                 findViewById(R.id.tv_new_schedule),
                 findViewById(R.id.tv_check_schedule),
@@ -42,8 +42,10 @@ public class DelayScheduleActivity extends BaseActivity implements View.OnClickL
                 getString(R.string.button_add_detonator),
                 getString(R.string.button_check_schedule),
                 getString(R.string.button_check_detonator)};
+        findViewById(R.id.btn_single_detect).setVisibility(View.GONE);
+        findViewById(R.id.tv_single_detect).setVisibility(View.GONE);
         for (int i = 0; i < textViews.length; i++) {
-            textViews[i].setText(String.format(Locale.CHINA, "%d.%s", i + 1, title[i]));
+            textViews[i].setText(String.format(Locale.getDefault(), "%d.%s", i + 1, title[i]));
             textViews[i].setOnClickListener(this);
         }
     }
@@ -60,7 +62,7 @@ public class DelayScheduleActivity extends BaseActivity implements View.OnClickL
             case R.id.tv_check_schedule:
                 launchTask(KeyEvent.KEYCODE_2);
                 break;
-            case R.id.btn_check_detonator:
+            case R.id.btn_single_detect:
             case R.id.tv_single_detect:
                 launchTask(KeyEvent.KEYCODE_3);
                 break;
@@ -93,10 +95,10 @@ public class DelayScheduleActivity extends BaseActivity implements View.OnClickL
                     startActivity(intent);
                 }
                 break;
-            case KeyEvent.KEYCODE_3:
-                intent.setClass(DelayScheduleActivity.this, CheckLineActivity.class);
-                startActivity(intent);
-                break;
+//            case KeyEvent.KEYCODE_3:
+//                intent.setClass(DelayScheduleActivity.this, CheckLineActivity.class);
+//                startActivity(intent);
+//                break;
         }
     }
 }

@@ -74,7 +74,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                     tvCurrent.setText((String) msg.obj);
                     break;
                 case CHANGE_BATTERY:
-                    tvBattery.setText(String.format(Locale.CHINA, "%d%%", msg.arg1));
+                    tvBattery.setText(String.format(Locale.getDefault(), "%d%%", msg.arg1));
                     if (1 == msg.arg2)
                         ivBattery.setBackgroundResource(R.mipmap.ic_battery_charging);
                     else if (msg.arg1 >= 80)
@@ -307,7 +307,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     public void setVoltage(float vol) {
         Message msg = Message.obtain();
         msg.what = CHANGE_VOLTAGE;
-        msg.obj = String.format(Locale.CHINA, "%.2fV", vol);
+        msg.obj = String.format(Locale.getDefault(), "%.2fV", vol);
         changeStatus.sendMessage(msg);
     }
 
@@ -315,9 +315,9 @@ public abstract class BaseActivity extends AppCompatActivity {
         Message msg = Message.obtain();
         msg.what = CHANGE_CURRENT;
         if (current >= 1000)
-            msg.obj = String.format(Locale.CHINA, "%.2fmA", current / 1000);
+            msg.obj = String.format(Locale.getDefault(), "%.2fmA", current / 1000);
         else
-            msg.obj = String.format(Locale.CHINA, "%.2fμA", current);
+            msg.obj = String.format(Locale.getDefault(), "%.2fμA", current);
         changeStatus.sendMessage(msg);
     }
 

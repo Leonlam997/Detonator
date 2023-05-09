@@ -84,7 +84,7 @@
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
         android:layout_gravity="center"
-        android:background="@drawable/btn_cooperate_style" />
+        android:background="@drawable/btn_single_style" />
 
     <ImageButton
         android:id="@+id/btn_settings"

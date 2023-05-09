@@ -82,7 +82,7 @@ public class ExplosionRecordAdapter extends BaseAdapter {
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
-        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_CHINESE, Locale.CHINA);
+        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_CHINESE, Locale.getDefault());
 
         int textSize = 28;
         String text = (position + 1) + "";

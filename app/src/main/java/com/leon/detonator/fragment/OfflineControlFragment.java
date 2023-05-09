@@ -59,7 +59,7 @@ public class OfflineControlFragment extends Fragment {
                                 ((BaseApplication) getActivity().getApplication()).myToast(getActivity(), R.string.message_amount_input_error);
                             etAmount.requestFocus();
                         } else {
-                            text += String.format(Locale.CHINA, "%05d", i);
+                            text += String.format(Locale.getDefault(), "%05d", i);
                             tvEnd.setText(text);
                             enabled = true;
                         }
@@ -101,7 +101,7 @@ public class OfflineControlFragment extends Fragment {
 
         for (int i = 0; i < j; i++) {
             DetonatorInfoBean bean = new DetonatorInfoBean(etStart.getText().toString().substring(0, 8)
-                    + String.format(Locale.CHINA, "%05d", Integer.parseInt(etStart.getText().toString().substring(8)) + i));
+                    + String.format(Locale.getDefault(), "%05d", Integer.parseInt(etStart.getText().toString().substring(8)) + i));
             bean.setDownloaded(false);
             list.add(bean);
         }

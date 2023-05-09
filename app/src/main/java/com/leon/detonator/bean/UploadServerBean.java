@@ -75,7 +75,7 @@ public class UploadServerBean implements BaseJSONBean {
     @Override
     public JSONObject toJSON() throws JSONException {
         JSONObject jsonObject = new JSONObject();
-        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
         jsonObject.put("file", this.file);
         jsonObject.put("server", this.server);
         jsonObject.put("uploaded", this.uploaded);
@@ -86,7 +86,7 @@ public class UploadServerBean implements BaseJSONBean {
 
     @Override
     public void fromJSON(JSONObject jsonObject) throws JSONException {
-        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.CHINA);
+        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
         this.file = jsonObject.getString("file");
         this.server = jsonObject.getString("server");
         this.uploaded = jsonObject.getBoolean("uploaded");

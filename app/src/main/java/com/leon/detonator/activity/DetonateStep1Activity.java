@@ -39,7 +39,6 @@ import com.leon.detonator.base.CheckRegister;
 import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.BaiSeCheck;
 import com.leon.detonator.bean.BaiSeCheckResult;
-import com.leon.detonator.bean.BaiSeUpload;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.DownloadDetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
@@ -103,7 +102,7 @@ public class DetonateStep1Activity extends BaseActivity {
                                     .setMessage(R.string.dialog_confirm_online_download)
                                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> onlineDownload())
                                     .setNegativeButton(R.string.btn_cancel, null)
-                                    .show());
+                                    .show(), true);
                         }
                     } else {
                         if (baiSeCheck == null || baiSeCheck.getData().getUserIdCard().isEmpty()) {
@@ -117,15 +116,15 @@ public class DetonateStep1Activity extends BaseActivity {
                 case 3:
                     String coordinate;
                     if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0) {
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
+                        coordinate = String.format(Locale.getDefault(), getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
                         ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(getColor(R.color.colorCoordinateText));
                         ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLUE);
                     } else if ((int) settingBean.getLatitude() != 0 && (int) settingBean.getLongitude() != 0) {
                         ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.RED);
                         ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLACK);
-                        coordinate = String.format(Locale.CHINA, getResources().getString(R.string.map_position), settingBean.getLongitude(), settingBean.getLatitude());
+                        coordinate = String.format(Locale.getDefault(), getString(R.string.map_position), settingBean.getLongitude(), settingBean.getLatitude());
                     } else
-                        coordinate = getResources().getString(R.string.map_position_init);
+                        coordinate = getString(R.string.map_position_init);
                     ((TextView) findViewById(R.id.tv_coordinate)).setText(coordinate);
                     ((TextView) findViewById(R.id.tv_coordinate1)).setText(coordinate);
                     break;
@@ -136,7 +135,7 @@ public class DetonateStep1Activity extends BaseActivity {
                             try {
                                 enabledButton(false);
                                 baiSeCheck.getData().setAppVersion(getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
-                                baiSeCheck.getData().setLngLat(String.format(Locale.CHINA, "%f,%f", validLocation().longitude, validLocation().latitude));
+                                baiSeCheck.getData().setLngLat(String.format(Locale.getDefault(), "%f,%f", validLocation().longitude, validLocation().latitude));
                                 baiSeCheck.getData().setGpsCoordinateSystems(ConstantUtils.GPS_SYSTEM);
                                 baiSeCheck.getData().setDeviceNO(settingBean.getExploderID());
                                 BaseApplication.writeFile(new Gson().toJson(baiSeCheck));
@@ -388,7 +387,7 @@ public class DetonateStep1Activity extends BaseActivity {
 
     private void showMessage(@StringRes int s) {
         Message m = checkExploderHandler.obtainMessage(5);
-        m.obj = getResources().getString(s);
+        m.obj = getString(s);
         checkExploderHandler.sendMessage(m);
     }
 
@@ -478,7 +477,7 @@ public class DetonateStep1Activity extends BaseActivity {
                                                     } else {
                                                         String error = ErrorCode.downloadErrorCode.get(onlineBean.getResult().getCwxx());
                                                         if (null == error) {
-                                                            error = getResources().getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
+                                                            error = getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
                                                         }
                                                         showMessage(error);
                                                     }

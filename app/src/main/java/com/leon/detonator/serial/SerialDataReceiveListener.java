@@ -26,8 +26,15 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
     private boolean semiTest;
     private boolean startDetectShort;
     private int initStep;
+    private int detonatorAmount;
+    private int largeCurrentCount;
+    private int recordCurrentCount;
 
     public SerialDataReceiveListener(Context mContext, Runnable runnable) {
+        this(mContext, runnable, true);
+    }
+
+    public SerialDataReceiveListener(Context mContext, Runnable runnable, boolean init) {
         this.mContext = mContext;
         this.handler = new Handler();
         this.runnable = runnable;
@@ -42,24 +49,30 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
-        initFinished = false;
-        myHandler.sendEmptyMessageDelayed(HANDLE_BUS_VOLTAGE, ConstantUtils.INITIAL_TIME);
-        myHandler.sendEmptyMessageDelayed(HANDLE_SHORT_DETECT, 2000);
+        initFinished = !init;
+        if (init) {
+            myHandler.sendEmptyMessageDelayed(HANDLE_BUS_VOLTAGE, ConstantUtils.INITIAL_TIME);
+            myHandler.sendEmptyMessageDelayed(HANDLE_SHORT_DETECT, 2000);
+        } else {
+            rcvData = new byte[]{SerialCommand.INITIAL_FINISHED};
+            handler.post(runnable);
+        }
     }
+
 
     private Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
             if (myHandler != null) {
-                myHandler.removeMessages(msg.what);
                 rcvData = new byte[0];
                 switch (msg.what) {
                     case HANDLE_STATUS:
                         serialPortUtil.sendCmd("", SerialCommand.CODE_MEASURE_VALUE, 0);
+                        myHandler.sendEmptyMessageDelayed(HANDLE_STATUS, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                         break;
                     case HANDLE_BUS_VOLTAGE:
                         serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, initStep == 1 ? 0 : 0xFF, 0XFF, semiTest || singleConnect ? 0x12 : 0X16);
-                        myHandler.sendEmptyMessageDelayed(msg.what, ConstantUtils.RESEND_STATUS_TIMEOUT);
+                        myHandler.sendEmptyMessageDelayed(HANDLE_BUS_VOLTAGE, ConstantUtils.RESEND_STATUS_TIMEOUT);
                         break;
                     case HANDLE_SHORT_DETECT:
                         startDetectShort = true;
@@ -85,15 +98,17 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
     }
 
     public void setStartAutoDetect(boolean startAutoDetect) {
+        myHandler.removeMessages(HANDLE_STATUS);
+        if (initFinished)
+            myHandler.removeMessages(HANDLE_BUS_VOLTAGE);
         this.startAutoDetect = startAutoDetect;
         initStep = 1;
-        serialPortUtil.setTest(!startAutoDetect);
+        recordCurrentCount = 0;
+        if (!startAutoDetect)
+            serialPortUtil.setRecordLog(true);
         rcvData = new byte[0];
-        if (startAutoDetect) {
+        if (startAutoDetect)
             myHandler.sendEmptyMessage(HANDLE_STATUS);
-        } else {
-            myHandler.removeMessages(HANDLE_STATUS);
-        }
     }
 
     @Override
@@ -122,7 +137,7 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
         Log.d("ZBEST", stringBuilder.toString());
         if (serialPortUtil.checkData(rcvData)) {
             byte code = rcvData[SerialCommand.CODE_CHAR_AT];
-            if (code == (byte) 0xFF) {
+            if (code == SerialCommand.CODE_ERROR) {
                 if ((rcvData[SerialCommand.CODE_CHAR_AT + 1] & (1 << 2)) != 0) {
                     rcvData = new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT};
                     handler.post(runnable);
@@ -133,23 +148,36 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
                 } else {
                     try {
                         if (code == SerialCommand.CODE_MEASURE_VALUE) {
-                            ((BaseActivity) mContext).setVoltage(Float.intBitsToFloat((Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 5]) << 24)
+                            float voltage = Float.intBitsToFloat((Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 5]) << 24)
                                     + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 4]) << 16)
                                     + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 3]) << 8)
-                                    + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 2])));
+                                    + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 2]));
+                            ((BaseActivity) mContext).setVoltage(voltage);
                             float data = Float.intBitsToFloat((Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 9]) << 24)
                                     + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 8]) << 16)
                                     + (Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 7]) << 8)
                                     + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 6]));
                             ((BaseActivity) mContext).setCurrent(data);
-                            if (data > 20000 && startDetectShort) {
-                                rcvData = new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT};
-                                handler.post(runnable);
-                            }
+                            if (startDetectShort) {
+                                if (data > 20000) {
+                                    rcvData = new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT};
+                                    handler.post(runnable);
+                                } else if (detonatorAmount > 0 && data > ConstantUtils.CURRENT_PER_DETONATOR * detonatorAmount * ConstantUtils.CURRENT_OVER_PERCENTAGE) {
+                                    if (++largeCurrentCount > ConstantUtils.CURRENT_DETECT_COUNT) {
+                                        rcvData = new byte[]{SerialCommand.ALERT_LARGE_CURRENT};
+                                        handler.post(runnable);
+                                    }
+                                } else
+                                    largeCurrentCount = 0;
+                                if (recordCurrentCount++ == ConstantUtils.CURRENT_DETECT_COUNT)
+                                    serialPortUtil.setRecordLog(false);
+                                else
+                                    BaseApplication.writeFile("电流:" + data + ", 电压:" + voltage + ", 数量：" + detonatorAmount);
+                            } else
+                                BaseApplication.writeFile("充电电流:" + data + ", 电压:" + voltage + ", 数量：" + detonatorAmount);
                             if (semiTest) {
                                 handler.post(runnable);
                             }
-                            myHandler.sendEmptyMessageDelayed(HANDLE_STATUS, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                         }
                     } catch (Exception e) {
                         BaseApplication.writeErrorLog(e);
@@ -176,8 +204,17 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
         }
     }
 
+    public void setDetonatorAmount(int detonatorAmount) {
+        this.detonatorAmount = detonatorAmount;
+    }
+
+    public void setStartDetectShort(boolean startDetectShort) {
+        this.startDetectShort = startDetectShort;
+    }
+
     public void closeAllHandler() {
-        startAutoDetect = false;
+        if (startAutoDetect)
+            setStartAutoDetect(false);
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
             handler = null;

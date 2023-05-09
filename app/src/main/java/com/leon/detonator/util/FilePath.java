@@ -19,8 +19,8 @@ public class FilePath {
     public final static String FILE_TUNNEL_SELECTED_LIST = APP_PATH + "/T_Selected.lst";
     public final static String FILE_SCHEME_LIST = APP_PATH + "/Scheme.lst";
     public final static String FILE_SCHEME_PATH = APP_PATH + "/Schemes";
-    public final static String[][] FILE_LIST = {{FILE_TUNNEL_DELAY_LIST, FILE_TUNNEL_DETECT_LIST, FILE_TUNNEL_NOT_FOUND_LIST, FILE_TUNNEL_ERROR_LIST, FILE_TUNNEL_SELECTED_LIST},
-            {FILE_OPEN_AIR_DELAY_LIST, FILE_OPEN_AIR_DETECT_LIST, FILE_OPEN_AIR_NOT_FOUND_LIST, FILE_OPEN_AIR_ERROR_LIST, FILE_OPEN_AIR_SELECTED_LIST}};
+    public final static String[][] FILE_LIST = {{FILE_TUNNEL_DETECT_LIST, FILE_TUNNEL_NOT_FOUND_LIST, FILE_TUNNEL_ERROR_LIST, FILE_TUNNEL_SELECTED_LIST},
+            {FILE_OPEN_AIR_DETECT_LIST, FILE_OPEN_AIR_NOT_FOUND_LIST, FILE_OPEN_AIR_ERROR_LIST, FILE_OPEN_AIR_SELECTED_LIST}};
     public final static String FILE_USER_INFO = APP_PATH + "/Users.dat";
     public final static String FILE_ENTERPRISE_INFO = APP_PATH + "/Enterprise.dat";
     public final static String FILE_BAI_SE_DATA = APP_PATH + "/BaiSeDataActivity.dat";

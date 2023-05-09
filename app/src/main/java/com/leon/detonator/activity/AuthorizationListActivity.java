@@ -91,7 +91,7 @@ public class AuthorizationListActivity extends BaseActivity {
                                 .setMessage(R.string.dialog_confirm_offline_download)
                                 .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> offlineDownload())
                                 .setNegativeButton(R.string.btn_cancel, null)
-                                .show());
+                                .show(), true);
                     }
                     break;
                 case 3:
@@ -174,7 +174,7 @@ public class AuthorizationListActivity extends BaseActivity {
                     }
                     return false;
                 })
-                .show()));
+                .show(), true));
 
         controlFragment = new OfflineControlFragment();
         controlFragment.setNewButtonEnabled(list.size() > 0);
@@ -218,7 +218,7 @@ public class AuthorizationListActivity extends BaseActivity {
                     }
                     return false;
                 })
-                .show()));
+                .show(), true));
         fragments.add(listFragment);
         fragments.add(controlFragment);
 
@@ -253,7 +253,7 @@ public class AuthorizationListActivity extends BaseActivity {
 
     private void showMessage(@StringRes int s) {
         Message m = checkExploderHandler.obtainMessage(3);
-        m.obj = getResources().getString(s);
+        m.obj = getString(s);
         checkExploderHandler.sendMessage(m);
     }
 
@@ -320,7 +320,7 @@ public class AuthorizationListActivity extends BaseActivity {
                                                 } else {
                                                     String error = ErrorCode.downloadErrorCode.get(downloadDetonatorBean.getResult().getCwxx());
                                                     if (null == error) {
-                                                        error = getResources().getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
+                                                        error = getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
                                                     }
                                                     showMessage(error);
                                                 }
@@ -373,7 +373,7 @@ public class AuthorizationListActivity extends BaseActivity {
     private void resetTabTitle(boolean init) {
         for (int i = 0; i < title.length; i++) {
             TextView tv = (TextView) LayoutInflater.from(this).inflate(R.layout.layout_tab_view, tabList, false);
-            String text = getResources().getString(title[i]) + (0 == i ? "(" + list.size() + ")" : "");
+            String text = getString(title[i]) + (0 == i ? "(" + list.size() + ")" : "");
             tv.setText(text);
             TabLayout.Tab tab = tabList.getTabAt(i);
             if (tab != null) {

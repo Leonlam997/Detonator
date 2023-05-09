@@ -123,7 +123,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
                         }
                         return false;
                     })
-                    .show());
+                    .show(), true);
         } else
             super.finish();
     }

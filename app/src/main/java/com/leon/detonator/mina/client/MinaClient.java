@@ -48,7 +48,7 @@ public class MinaClient {
             message.setLng(lng);
             message.setLat(lat);
             message.setSn(sn);
-            SimpleDateFormat format = new SimpleDateFormat("yyMMddHHmmss", Locale.CHINA);
+            SimpleDateFormat format = new SimpleDateFormat("yyMMddHHmmss", Locale.getDefault());
             message.setQbDate(format.format(explodeTime));
 
             cf.getSession().write(message.toByte());

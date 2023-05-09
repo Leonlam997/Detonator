@@ -68,12 +68,12 @@ public class ListDialogAdapter extends BaseAdapter {
             convertView.findViewById(R.id.line_row).setVisibility(View.GONE);
             convertView.findViewById(R.id.text_row).setVisibility(View.GONE);
         } else {
-            viewHolder.row.setText(String.format(Locale.CHINA, "%d", detonatorInfoBean.getRow()));
+            viewHolder.row.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getRow()));
             viewHolder.row.setTextSize(32);
         }
-        viewHolder.hole.setText(String.format(Locale.CHINA, "%d", detonatorInfoBean.getHole()));
+        viewHolder.hole.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getHole()));
         viewHolder.hole.setTextSize(32);
-        viewHolder.inside.setText(String.format(Locale.CHINA, "%d", detonatorInfoBean.getInside()));
+        viewHolder.inside.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getInside()));
         viewHolder.inside.setTextSize(32);
         viewHolder.address.setText(detonatorInfoBean.getAddress());
         viewHolder.address.setTextSize(32);

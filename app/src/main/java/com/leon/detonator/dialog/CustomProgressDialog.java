@@ -24,7 +24,7 @@ public class CustomProgressDialog extends Dialog {
 
     public void incrementProgressBy(int diff) {
         progressBar.incrementSecondaryProgressBy(diff);
-        textViewProgress.setText(String.format(Locale.CHINA, "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
+        textViewProgress.setText(String.format(Locale.getDefault(), "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
     }
 
     public CustomProgressDialog(@NonNull Context context) {
@@ -41,12 +41,12 @@ public class CustomProgressDialog extends Dialog {
 
     public void setMax(int max) {
         progressBar.setMax(max);
-        textViewProgress.setText(String.format(Locale.CHINA, "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
+        textViewProgress.setText(String.format(Locale.getDefault(), "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
     }
 
     public void setProgress(int progress) {
         progressBar.setSecondaryProgress(progress);
-        textViewProgress.setText(String.format(Locale.CHINA, "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
+        textViewProgress.setText(String.format(Locale.getDefault(), "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
     }
 
     public void setSecondaryProgress(int secondaryProgress) {

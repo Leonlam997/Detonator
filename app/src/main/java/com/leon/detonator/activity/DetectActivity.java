@@ -179,12 +179,12 @@ public class DetectActivity extends BaseActivity {
                         inside = 1;
                         delayTime = 0;
                     }
-                    tvRow.setText(String.format(Locale.CHINA, "%d", row));
-                    tvHole.setText(String.format(Locale.CHINA, "%d", hole));
-                    tvInside.setText(String.format(Locale.CHINA, "%d", inside));
+                    tvRow.setText(String.format(Locale.getDefault(), "%d", row));
+                    tvHole.setText(String.format(Locale.getDefault(), "%d", hole));
+                    tvInside.setText(String.format(Locale.getDefault(), "%d", inside));
                     tvTube.setText("--");
-                    tvDelayTime.setText(String.format(Locale.CHINA, "%dms", delayTime));
-                    tvLastDelay.setText(lastDelay == -1 ? getResources().getString(R.string.no_delay_time) : (lastDelay + "ms"));
+                    tvDelayTime.setText(String.format(Locale.getDefault(), "%dms", delayTime));
+                    tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : (lastDelay + "ms"));
                     myHandler.sendEmptyMessage(DETECT_SEND_COMMAND);
                     break;
                 case DETECT_FAIL: //检测失败
@@ -289,13 +289,7 @@ public class DetectActivity extends BaseActivity {
         insertIndex++;
         try {
             myApp.writeToFile(myApp.getListFile(), oldList);
-            String[] fileList = Arrays.copyOfRange(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1], 1, FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1].length);
-            for (String s : fileList) {
-                File file = new File(s);
-                if (file.exists() && !file.delete()) {
-                    myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
-                }
-            }
+            myApp.deleteDetectTempFiles();
             List<SchemeBean> schemeBeans = new ArrayList<>();
             myApp.readFromFile(FilePath.FILE_SCHEME_LIST, schemeBeans, SchemeBean.class);
             for (SchemeBean schemeBean : schemeBeans)
@@ -353,7 +347,7 @@ public class DetectActivity extends BaseActivity {
                                 int index = oldList.indexOf(new DetonatorInfoBean(tempAddress));
                                 if (index >= 0) {
                                     flowStep = STEP_END;
-                                    myApp.myToast(DetectActivity.this, String.format(Locale.CHINA, getResources().getString(R.string.message_current_detonator_exist), index));
+                                    myApp.myToast(DetectActivity.this, String.format(Locale.getDefault(), getString(R.string.message_current_detonator_exist), index + 1));
                                     myHandler.sendEmptyMessage(DETECT_FAIL);
                                     return;
                                 } else if (flowStep == STEP_SCAN_CODE) {
@@ -401,7 +395,7 @@ public class DetectActivity extends BaseActivity {
         tvInside = findViewById(R.id.tv_inside);
         tvInside.setText(lastInside == 0 ? "--" : (lastInside + ""));
         tvLastDelay = findViewById(R.id.tv_last_delay);
-        tvLastDelay.setText(lastDelay == -1 ? getResources().getString(R.string.no_delay_time) : (lastDelay + "ms"));
+        tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : (lastDelay + "ms"));
         btnNextRow = findViewById(R.id.btn_next_row);
         btnNextHole = findViewById(R.id.btn_next_hole);
         btnInside = findViewById(R.id.btn_inside);
@@ -420,8 +414,8 @@ public class DetectActivity extends BaseActivity {
             ((TextView) findViewById(R.id.txt_inside)).setText(R.string.text_section_inside_num);
             tvSectionDelay = findViewById(R.id.tv_row_delay);
             tvInsideDelay = findViewById(R.id.tv_inside_delay);
-            tvSectionDelay.setText(String.format(Locale.CHINA, "%dms", settings.getSection()));
-            tvInsideDelay.setText(String.format(Locale.CHINA, "%dms", settings.getSectionInside()));
+            tvSectionDelay.setText(String.format(Locale.getDefault(), "%dms", settings.getSection()));
+            tvInsideDelay.setText(String.format(Locale.getDefault(), "%dms", settings.getSectionInside()));
             tvSectionDelay.setOnClickListener((v) -> modifyDelay(false));
             findViewById(R.id.txt_delay1).setOnClickListener((v) -> modifyDelay(false));
             tvInsideDelay.setOnClickListener((v) -> modifyDelay(true));
@@ -446,7 +440,7 @@ public class DetectActivity extends BaseActivity {
         enabledButton(false);
         try {
             serialPortUtil = SerialPortUtil.getInstance();
-            myReceiveListener = new SerialDataReceiveListener(DetectActivity.this, bufferRunnable);
+            myReceiveListener = new SerialDataReceiveListener(DetectActivity.this, bufferRunnable, false);
             myReceiveListener.setSingleConnect(true);
             serialPortUtil.setOnDataReceiveListener(myReceiveListener);
         } catch (IOException e) {
@@ -467,7 +461,7 @@ public class DetectActivity extends BaseActivity {
             etDelay.setHint(R.string.hint_input_delay_time);
             etDelay.setFilters(new InputFilter[]{new InputFilter.LengthFilter(5)});
             etDelay.setInputType(InputType.TYPE_CLASS_NUMBER);
-            new AlertDialog.Builder(DetectActivity.this, R.style.AlertDialog)
+            BaseApplication.customDialog(new AlertDialog.Builder(DetectActivity.this, R.style.AlertDialog)
                     .setTitle(title)
                     .setView(view)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
@@ -482,7 +476,7 @@ public class DetectActivity extends BaseActivity {
                             }
                             myApp.saveBean(settings);
                         }
-                    }).setNegativeButton(R.string.btn_cancel, null).show();
+                    }).setNegativeButton(R.string.btn_cancel, null).show(), false);
         });
     }
 
