@@ -3,13 +3,14 @@ package com.leon.detonator.serial;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.util.ConstantUtils;
 
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Locale;
 
 public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveListener {
     private final Context mContext;
@@ -28,6 +29,7 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
     private int initStep;
     private int detonatorAmount;
     private int largeCurrentCount;
+    private int breakCircuitCount;
     private int recordCurrentCount;
 
     public SerialDataReceiveListener(Context mContext, Runnable runnable) {
@@ -59,7 +61,6 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
         }
     }
 
-
     private Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
@@ -71,8 +72,10 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
                         myHandler.sendEmptyMessageDelayed(HANDLE_STATUS, ConstantUtils.REFRESH_STATUS_BAR_PERIOD);
                         break;
                     case HANDLE_BUS_VOLTAGE:
-                        serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, initStep == 1 ? 0 : 0xFF, 0XFF, semiTest || singleConnect ? 0x12 : 0X16);
-                        myHandler.sendEmptyMessageDelayed(HANDLE_BUS_VOLTAGE, ConstantUtils.RESEND_STATUS_TIMEOUT);
+                        if (handler != null) {
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, initStep == 1 ? 0 : 0xFF, 0XFF, semiTest || singleConnect ? 0x12 : 0X16);
+                            myHandler.sendEmptyMessageDelayed(HANDLE_BUS_VOLTAGE, ConstantUtils.RESEND_STATUS_TIMEOUT);
+                        }
                         break;
                     case HANDLE_SHORT_DETECT:
                         startDetectShort = true;
@@ -116,7 +119,6 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
         if (null == handler)
             return;
 
-        StringBuilder stringBuilder = new StringBuilder();
         if (buffer[0] == SerialCommand.DATA_PREFIX && buffer[1] == SerialCommand.DATA_PREFIX) {
             rcvData = new byte[buffer.length];
             rcvData = buffer.clone();
@@ -132,9 +134,7 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
                 System.arraycopy(rcvData.clone(), 0, rcvData, 0, i + 2);
             }
         }
-        for (byte i : rcvData)
-            stringBuilder.append(String.format("0x%02X ", i));
-        Log.d("ZBEST", stringBuilder.toString());
+
         if (serialPortUtil.checkData(rcvData)) {
             byte code = rcvData[SerialCommand.CODE_CHAR_AT];
             if (code == SerialCommand.CODE_ERROR) {
@@ -159,22 +159,39 @@ public class SerialDataReceiveListener implements SerialPortUtil.OnDataReceiveLi
                                     + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 6]));
                             ((BaseActivity) mContext).setCurrent(data);
                             if (startDetectShort) {
-                                if (data > 20000) {
+                                if (data > ConstantUtils.SHORT_CIRCUIT_CURRENT) {
                                     rcvData = new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT};
                                     handler.post(runnable);
-                                } else if (detonatorAmount > 0 && data > ConstantUtils.CURRENT_PER_DETONATOR * detonatorAmount * ConstantUtils.CURRENT_OVER_PERCENTAGE) {
-                                    if (++largeCurrentCount > ConstantUtils.CURRENT_DETECT_COUNT) {
-                                        rcvData = new byte[]{SerialCommand.ALERT_LARGE_CURRENT};
-                                        handler.post(runnable);
+                                } else if (detonatorAmount > 0) {
+//                                    if (data > ConstantUtils.CURRENT_PER_DETONATOR * detonatorAmount * ConstantUtils.CURRENT_OVER_PERCENTAGE) {
+//                                        if (largeCurrentCount++ > ConstantUtils.CURRENT_DETECT_COUNT) {
+//                                            rcvData = new byte[]{SerialCommand.ALERT_LARGE_CURRENT};
+//                                            handler.post(runnable);
+//                                        }
+//                                    } else
+                                    if (data < ConstantUtils.CURRENT_BREAK_CIRCUIT) {
+                                        if (breakCircuitCount++ > ConstantUtils.CURRENT_DETECT_COUNT) {
+                                            rcvData = new byte[]{SerialCommand.ALERT_BREAK_CIRCUIT};
+                                            handler.post(runnable);
+                                        }
+                                    } else {
+                                        breakCircuitCount = 0;
+                                        largeCurrentCount = 0;
                                     }
-                                } else
-                                    largeCurrentCount = 0;
+                                }
                                 if (recordCurrentCount++ == ConstantUtils.CURRENT_DETECT_COUNT)
                                     serialPortUtil.setRecordLog(false);
+                                if (recordCurrentCount <= ConstantUtils.CURRENT_DETECT_COUNT)
+                                    if (detonatorAmount > 0)
+                                        BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f, 数量：%d", data, voltage, detonatorAmount));
+                                    else
+                                        BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f", data, voltage));
+                            } else {
+                                if (detonatorAmount > 0)
+                                    BaseApplication.writeFile(String.format(Locale.getDefault(), "充电电流:%.2f, 电压:%.2f, 数量：%d", data, voltage, detonatorAmount));
                                 else
-                                    BaseApplication.writeFile("电流:" + data + ", 电压:" + voltage + ", 数量：" + detonatorAmount);
-                            } else
-                                BaseApplication.writeFile("充电电流:" + data + ", 电压:" + voltage + ", 数量：" + detonatorAmount);
+                                    BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f", data, voltage));
+                            }
                             if (semiTest) {
                                 handler.post(runnable);
                             }

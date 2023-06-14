@@ -32,18 +32,10 @@ public class ServerSelectActivity extends BaseActivity {
         radioButtons[4] = findViewById(R.id.rb_4);
         radioButtons[5] = findViewById(R.id.rb_5);
         radioButtons[6] = findViewById(R.id.rb_6);
-        textViews[0] = findViewById(R.id.tv_0);
-        textViews[1] = findViewById(R.id.tv_1);
-        textViews[2] = findViewById(R.id.tv_2);
-        textViews[3] = findViewById(R.id.tv_3);
-        textViews[4] = findViewById(R.id.tv_4);
-        textViews[5] = findViewById(R.id.tv_5);
-        textViews[6] = findViewById(R.id.tv_6);
-        textViews[0].setText("");
+        radioButtons[7] = findViewById(R.id.rb_7);
         for (int i = 0; i < ConstantUtils.UPLOAD_HOST.length; i++) {
             radioButtons[i].setText(ConstantUtils.UPLOAD_HOST[i][0]);
             radioButtons[i].setChecked(i == settingBean.getServerHost());
-            //textViews[i + 1].setText(ConstantUtils.ZHONGBAO_HOST[i][1]);
         }
     }
 

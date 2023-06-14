@@ -6,7 +6,6 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.NumberKeyListener;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.CheckBox;
@@ -14,19 +13,25 @@ import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
+import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.EnterpriseBean;
-import com.leon.detonator.R;
 import com.leon.detonator.util.ConstantUtils;
 
 import java.util.regex.Pattern;
 
 public class EnterpriseActivity extends BaseActivity {
-    private EditText etCode, etId, etContract, etProject;
+    private EditText etCode;
+    private EditText etId;
+    private EditText etContract;
+    private EditText etProject;
     private CheckBox cbCommercial;
     private EnterpriseBean enterprise;
     private BaseApplication myApp;
+    private MyButton btnClear;
+    private MyButton btnSave;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +46,8 @@ public class EnterpriseActivity extends BaseActivity {
         etId = findViewById(R.id.et_id);
         etContract = findViewById(R.id.et_contract);
         etProject = findViewById(R.id.et_project);
+        btnClear = findViewById(R.id.btn_clear);
+        btnSave = findViewById(R.id.btn_save);
         initData();
         findViewById(R.id.rl_commercial).setVisibility(cbCommercial.isChecked() ? View.VISIBLE : View.INVISIBLE);
         TextWatcher textWatcher = new TextWatcher() {
@@ -56,8 +63,7 @@ public class EnterpriseActivity extends BaseActivity {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
-                findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+                checkButton();
             }
         };
         etCode.addTextChangedListener(textWatcher);
@@ -86,23 +92,22 @@ public class EnterpriseActivity extends BaseActivity {
 
             @Override
             public void afterTextChanged(Editable editable) {
-                findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
-                findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+                checkButton();
                 if (editable.toString().contains("."))
                     editable.replace(editable.toString().indexOf("."), editable.toString().indexOf(".") + 1, "X");
             }
         });
         etContract.addTextChangedListener(textWatcher);
         etProject.addTextChangedListener(textWatcher);
-        findViewById(R.id.btn_clear).setOnClickListener(view -> {
+        btnClear.setOnClickListener(view -> {
             etCode.setText("");
             etId.setText("");
             etContract.setText("");
             etProject.setText("");
-            findViewById(R.id.btn_save).setEnabled(false);
-            findViewById(R.id.btn_clear).setEnabled(false);
+            btnSave.setEnabled(false);
+            btnClear.setEnabled(false);
         });
-        findViewById(R.id.btn_save).setOnClickListener(view -> {
+        btnSave.setOnClickListener(view -> {
             if (etCode.getText().toString().isEmpty()) {
                 myApp.myToast(EnterpriseActivity.this, R.string.message_input_enterprise_code);
                 etCode.requestFocus();
@@ -127,6 +132,13 @@ public class EnterpriseActivity extends BaseActivity {
                 finish();
             }
         });
+        cbCommercial.setOnCheckedChangeListener((compoundButton, b) -> checkButton());
+        etCode.requestFocus();
+    }
+
+    private void checkButton() {
+        btnClear.setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
+        btnSave.setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
     }
 
     @Override
@@ -162,7 +174,6 @@ public class EnterpriseActivity extends BaseActivity {
                 etProject.setText(enterprise.getProject());
             }
         }
-        findViewById(R.id.btn_clear).setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
-        findViewById(R.id.btn_save).setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+        checkButton();
     }
 }

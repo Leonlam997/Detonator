@@ -23,7 +23,8 @@ import java.io.File;
 import java.util.Locale;
 
 public class UpdateAppActivity extends BaseActivity {
-    private final int UPDATE_HAS_NEW = 1;
+    public static final int UPDATE_HAS_NEW = 100;
+    public static final int UPDATE_NO_NEW = 101;
     private final int UPDATE_PROGRESS = 4;
     private final int UPDATE_DOWNLOADING = 5;
     private final int UPDATE_DOWNLOAD_FAIL = 6;
@@ -62,6 +63,14 @@ public class UpdateAppActivity extends BaseActivity {
                     }
                     setProgressVisibility(false);
                     break;
+                case UPDATE_NO_NEW:
+                    try {
+                        tvHints.setText(String.format(Locale.getDefault(), getString(R.string.update_is_new_version), getPackageManager().getPackageInfo(getPackageName(), 0).versionName));
+                    } catch (Exception e) {
+                        BaseApplication.writeErrorLog(e);
+                    }
+                    setProgressVisibility(false);
+                    break;
                 case UPDATE_DOWNLOADING:
                     btnUpdate.setEnabled(false);
                     setProgressVisibility(true);
@@ -72,9 +81,9 @@ public class UpdateAppActivity extends BaseActivity {
                     tvHints.setText(R.string.update_download_fail);
                     break;
                 case UPDATE_PROGRESS:
-                    if (msg.arg1 < 100) {
+                    if (msg.arg1 < 100)
                         pbDownload.setProgress(msg.arg1);
-                    } else {
+                    else {
                         btnVersion.setEnabled(true);
                         Intent intent = new Intent(Intent.ACTION_VIEW);
                         intent.setDataAndType(Uri.fromFile(new File(String.format(Locale.getDefault(), FilePath.FILE_UPDATE_APK, versionBean.getVersion()))), "application/vnd.android.package-archive");

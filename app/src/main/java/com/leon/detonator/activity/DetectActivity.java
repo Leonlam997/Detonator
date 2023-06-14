@@ -14,12 +14,12 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.LocalSettingBean;
-import com.leon.detonator.R;
 import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.serial.SerialCommand;
 import com.leon.detonator.serial.SerialDataReceiveListener;
@@ -31,7 +31,6 @@ import com.leon.detonator.util.KeyUtils;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -191,10 +190,8 @@ public class DetectActivity extends BaseActivity {
                     myHandler.removeMessages(DETECT_SEND_COMMAND);
                     if (STEP_END != flowStep) {
                         Integer i = failCode.get(flowStep);
-                        if (null != i) {
+                        if (null != i)
                             myApp.myToast(DetectActivity.this, i);
-                            BaseApplication.writeFile(getString(i));
-                        }
                     }
                     flowStep = STEP_END;
                     myApp.playSoundVibrate(soundPool, soundFail);
@@ -315,6 +312,7 @@ public class DetectActivity extends BaseActivity {
                 finish();
             } else if (received[0] == SerialCommand.INITIAL_FINISHED) {
                 myHandler.sendEmptyMessage(DETECT_INITIAL);
+                myReceiveListener.setStartDetectShort(true);
             } else if (received[0] == SerialCommand.INITIAL_FAIL) {
                 myApp.myToast(DetectActivity.this, R.string.message_open_module_fail);
                 finish();
@@ -485,8 +483,10 @@ public class DetectActivity extends BaseActivity {
             myReceiveListener.setStartAutoDetect(enable);
         }
         setProgressVisibility(!enable);
-        if (insertMode > 0) btnNextRow.setEnabled(false);
-        else btnNextRow.setEnabled(enable);
+        if (insertMode > 0)
+            btnNextRow.setEnabled(false);
+        else
+            btnNextRow.setEnabled(enable);
         if (insertMode == ConstantUtils.INSERT_INSIDE) {
             btnNextHole.setEnabled(false);
             btnNextSection.setEnabled(false);
@@ -523,7 +523,8 @@ public class DetectActivity extends BaseActivity {
                 if (btnNextHole.isEnabled() || btnSection.isEnabled()) {
                     if (btnNextHole.isEnabled())
                         BaseApplication.writeFile(btnNextHole.getText().toString());
-                    else BaseApplication.writeFile(btnSection.getText().toString());
+                    else
+                        BaseApplication.writeFile(btnSection.getText().toString());
                     add_mode = myApp.isTunnel() ? ADD_MODE.INSIDE_SECTION : ADD_MODE.NEXT_HOLE;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
@@ -532,7 +533,8 @@ public class DetectActivity extends BaseActivity {
                 if (btnNextRow.isEnabled() || btnNextSection.isEnabled()) {
                     if (btnNextRow.isEnabled())
                         BaseApplication.writeFile(btnNextRow.getText().toString());
-                    else BaseApplication.writeFile(btnNextSection.getText().toString());
+                    else
+                        BaseApplication.writeFile(btnNextSection.getText().toString());
                     add_mode = myApp.isTunnel() ? ADD_MODE.NEXT_SECTION : ADD_MODE.NEXT_ROW;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
@@ -586,10 +588,6 @@ public class DetectActivity extends BaseActivity {
             myReceiveListener.closeAllHandler();
             myReceiveListener = null;
         }
-//        if (null != serialPortUtil) {
-//            serialPortUtil.closeSerialPort();
-//            serialPortUtil = null;
-//        }
         super.onDestroy();
     }
 

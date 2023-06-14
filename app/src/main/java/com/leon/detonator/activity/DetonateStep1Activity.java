@@ -16,7 +16,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.TextView;
 
-import androidx.annotation.StringRes;
 import androidx.core.app.ActivityCompat;
 
 import com.baidu.location.BDAbstractLocationListener;
@@ -74,27 +73,25 @@ public class DetonateStep1Activity extends BaseActivity {
     private EnterpriseDialog enterpriseDialog;
     private EnterpriseBean enterpriseBean;
     private String token;
-    private List<DetonatorInfoBean> list = new ArrayList<>();
-    private MyButton btnOnline, btnOffline;
+    private List<DetonatorInfoBean> list;
+    private MyButton btnOnline;
+    private MyButton btnOffline;
     private LatLng lastLatLng;
-    private Location lastKnownLocation;
     private DownloadDetonatorBean offlineBean;
     private LocalSettingBean settingBean;
     private BaiSeCheck baiSeCheck;
     private BaseApplication myApp;
-    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
+    private final Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message message) {
             switch (message.what) {
                 case 1:
-                    if ((0 != settingBean.getServerHost() && 2 != settingBean.getServerHost()) ||
-                            (settingBean.isRegistered() && validLocation().latitude != 0 && validLocation().longitude != 0))
-                        enabledButton(true);
+                    enabledButton(true);
                     break;
                 case 2:
-                    if (0 == settingBean.getServerHost()) {
+                    if (0 == settingBean.getServerHost() || 3 == settingBean.getServerHost()) {
                         if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
-                            showMessage(R.string.message_fill_enterprise);
+                            myApp.myToast(DetonateStep1Activity.this, R.string.message_fill_enterprise);
                             startActivity(new Intent(DetonateStep1Activity.this, EnterpriseActivity.class));
                         } else {
                             BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep1Activity.this, R.style.AlertDialog)
@@ -106,7 +103,7 @@ public class DetonateStep1Activity extends BaseActivity {
                         }
                     } else {
                         if (baiSeCheck == null || baiSeCheck.getData().getUserIdCard().isEmpty()) {
-                            showMessage(R.string.message_fill_enterprise);
+                            myApp.myToast(DetonateStep1Activity.this, R.string.message_fill_enterprise);
                             startActivity(new Intent(DetonateStep1Activity.this, BaiSeDataActivity.class));
                         } else {
                             launchWhich(KeyEvent.KEYCODE_POUND);
@@ -116,13 +113,15 @@ public class DetonateStep1Activity extends BaseActivity {
                 case 3:
                     String coordinate;
                     if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0) {
-                        coordinate = String.format(Locale.getDefault(), getString(R.string.map_position), lastLatLng.longitude, lastLatLng.latitude);
+                        coordinate = String.format(Locale.getDefault(), getString(R.string.map_position) + getString(R.string.map_locate_success), lastLatLng.longitude, lastLatLng.latitude);
                         ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(getColor(R.color.colorCoordinateText));
                         ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLUE);
                     } else if ((int) settingBean.getLatitude() != 0 && (int) settingBean.getLongitude() != 0) {
                         ((TextView) findViewById(R.id.tv_coordinate)).setTextColor(Color.RED);
                         ((TextView) findViewById(R.id.tv_coordinate1)).setTextColor(Color.BLACK);
-                        coordinate = String.format(Locale.getDefault(), getString(R.string.map_position), settingBean.getLongitude(), settingBean.getLatitude());
+                        coordinate = String.format(Locale.getDefault(), getString(R.string.map_position) + getString(R.string.map_last_position), settingBean.getLongitude(), settingBean.getLatitude());
+                        myApp.myToast(DetonateStep1Activity.this, R.string.message_use_last_position);
+                        myHandler.sendEmptyMessageDelayed(3, 3000);
                     } else
                         coordinate = getString(R.string.map_position_init);
                     ((TextView) findViewById(R.id.tv_coordinate)).setText(coordinate);
@@ -158,22 +157,22 @@ public class DetonateStep1Activity extends BaseActivity {
                                             @Override
                                             public void onError(Call call, Exception e, int i) {
                                                 myApp.myToast(DetonateStep1Activity.this, R.string.message_network_timeout);
+                                                myHandler.sendEmptyMessage(1);
                                             }
 
                                             @Override
                                             public void onResponse(BaiSeCheckResult baiSeCheckResult, int i) {
+                                                myHandler.sendEmptyMessage(1);
                                                 if (baiSeCheckResult != null) {
                                                     if (baiSeCheckResult.isSuccess() && baiSeCheckResult.getData().isIsPass()) {
                                                         myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_success);
                                                         baiSeCheck.setChecked(true);
                                                         myApp.saveBean(baiSeCheck);
-                                                        checkExploderHandler.sendEmptyMessage(1);
                                                     } else if (baiSeCheckResult.getData() != null) {
                                                         if (baiSeCheckResult.getData().getMsg() != null)
                                                             myApp.myToast(DetonateStep1Activity.this, baiSeCheckResult.getData().getMsg());
                                                         else
                                                             myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_fail);
-                                                        enabledButton(true);
                                                     }
                                                 }
                                             }
@@ -191,9 +190,6 @@ public class DetonateStep1Activity extends BaseActivity {
                         startActivity(new Intent(DetonateStep1Activity.this, BaiSeDetectorActivity.class));
                     });
                     enterpriseDialog.show();
-                    break;
-                default:
-                    myApp.myToast(DetonateStep1Activity.this, (String) message.obj);
                     break;
             }
             return false;
@@ -227,7 +223,7 @@ public class DetonateStep1Activity extends BaseActivity {
         enterpriseBean = myApp.readEnterprise();
         offlineBean = myApp.readDownloadList(false);
         btnOffline = findViewById(R.id.btn_offline_auth);
-        if (0 == settingBean.getServerHost() || 2 == settingBean.getServerHost()) {
+        if (0 == settingBean.getServerHost() || 2 == settingBean.getServerHost() || 3 == settingBean.getServerHost()) {
             findViewById(R.id.gl_btn2).setVisibility(View.GONE);
             findViewById(R.id.gl_btn).setVisibility(View.VISIBLE);
             btnOnline = findViewById(R.id.btn_online_auth);
@@ -245,14 +241,6 @@ public class DetonateStep1Activity extends BaseActivity {
         btnOffline.setOnClickListener(view -> launchWhich(KeyEvent.KEYCODE_2));
         firstLocate = true;
         initLocation();
-//        btnOnline.setEnabled((2 == settingBean.getServerHost() && baiSeCheck.isChecked()) || (2 != settingBean.getServerHost() && (list.size() > 0
-//                && ((lastKnownLocation != null && (int) lastKnownLocation.getLatitude() != 0 && (int) lastKnownLocation.getLongitude() != 0)
-//                || ((int) settingBean.getLongitude() != 0 && (int) settingBean.getLatitude() != 0)))));
-//        btnOffline.setEnabled(2 == settingBean.getServerHost() || ((offlineBean != null && offlineBean.getResult() != null && (offlineBean.getResult().getLgs() != null &&
-//                offlineBean.getResult().getLgs().getLg() != null &&
-//                offlineBean.getResult().getLgs().getLg().size() > 0)) && list.size() > 0
-//                && ((lastKnownLocation != null && (int) lastKnownLocation.getLatitude() != 0 && (int) lastKnownLocation.getLongitude() != 0)
-//                || ((int) settingBean.getLongitude() != 0 && (int) settingBean.getLatitude() != 0))));
         enabledButton(false);
         mapView = findViewById(R.id.map_view);
         mapView.getChildAt(2).setPadding(0, 0, 10, 100);
@@ -282,6 +270,7 @@ public class DetonateStep1Activity extends BaseActivity {
         //开启地图定位图层
         locationClient.start();
         btnOnline.requestFocus();
+        myHandler.sendEmptyMessageDelayed(3, 2000);
     }
 
     private void initLocation() {
@@ -294,12 +283,10 @@ public class DetonateStep1Activity extends BaseActivity {
             }
             List<String> providers = lm.getAllProviders();
             for (String provider : providers) {
-                lastKnownLocation = lm.getLastKnownLocation(provider);
+                Location lastKnownLocation = lm.getLastKnownLocation(provider);
                 if (null != lastKnownLocation && (int) lastKnownLocation.getLongitude() != 0 && (int) lastKnownLocation.getLatitude() != 0)
                     break;
             }
-            checkExploderHandler.sendEmptyMessage(3);
-//            myApp.myToast(DetonateStep1Activity.this, lastKnownLocation.getLatitude() + "," + lastKnownLocation.getLongitude());
         }
     }
 
@@ -314,7 +301,7 @@ public class DetonateStep1Activity extends BaseActivity {
         } else if (KeyEvent.KEYCODE_2 == which && btnOffline.isEnabled()) {
             if (0 == settingBean.getServerHost()) {
                 if (!checkLocation()) {
-                    showMessage(R.string.message_not_allow_area);
+                    myApp.myToast(DetonateStep1Activity.this, R.string.message_not_allow_area);
                 } else {
                     checkList(offlineBean.getResult().getLgs().getLg(), false);
                 }
@@ -348,11 +335,11 @@ public class DetonateStep1Activity extends BaseActivity {
 
                 @Override
                 public void onSuccess() {
-                    checkExploderHandler.sendEmptyMessage(i);
+                    myHandler.sendEmptyMessage(i);
                 }
             }.setActivity(this).start();
         } else {
-            checkExploderHandler.sendEmptyMessage(i);
+            myHandler.sendEmptyMessage(i);
         }
     }
 
@@ -379,18 +366,6 @@ public class DetonateStep1Activity extends BaseActivity {
         return false;
     }
 
-    private void showMessage(String s) {
-        Message m = checkExploderHandler.obtainMessage(5);
-        m.obj = s;
-        checkExploderHandler.sendMessage(m);
-    }
-
-    private void showMessage(@StringRes int s) {
-        Message m = checkExploderHandler.obtainMessage(5);
-        m.obj = getString(s);
-        checkExploderHandler.sendMessage(m);
-    }
-
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         launchWhich(keyCode);
@@ -412,7 +387,7 @@ public class DetonateStep1Activity extends BaseActivity {
     @Override
     protected void onDestroy() {
         locationClient.stop();
-        checkExploderHandler.removeCallbacksAndMessages(null);
+        myHandler.removeCallbacksAndMessages(null);
         baiduMap.setMyLocationEnabled(false);
         mapView.onDestroy();
         mapView = null;
@@ -457,13 +432,13 @@ public class DetonateStep1Activity extends BaseActivity {
 
                                 @Override
                                 public void onError(Call call, Exception e, int i) {
-                                    showMessage(R.string.message_check_network);
-                                    enabledButton(true);
+                                    myApp.myToast(DetonateStep1Activity.this, R.string.message_check_network);
+                                    myHandler.sendEmptyMessage(1);
                                 }
 
                                 @Override
                                 public void onResponse(DownloadDetonatorBean onlineBean, int i) {
-                                    enabledButton(true);
+                                    myHandler.sendEmptyMessage(1);
                                     if (null != onlineBean) {
                                         if (onlineBean.getToken().equals(token)) {
                                             if (onlineBean.isStatus()) {
@@ -479,17 +454,17 @@ public class DetonateStep1Activity extends BaseActivity {
                                                         if (null == error) {
                                                             error = getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
                                                         }
-                                                        showMessage(error);
+                                                        myApp.myToast(DetonateStep1Activity.this, error);
                                                     }
                                                 }
                                             } else {
-                                                showMessage(onlineBean.getDescription());
+                                                myApp.myToast(DetonateStep1Activity.this, onlineBean.getDescription());
                                             }
                                         } else {
-                                            showMessage(R.string.message_token_error);
+                                            myApp.myToast(DetonateStep1Activity.this, R.string.message_token_error);
                                         }
                                     } else {
-                                        showMessage(R.string.message_return_data_error);
+                                        myApp.myToast(DetonateStep1Activity.this, R.string.message_return_data_error);
                                     }
                                 }
                             });
@@ -533,7 +508,7 @@ public class DetonateStep1Activity extends BaseActivity {
 
         Intent intent;
         if (correct) {
-            showMessage(online ? R.string.message_online_check_finished : R.string.message_offline_check_finished);
+            myApp.myToast(DetonateStep1Activity.this, online ? R.string.message_online_check_finished : R.string.message_offline_check_finished);
             intent = new Intent().setClass(DetonateStep1Activity.this, DetonateStep2Activity.class);
             intent.putExtra(KeyUtils.KEY_EXPLODE_ONLINE, online);
             intent.putExtra(KeyUtils.KEY_EXPLODE_UNITE, getIntent().getBooleanExtra(KeyUtils.KEY_EXPLODE_UNITE, false));
@@ -575,13 +550,14 @@ public class DetonateStep1Activity extends BaseActivity {
                 baiduMap.setMyLocationData(locData);
                 if (0 != (int) location.getLatitude() && 0 != (int) location.getLongitude()) {
                     lastLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                    checkExploderHandler.sendEmptyMessage(3);
+                    myHandler.removeMessages(3);
+                    myHandler.sendEmptyMessage(3);
                     if (firstLocate) {
                         MapStatus mMapStatus = new MapStatus.Builder().target(lastLatLng).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
                         MapStatusUpdate mMapStatusUpdate = MapStatusUpdateFactory.newMapStatus(mMapStatus);
                         baiduMap.setMapStatus(mMapStatusUpdate);//改变地图状态
                         firstLocate = false;
-                        checkExploderHandler.sendEmptyMessage(1);
+                        myHandler.sendEmptyMessage(1);
                     }
                     settingBean.setLatitude(location.getLatitude());
                     settingBean.setLongitude(location.getLongitude());
@@ -595,14 +571,12 @@ public class DetonateStep1Activity extends BaseActivity {
         @Override
         public void onConnectHotSpotMessage(String s, int i) {
             BaseApplication.writeFile("onConnectHotSpotMessage:" + s);
-//            myApp.myToast(DetonateStep1Activity.this, s);
             super.onConnectHotSpotMessage(s, i);
         }
 
         @Override
         public void onLocDiagnosticMessage(int i, int i1, String s) {
             BaseApplication.writeFile("onLocDiagnosticMessage:" + s);
-//            myApp.myToast(DetonateStep1Activity.this, s);
             super.onLocDiagnosticMessage(i, i1, s);
         }
     }

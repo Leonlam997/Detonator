@@ -10,17 +10,21 @@ import android.widget.ListView;
 
 import androidx.fragment.app.Fragment;
 
+import com.leon.detonator.R;
 import com.leon.detonator.adapter.OfflineListAdapter;
 import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.DetonatorInfoBean;
-import com.leon.detonator.R;
 
 public class OfflineListFragment extends Fragment {
     private ListView listView;
     private OfflineListAdapter adapter;
     private CheckBox cbSelected;
-    private MyButton btnDownload, btnDelete;
-    private View.OnClickListener clickDownload, clickDelete;
+    private MyButton btnDownload;
+    private MyButton btnDelete;
+    private MyButton btnImport;
+    private View.OnClickListener clickDownload;
+    private View.OnClickListener clickDelete;
+    private View.OnClickListener clickImport;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -30,20 +34,32 @@ public class OfflineListFragment extends Fragment {
         cbSelected = view.findViewById(R.id.cb_selected);
         btnDownload = view.findViewById(R.id.btn_offline_download);
         btnDelete = view.findViewById(R.id.btn_delete_selected);
+        btnImport = view.findViewById(R.id.btn_import);
         if (adapter != null) {
             listView.setAdapter(adapter);
+            btnImport.setEnabled(adapter.getCount() > 0);
         }
         listView.setOnItemClickListener((adapterView, view1, i, l) -> {
             ((DetonatorInfoBean) adapter.getItem(i)).setSelected(!((DetonatorInfoBean) adapter.getItem(i)).isSelected());
             adapter.notifyDataSetChanged();
             checkStatus(false);
+            cbSelected.setChecked(true);
+            for (int j = 0; j < adapter.getCount(); j++) {
+                if (!((DetonatorInfoBean) adapter.getItem(j)).isSelected()) {
+                    cbSelected.setChecked(false);
+                    break;
+                }
+            }
         });
         cbSelected.setOnClickListener(v -> {
-            for (int i = 0; i < adapter.getCount(); i++) {
-                ((DetonatorInfoBean) adapter.getItem(i)).setSelected(cbSelected.isChecked());
-            }
-            adapter.notifyDataSetChanged();
-            checkStatus(false);
+            if (adapter.getCount() > 0) {
+                for (int i = 0; i < adapter.getCount(); i++) {
+                    ((DetonatorInfoBean) adapter.getItem(i)).setSelected(cbSelected.isChecked());
+                }
+                adapter.notifyDataSetChanged();
+                checkStatus(false);
+            } else
+                cbSelected.setChecked(false);
         });
         checkStatus(false);
         return view;
@@ -66,12 +82,24 @@ public class OfflineListFragment extends Fragment {
         }
     }
 
+    public void setImportEnabled(boolean enabled) {
+        new Handler(message -> {
+            btnImport.setEnabled(enabled);
+            return false;
+        }).sendEmptyMessageDelayed(1, 100);
+    }
+
     private boolean checkSelected() {
         for (int i = 0; i < adapter.getCount(); i++) {
             if (((DetonatorInfoBean) adapter.getItem(i)).isSelected())
                 return true;
         }
         return false;
+    }
+
+    public void setCheckAll(boolean checked) {
+        if (cbSelected != null)
+            cbSelected.setChecked(checked);
     }
 
     public View.OnClickListener getClickDownload() {
@@ -84,6 +112,30 @@ public class OfflineListFragment extends Fragment {
             btnDownload.setOnClickListener(clickDownload);
             return false;
         }).sendEmptyMessageDelayed(1, 100);
+    }
+
+    public View.OnClickListener getClickImport() {
+        return clickImport;
+    }
+
+    public void setClickImport(View.OnClickListener listener) {
+        this.clickImport = listener;
+        new Handler(message -> {
+            btnImport.setOnClickListener(clickImport);
+            return false;
+        }).sendEmptyMessageDelayed(1, 100);
+    }
+
+    public boolean getImportEnabled(){
+        return btnImport.isEnabled();
+    }
+
+    public boolean getDeleteEnabled(){
+        return btnDelete.isEnabled();
+    }
+
+    public boolean getDownloadEnabled(){
+        return  btnDownload.isEnabled();
     }
 
     public View.OnClickListener getClickDelete() {

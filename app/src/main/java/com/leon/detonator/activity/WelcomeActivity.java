@@ -1,11 +1,8 @@
 package com.leon.detonator.activity;
 
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
@@ -37,7 +34,7 @@ public class WelcomeActivity extends AppCompatActivity {
             ((TextView) findViewById(R.id.tv_version)).setText(String.format(Locale.getDefault(), getString(R.string.version_number), packageInfo.versionName));
             LocalSettingBean bean = BaseApplication.readSettings();
             if (BaseApplication.isNetSystemUsable(this)) {
-                if (!bean.isRegistered()) {
+                if (bean == null || !bean.isRegistered()) {
                     myApp.registerExploder();
                     new CheckRegister() {
                         @Override
@@ -52,8 +49,8 @@ public class WelcomeActivity extends AppCompatActivity {
                 } else if (null != bean.getExploderID() || (null != bean.getExploderID() && bean.getExploderID().isEmpty())) {
                     ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.getDefault(), getString(R.string.device_code), bean.getExploderID()));
                 }
-                if (!UploadExplodeList.getInstance().isAlive())
-                    UploadExplodeList.getInstance().setApp(myApp).start();
+                if (UploadExplodeList.isNotUploading())
+                    new UploadExplodeList(myApp).start();
             }
             BaseApplication.writeFile(getString(R.string.app_name) + packageInfo.versionName);
         } catch (PackageManager.NameNotFoundException e) {
@@ -76,7 +73,7 @@ public class WelcomeActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         LocalSettingBean bean = BaseApplication.readSettings();
-        if (null != bean.getExploderID())
+        if (null != bean && null != bean.getExploderID())
             runOnUiThread(() -> ((TextView) findViewById(R.id.tv_exploder)).setText(String.format(Locale.getDefault(), getString(R.string.device_code), bean.getExploderID())));
         super.onResume();
     }

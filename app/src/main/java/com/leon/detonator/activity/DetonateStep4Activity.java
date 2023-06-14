@@ -12,6 +12,7 @@ import android.widget.TextView;
 
 import com.baidu.mapapi.model.LatLng;
 import com.google.gson.Gson;
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.CheckRegister;
@@ -29,7 +30,6 @@ import com.leon.detonator.bean.UploadServerBean;
 import com.leon.detonator.dialog.EnterpriseDialog;
 import com.leon.detonator.mina.client.MinaClient;
 import com.leon.detonator.mina.client.MinaHandler;
-import com.leon.detonator.R;
 import com.leon.detonator.serial.SerialCommand;
 import com.leon.detonator.serial.SerialPortUtil;
 import com.leon.detonator.util.ConstantUtils;
@@ -212,7 +212,7 @@ public class DetonateStep4Activity extends BaseActivity {
                     settingBean = BaseApplication.readSettings();
                     if (!settingBean.isRegistered() || null == settingBean.getExploderID() || settingBean.getExploderID().isEmpty()) {
                         myApp.myToast(DetonateStep4Activity.this, R.string.message_not_registered);
-                    } else if (0 == settingBean.getServerHost() && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
+                    } else if ((0 == settingBean.getServerHost() || 3 == settingBean.getServerHost()) && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
                         myApp.myToast(DetonateStep4Activity.this, R.string.message_fill_enterprise);
                         startActivity(new Intent(DetonateStep4Activity.this, EnterpriseActivity.class));
                     } else {
@@ -348,8 +348,13 @@ public class DetonateStep4Activity extends BaseActivity {
                                                 if (uploadExplodeRecordsBean.isStatus()) {
                                                     if (null != uploadExplodeRecordsBean.getResult()) {
                                                         if (uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                                            renameRecordFile();
-                                                            finish();
+                                                            if (3 == settingBean.getServerHost()) {
+                                                                BaseApplication.writeFile("上传广西中爆!");
+                                                                uploadServer();
+                                                            } else {
+                                                                renameRecordFile();
+                                                                finish();
+                                                            }
                                                         } else {
                                                             myApp.myToast(DetonateStep4Activity.this, R.string.message_upload_fail);
                                                             disableButton(false);
@@ -486,8 +491,8 @@ public class DetonateStep4Activity extends BaseActivity {
         }
         try {
             myApp.writeToFile(FilePath.FILE_UPLOAD_LIST, uploadList);
-            if (!UploadExplodeList.getInstance().isAlive())
-                UploadExplodeList.getInstance().setApp(myApp).start();
+            if (UploadExplodeList.isNotUploading())
+                new UploadExplodeList(myApp).start();
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }

@@ -18,6 +18,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 
 import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
@@ -84,6 +85,8 @@ public class DetonateStep3Activity extends BaseActivity {
     private boolean bKeyDown;
     private boolean bothKeyUp;
     private boolean doubleSend;
+    private boolean ignoreCurrent;
+    private boolean dialogShowing;
     private boolean chargeFinished = false;
     private boolean notCheckStatus = true;
     private int changeAction = 0;   //0：正常，1：关屏，2：开屏
@@ -242,7 +245,8 @@ public class DetonateStep3Activity extends BaseActivity {
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                             break;
                         case STEP_CHARGE:
-                            serialPortUtil.sendCmd("", SerialCommand.CODE_CHARGE, BaseApplication.readSettings().getChargeVoltage() == 18 ? 0x18 : 0x22);
+                            float voltage = getIntent().getFloatExtra(KeyUtils.KEY_EXPLODE_VOLTAGE, 22);
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_CHARGE, voltage == 18 ? 0x18 : (voltage == 20 ? 0x20 : 0x22));
                             myHandler.sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                             break;
                         case STEP_WAIT:
@@ -472,8 +476,32 @@ public class DetonateStep3Activity extends BaseActivity {
             serialPortUtil = SerialPortUtil.getInstance();
             myReceiveListener = new SerialDataReceiveListener(this, () -> {
                 byte[] buffer = myReceiveListener.getRcvData();
-                if (buffer[0] == SerialCommand.ALERT_SHORT_CIRCUIT || buffer[0] == SerialCommand.ALERT_LARGE_CURRENT) {
-                    shortCircuit();
+                if (buffer[0] == SerialCommand.ALERT_SHORT_CIRCUIT) {
+                    breakExplode(R.string.dialog_short_circuit);
+                    return;
+                } else if (!ignoreCurrent && buffer[0] == SerialCommand.ALERT_LARGE_CURRENT) {
+                    if (!dialogShowing) {
+                        dialogShowing = true;
+                        if (chargeFinished)
+                            resetStatus();
+                        runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
+                                .setTitle(R.string.dialog_title_warning)
+                                .setMessage(R.string.dialog_large_current)
+                                .setCancelable(false)
+                                .setNegativeButton(R.string.btn_exit, (dialog, which) -> {
+                                    myHandler.removeCallbacksAndMessages(null);
+                                    myReceiveListener.setStartAutoDetect(false);
+                                    explodeStep = STEP_RELEASE_1;
+                                    myHandler.sendEmptyMessage(HANDLER_SEND_COMMAND);
+                                    nextStep = true;
+                                    if (uniteExplode)
+                                        setResult(RESULT_CANCELED);
+                                })
+                                .setPositiveButton(R.string.btn_ignore, ((dialog, which) -> ignoreCurrent = true)).show(), true));
+                    }
+                    return;
+                } else if (buffer[0] == SerialCommand.ALERT_BREAK_CIRCUIT){
+                    breakExplode(R.string.dialog_break_circuit);
                     return;
                 }
                 if (buffer.length > 5) {
@@ -542,22 +570,32 @@ public class DetonateStep3Activity extends BaseActivity {
                                 try {
                                     myHandler.removeMessages(HANDLER_SEND_COMMAND);
                                     countScanZero = 0;
+                                    boolean isNull = true;
+                                    for (int i = 0; i < 7; i++)
+                                        if (buffer[SerialCommand.CODE_CHAR_AT + 2 + i] != 0) {
+                                            isNull = false;
+                                            break;
+                                        }
                                     DetonatorInfoBean bean = new DetonatorInfoBean(new String(Arrays.copyOfRange(buffer, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9)),
                                             (Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 11]) << 16) + (Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 12]) << 8) + Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 13]),//Delay
                                             (Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 9]) << 8) + Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 10]),//Number
                                             (Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 14]) << 8) + Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 15]),//Hole
                                             Byte.toUnsignedInt(buffer[SerialCommand.CODE_CHAR_AT + 16]), true);//Status
-                                    int i = detonatorList.indexOf(bean);
                                     StringBuilder text = new StringBuilder().append(tvLog.getText()).append("\n");
-                                    if (i >= 0) {
-                                        DetonatorInfoBean b = detonatorList.get(i);
-                                        if (myApp.isTunnel())
-                                            text.append(b.getHole()).append(getString(R.string.unit_section)).append(b.getInside());
-                                        else
-                                            text.append(b.getRow()).append(getString(R.string.unit_row)).append(b.getHole());
-                                        text.append(getString(R.string.unit_hole)).append(":").append(b.getAddress());
-                                    } else
-                                        text.append(getString(R.string.text_uid)).append(":").append(bean.getAddress());
+                                    if (isNull) {
+                                        text.append(ConstantUtils.NULL_ID);
+                                    } else {
+                                        int i = detonatorList.indexOf(bean);
+                                        if (i >= 0) {
+                                            DetonatorInfoBean b = detonatorList.get(i);
+                                            if (myApp.isTunnel())
+                                                text.append(b.getHole()).append(getString(R.string.unit_section)).append(b.getInside());
+                                            else
+                                                text.append(b.getRow()).append(getString(R.string.unit_row)).append(b.getHole());
+                                            text.append(getString(R.string.unit_hole)).append(":").append(b.getAddress());
+                                        } else
+                                            text.append(getString(R.string.text_uid)).append(":").append(bean.getAddress());
+                                    }
                                     if (pDialog.getProgress() < pDialog.getMax() - 1)
                                         pDialog.incrementProgressBy(1);
 
@@ -689,7 +727,7 @@ public class DetonateStep3Activity extends BaseActivity {
                 chargeTime = 10000;
             else
                 chargeTime = 6000;
-            chargeTime += 8000 + detonatorList.size() * 4;
+            chargeTime += 11000 + detonatorList.size() * 4;
             explodeStep = STEP_CHECK_ONLINE;
             doubleSend = true;
             myHandler.sendEmptyMessage(HANDLER_SEND_COMMAND);
@@ -701,8 +739,7 @@ public class DetonateStep3Activity extends BaseActivity {
         }
     }
 
-    private void shortCircuit() {
-        BaseApplication.writeFile(getString(R.string.dialog_short_circuit));
+    private void breakExplode(@StringRes int message) {
         myHandler.removeCallbacksAndMessages(null);
         myReceiveListener.setStartAutoDetect(false);
         explodeStep = STEP_RELEASE_1;
@@ -711,7 +748,7 @@ public class DetonateStep3Activity extends BaseActivity {
             resetStatus();
         runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_warning)
-                .setMessage(R.string.dialog_short_circuit)
+                .setMessage(message)
                 .setCancelable(false)
                 .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
                     if (nextStep)
@@ -865,7 +902,7 @@ public class DetonateStep3Activity extends BaseActivity {
     @Override
     public void finish() {
         if (!nextStep) {
-            if(chargeFinished)
+            if (chargeFinished)
                 resetStatus();
             BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
                     .setTitle(R.string.progress_title)

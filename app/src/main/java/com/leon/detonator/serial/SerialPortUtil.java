@@ -349,7 +349,10 @@ public class SerialPortUtil {
                     data.append("检查状态");
                     break;
                 case SerialCommand.CODE_CHARGE:
-                    data.append(timeout[0] == 0 ? "放电" : "充电");
+                    if (timeout[0] == 0)
+                        data.append("放电");
+                    else
+                        data.append("充电").append(timeout[0]).append("V");
                     break;
                 case SerialCommand.CODE_CHECK_CONFIG:
                     data.append("检查配置信息");
@@ -380,7 +383,6 @@ public class SerialPortUtil {
                     break;
                 case SerialCommand.CODE_BUS_CONTROL:
                     data.append("总线：").append(timeout[0] == 0 ? "断电" : "供电")
-                            .append(timeout[1] == 0 ? ",关闭DCDC," : ",使能DCDC,")
                             .append(timeout[0] == 0 ? "" : String.format("%X", timeout[2])).append("V");
                     break;
                 default:

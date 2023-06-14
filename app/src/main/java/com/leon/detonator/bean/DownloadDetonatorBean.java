@@ -91,13 +91,13 @@ public class DownloadDetonatorBean extends BaseResultBean {
         }
 
         public static class JbqysBean {
-            private List<?> jbqy;
+            private List<JbqyBean> jbqy;
 
-            public List<?> getJbqy() {
+            public List<JbqyBean> getJbqy() {
                 return jbqy;
             }
 
-            public void setJbqy(List<?> jbqy) {
+            public void setJbqy(List<JbqyBean> jbqy) {
                 this.jbqy = jbqy;
             }
         }

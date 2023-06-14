@@ -8,6 +8,7 @@ public class SerialCommand {
     public final static String RESPOND_CHARGE_FINISHED = "Done!";
     public final static byte ALERT_SHORT_CIRCUIT = (byte) 0xAA;
     public final static byte ALERT_LARGE_CURRENT = (byte) 0xAB;
+    public final static byte ALERT_BREAK_CIRCUIT = (byte) 0xAC;
     public final static int CODE_CHAR_AT = 3;
     public final static byte DATA_PREFIX = (byte) 0xC5;
     public final static byte DATA_SUFFIX = (byte) 0xE5;

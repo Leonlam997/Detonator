@@ -400,7 +400,6 @@ public class DetonatorListActivity extends BaseActivity {
                     .setTitle(R.string.dialog_title_restore)
                     .setMessage(R.string.dialog_import_cover_list)
                     .setPositiveButton(R.string.btn_confirm, (dialog, which1) -> {
-                        BaseApplication.writeFile(getString(R.string.dialog_title_restore) + ", " + myApp.getListFile());
                         myApp.myToast(DetonatorListActivity.this, R.string.message_restore_success);
                         saveList();
                     })
@@ -884,7 +883,6 @@ public class DetonatorListActivity extends BaseActivity {
             } else if (whichDelay == 3) {
                 title = myApp.isTunnel() ? R.string.dialog_title_modify_tunnel_hole : R.string.dialog_title_modify_open_air_inside;
             }
-            BaseApplication.writeFile(getString(title));
             BaseApplication.customDialog(new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
                     .setTitle(title)
                     .setView(view)

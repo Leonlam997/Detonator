@@ -96,7 +96,6 @@ public class CheckLineActivity extends BaseActivity {
                         }
                     };
                     Integer i = failCode.get(flowStep);
-                    BaseApplication.writeFile(getString(null == i ? R.string.message_detonator_not_detected : i));
                     myApp.myToast(CheckLineActivity.this, null == i ? R.string.message_detonator_not_detected : i);
                     enableButton(true);
                     tempAddress = "";
@@ -119,7 +118,6 @@ public class CheckLineActivity extends BaseActivity {
                         serialPortUtil.closeSerialPort();
                         serialPortUtil = null;
                     }
-                    BaseApplication.writeFile(getString(R.string.dialog_short_circuit));
                     myApp.playSoundVibrate(soundPool, soundAlert);
                     BaseApplication.customDialog(new AlertDialog.Builder(CheckLineActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_warning)

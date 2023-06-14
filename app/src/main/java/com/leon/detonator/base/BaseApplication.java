@@ -41,6 +41,7 @@ import androidx.core.content.ContextCompat;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.leon.detonator.R;
+import com.leon.detonator.activity.UpdateAppActivity;
 import com.leon.detonator.bean.BaiSeCheck;
 import com.leon.detonator.bean.BaiSeUpload;
 import com.leon.detonator.bean.DownloadDetonatorBean;
@@ -104,6 +105,7 @@ public class BaseApplication extends Application {
     private Vibrator vibrator;
     private String token;
     private Toast mToast;
+
     private final Handler toastHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NotNull Message msg) {
@@ -116,6 +118,7 @@ public class BaseApplication extends Application {
             tv.setTextColor(mContext.getColor(R.color.colorToastText));
             mToast.setGravity(Gravity.CENTER, 0, 80);
             mToast.show();
+            BaseApplication.writeFile((String) msg.obj);
             return false;
         }
     });
@@ -710,14 +713,18 @@ public class BaseApplication extends Application {
                         public void onError(Call call, Exception e, int i) {
                             writeErrorLog(e);
                             getVersion = false;
+                            if (handler != null)
+                                handler.obtainMessage(UpdateAppActivity.UPDATE_NO_NEW).sendToTarget();
                         }
 
                         @Override
                         public void onResponse(UpdateVersionBean updateVersionBean, int i) {
                             getVersion = false;
-                            if (updateVersionBean != null && handler != null) {
-                                handler.obtainMessage(1, updateVersionBean).sendToTarget();
-                            }
+                            if (handler != null)
+                                if (updateVersionBean != null)
+                                    handler.obtainMessage(UpdateAppActivity.UPDATE_HAS_NEW, updateVersionBean).sendToTarget();
+                                else
+                                    handler.obtainMessage(UpdateAppActivity.UPDATE_NO_NEW).sendToTarget();
                         }
                     })).start();
         }
@@ -895,20 +902,19 @@ public class BaseApplication extends Application {
                         @SuppressLint("MissingPermission")
                         @Override
                         public void onResponse(RegisterExploderBean registerExploderBean, int i) {
-                            registerFinished = true;
-
                             if (null != registerExploderBean && registerExploderBean.isStatus() && registerExploderBean.getToken().equals(token)) {
                                 if (null != registerExploderBean.getResult()) {
+                                    if (settingBean == null)
+                                        settingBean = new LocalSettingBean();
                                     settingBean.setRegistered(true);
                                     settingBean.setIMEI(((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId());
                                     settingBean.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
                                     BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
                                     saveBean(settingBean);
-                                } else {
-                                    writeFile(registerExploderBean.getDescription());
+                                } else
                                     myToast(BaseApplication.this, registerExploderBean.getDescription());
-                                }
                             }
+                            registerFinished = true;
                         }
                     });
         }
@@ -917,23 +923,32 @@ public class BaseApplication extends Application {
     public static void customDialog(AlertDialog dialog, boolean setText) {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextSize(26);
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(26);
-        if (setText)
-            try {
-                @SuppressLint("DiscouragedPrivateApi") Field mAlert = AlertDialog.class.getDeclaredField("mAlert");
-                mAlert.setAccessible(true);
-                Object mAlertController = mAlert.get(dialog);
-                if (mAlertController != null) {
-                    Field mMessage = mAlertController.getClass().getDeclaredField("mMessageView");
-                    mMessage.setAccessible(true);
-                    TextView mMessageView = (TextView) mMessage.get(mAlertController);
-                    if (mMessageView != null) {
+        try {
+            @SuppressLint("DiscouragedPrivateApi") Field mAlert = AlertDialog.class.getDeclaredField("mAlert");
+            mAlert.setAccessible(true);
+            Object mAlertController = mAlert.get(dialog);
+            if (mAlertController != null) {
+                Field mMessage = mAlertController.getClass().getDeclaredField("mMessageView");
+                mMessage.setAccessible(true);
+                TextView mMessageView = (TextView) mMessage.get(mAlertController);
+                if (mMessageView != null) {
+                    BaseApplication.writeFile(mMessageView.getText().toString());
+                    if (setText) {
                         mMessageView.setTextSize(30);
                         mMessageView.setTextColor(Color.RED);
+                        mMessageView.setHeight(100);
                     }
                 }
-            } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
             }
+            if (setText) {
+                WindowManager.LayoutParams layoutParams = dialog.getWindow().getAttributes();
+                layoutParams.height = 200;
+                layoutParams.width = 330;
+                dialog.getWindow().setAttributes(layoutParams);
+            }
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
+        }
     }
 
     private class GetExploder extends Thread {

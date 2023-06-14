@@ -19,6 +19,7 @@ public class ConstantUtils {
     public final static String[][] UPLOAD_HOST = {{"丹灵网", ""},
             {"广西民爆", "119.29.111.172:6088"},
             {"智慧民爆", "119.29.111.172:6088"},
+            {"丹灵+民爆", "119.29.111.172:6088"},
             {"黔南民爆", "113.140.1.135:9903"},
             {"黔东南民爆", "113.140.1.137:8608"},
             {"贵阳民爆", "119.29.111.172:6089"},
@@ -36,6 +37,7 @@ public class ConstantUtils {
     public final static String ENTERPRISE_PROJECT = "Project";
     public final static String ENTERPRISE_CONTRACT = "Contract";
     public final static String GPS_SYSTEM = "BD09";
+    public final static String NULL_ID = "1234567890123";
     public final static int RESUME_LIST = 1;
     public final static int MODIFY_LIST = 2;
     public final static int HISTORY_LIST = 3;
@@ -67,10 +69,11 @@ public class ConstantUtils {
     public final static int SCAN_CODE_TIME = 3000;
     public final static int RESEND_SCAN_TIMEOUT = 3500;
     public final static int SCAN_ZERO_COUNT = 5;
-    public final static int SHORT_CIRCUIT_CURRENT = 20000;
+    public final static int SHORT_CIRCUIT_CURRENT = 40000;
     public final static int CURRENT_DETECT_COUNT = 2;
     public final static int CURRENT_PER_DETONATOR = 30;
-    public final static float CURRENT_OVER_PERCENTAGE = 1.5f;
+    public final static int CURRENT_BREAK_CIRCUIT = 10;
+    public final static float CURRENT_OVER_PERCENTAGE = 2.5f;
     public final static int FAST_CLICK_DELAY_TIME = 500;
 
     public enum ListType {

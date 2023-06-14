@@ -4,7 +4,6 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -35,16 +34,17 @@ import java.io.FileWriter;
 import java.util.Locale;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
-    private int keyCount = 0, launchType;
     private LocalSettingBean settingBean;
     private BaseApplication myApp;
     private String[] title;
     private boolean scheme;
-    private AlertDialog alertDialog;
+    private boolean dialogShowing;
+    private int keyCount;
+    private int launchType;
     private Handler myHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(@NonNull Message message) {
-            if (message.what == 1) {
+            if (message.what == UpdateAppActivity.UPDATE_HAS_NEW) {
                 UpdateVersionBean versionBean = (UpdateVersionBean) message.obj;
                 if (versionBean.getVersion() != null) {
                     String[] version = versionBean.getVersion().split("\\.");
@@ -52,13 +52,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                         try {
                             int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
                             version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
-                            if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]) && alertDialog == null) {
-                                alertDialog = new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog).setTitle(R.string.progress_title)
+                            if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]) && !dialogShowing) {
+                                dialogShowing = true;
+                                BaseApplication.customDialog(new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog).setTitle(R.string.progress_title)
                                         .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_found_new_version), versionBean.getVersion()))
                                         .setPositiveButton(R.string.btn_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
                                         .setNegativeButton(R.string.btn_cancel, null)
-                                        .setOnDismissListener(dialog -> alertDialog = null).show();
-                                BaseApplication.customDialog(alertDialog, true);
+                                        .setOnDismissListener(dialog -> dialogShowing = false).show(), true);
                             }
                         } catch (Exception e) {
                             BaseApplication.writeErrorLog(e);
@@ -73,11 +73,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 if (file.exists() && file.length() > 3 * 1024 * 1024)
                     trimFile(FilePath.FILE_DEBUG_LOG);
                 if (!myApp.isUploading() && BaseApplication.isNetSystemUsable(MainActivity.this)) {
-                    if (!UploadExplodeList.getInstance().isAlive())
-                        UploadExplodeList.getInstance().setApp(myApp).start();
+                    if (UploadExplodeList.isNotUploading())
+                        new UploadExplodeList(myApp).start();
                     new Thread(() -> {
-                        settingBean = BaseApplication.readSettings();
-                        if (!settingBean.isUploadedLog()) {
+                        if (settingBean != null && !settingBean.isUploadedLog()) {
                             myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
                             myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
                         }
@@ -107,7 +106,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         findViewById(R.id.btn_control).setOnClickListener(this);
         findViewById(R.id.btn_settings).setOnClickListener(this);
         findViewById(R.id.btn_cooperate).setOnClickListener(this);
-//        findViewById(R.id.btn_cooperate).setEnabled(false);
         TextView[] textViews = new TextView[]{
                 findViewById(R.id.tv_delay),
                 findViewById(R.id.tv_control),
@@ -142,7 +140,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private void initSettings() {
         settingBean = BaseApplication.readSettings();
-        findViewById(R.id.btn_authorize).setEnabled(0 == settingBean.getServerHost());
+        findViewById(R.id.btn_authorize).setEnabled(0 == settingBean.getServerHost() || 3 == settingBean.getServerHost());
     }
 
     private void trimFile(String fileName) {
@@ -213,7 +211,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private void launchActivity(int num) {
         keyCount = 0;
-        if (2 == num && 0 != settingBean.getServerHost()) return;
+        if (2 == num && 0 != settingBean.getServerHost() && 3 != settingBean.getServerHost()) return;
         if (num >= 0 && num <= 5) {
             Intent intent = new Intent();
             Class<?>[] menuActivities = {scheme ? SchemeActivity.class : DelayScheduleActivity.class,
@@ -271,9 +269,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                         intent.setClass(MainActivity.this, menuActivities[launchType]);
                         startActivity(intent);
                     }
-                } else if (keyCount == 0 || keyCount == 1 || keyCount == 4) {
+                } else if (keyCount == 0 || keyCount == 1 || keyCount == 4)
                     keyCount++;
-                } else keyCount = 0;
+                 else
+                    keyCount = 0;
                 break;
             case KeyEvent.KEYCODE_0:
                 if (keyCount == 2) keyCount++;

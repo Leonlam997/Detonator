@@ -23,42 +23,33 @@ import okhttp3.Call;
 import okhttp3.Response;
 
 public class UploadExplodeList extends Thread {
-    private static UploadExplodeList instance;
-    private BaseApplication app;
+    private static boolean uploading;
+    private final BaseApplication app;
     private String token;
     private int index;
-    private boolean keepAwake;
     private List<UploadServerBean> list;
 
-    public static UploadExplodeList getInstance() {
-        if (instance == null)
-            instance = new UploadExplodeList();
-        return instance;
-    }
-
-    public UploadExplodeList setApp(BaseApplication app) {
+    public UploadExplodeList(BaseApplication app) {
         this.app = app;
-        return this;
     }
 
     @Override
     public void run() {
+        super.run();
+        uploading = true;
         if (app != null) {
             index = 0;
             list = new ArrayList<>();
             app.readFromFile(FilePath.FILE_UPLOAD_LIST, list, UploadServerBean.class);
             uploadNext();
-            keepAwake = true;
         }
-        while (keepAwake) {
+        while (uploading) {
             try {
                 Thread.sleep(50);
             } catch (Exception e) {
                 BaseApplication.writeErrorLog(e);
             }
         }
-        super.run();
-        interrupt();
     }
 
     private void uploadNext() {
@@ -118,7 +109,7 @@ public class UploadExplodeList extends Thread {
                                         @Override
                                         public void onError(Call call, Exception e, int i) {
                                             BaseApplication.writeErrorLog(e);
-                                            finished();
+                                            uploading = false;
                                         }
 
                                         @Override
@@ -135,9 +126,9 @@ public class UploadExplodeList extends Thread {
                                                         index++;
                                                         uploadNext();
                                                     } else
-                                                        finished();
+                                                        uploading = false;
                                                 } else
-                                                    finished();
+                                                    uploading = false;
                                                 BaseApplication.writeFile(uploadListResultBean.getDescription());
                                             }
                                         }
@@ -150,11 +141,10 @@ public class UploadExplodeList extends Thread {
                 }
             }
         }
-        finished();
+        uploading = false;
     }
 
-    private void finished() {
-        instance = null;
-        keepAwake = false;
+    public static boolean isNotUploading() {
+        return !uploading;
     }
 }

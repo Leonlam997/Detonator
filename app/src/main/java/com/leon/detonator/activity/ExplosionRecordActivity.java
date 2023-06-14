@@ -80,36 +80,36 @@ public class ExplosionRecordActivity extends BaseActivity {
                     msgHandler.removeMessages(4);
                     BaseApplication.writeFile((String) message.obj);
                     if (((String) message.obj).contains("R")) {
-                        uploadServer(true);
+                        uploadZhongBao(true);
                     } else {
                         if (((String) message.obj).startsWith("#") && ((String) message.obj).endsWith("$"))
                             receiveCount++;
                         if (receiveCount >= 3) {
                             successCount++;
-                            moveFile();
                             if (settingBean.getServerHost() == 2)
                                 uploadBaiSe();
-                            else
-                                uploadRecord();
+                            else if (settingBean.getServerHost() == 3)
+                                uploadDanLing();
+                            else {
+                                moveFile();
+                                uploadNextRecord();
+                            }
                         }
                     }
                     break;
                 case MinaHandler.MINA_NORMAL:
 //                    msgHandler.removeMessages(4);
-                    if (null != message.obj) {
-                        BaseApplication.writeFile((String) message.obj);
-                        myApp.myToast(ExplosionRecordActivity.this, (String) message.obj);
-                    }
+                    if (null != message.obj) 
+                        myApp.myToast(ExplosionRecordActivity.this, (String) message.obj);                    
                     break;
                 case MinaHandler.MINA_ERROR:
                     msgHandler.removeMessages(4);
                     if (null != message.obj)
                         BaseApplication.writeFile((String) message.obj);
                     disableButton(false);
-                    showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1));
+                    myApp.myToast(ExplosionRecordActivity.this,String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1));
                 case 4:
                     disableButton(false);
-                    BaseApplication.writeFile(getString(R.string.message_network_timeout));
                     myApp.myToast(ExplosionRecordActivity.this, R.string.message_network_timeout);
                     break;
             }
@@ -127,9 +127,9 @@ public class ExplosionRecordActivity extends BaseActivity {
                 case 2:
                     settingBean = BaseApplication.readSettings();
                     if (!settingBean.isRegistered() || null == settingBean.getExploderID() || settingBean.getExploderID().isEmpty()) {
-                        showMessage(R.string.message_not_registered);
-                    } else if (0 == settingBean.getServerHost() && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
-                        showMessage(R.string.message_input_enterprise_code);
+                        myApp.myToast(ExplosionRecordActivity.this,R.string.message_not_registered);
+                    } else if ((0 == settingBean.getServerHost() || 3 == settingBean.getServerHost()) && (null == enterpriseBean || enterpriseBean.getCode().isEmpty())) {
+                        myApp.myToast(ExplosionRecordActivity.this,R.string.message_input_enterprise_code);
                         startActivity(new Intent(ExplosionRecordActivity.this, EnterpriseActivity.class));
                     } else {
                         int count = 0;
@@ -163,11 +163,10 @@ public class ExplosionRecordActivity extends BaseActivity {
                     pDialog.setMax(selected);
                     pDialog.setProgress(0);
                     pDialog.show();
-                    uploadRecord();
+                    uploadNextRecord();
                     break;
                 case 4:
                     myApp.myToast(ExplosionRecordActivity.this, (String) message.obj);
-                    BaseApplication.writeFile((String) message.obj);
                     break;
             }
             return false;
@@ -244,14 +243,6 @@ public class ExplosionRecordActivity extends BaseActivity {
         return super.onKeyUp(keyCode, event);
     }
 
-    private void showMessage(String s) {
-        checkExploderHandler.obtainMessage(4, s).sendToTarget();
-    }
-
-    private void showMessage(@StringRes int s) {
-        checkExploderHandler.obtainMessage(4, getString(s)).sendToTarget();
-    }
-
     private boolean launchWhich(int which) {
         switch (which) {
             case KeyEvent.KEYCODE_1:
@@ -288,13 +279,13 @@ public class ExplosionRecordActivity extends BaseActivity {
                     }
                 }
                 if (!canDelete) {
-                    showMessage(R.string.message_no_select_record);
+                    myApp.myToast(ExplosionRecordActivity.this,R.string.message_no_select_record);
                     break;
                 }
                 if (forceDelete != 4) {
                     for (ExplosionRecordBean bean : list) {
                         if (bean.isSelected() && !bean.isUploaded()) {
-                            showMessage(R.string.message_cannot_delete_not_upload);
+                            myApp.myToast(ExplosionRecordActivity.this,R.string.message_cannot_delete_not_upload);
                             canDelete = false;
                             break;
                         }
@@ -312,7 +303,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                                     if (b.isSelected()) {
                                         File file = new File(b.getRecordPath());
                                         if (file.exists() && !file.delete()) {
-                                            showMessage(String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
+                                            myApp.myToast(ExplosionRecordActivity.this,String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
                                         }
                                         BaseApplication.writeFile(getString(R.string.dialog_title_delete_record) + ", " + b.getRecordPath());
                                         Iterator<UploadServerBean> it1 = uploadList.iterator();
@@ -377,36 +368,49 @@ public class ExplosionRecordActivity extends BaseActivity {
         return false;
     }
 
-    private void uploadRecord() {
+    private void uploadNextRecord() {
         switch (settingBean.getServerHost()) {
             case 0:
-                enterpriseDialog = new EnterpriseDialog(ExplosionRecordActivity.this);
-                enterpriseDialog.setClickConfirm(view -> {
-                    enterpriseDialog.dismiss();
-                    if (-1 == getNextIndex()) {
-                        showMessage(R.string.message_upload_all_success);
-                    } else {
-                        BaseApplication.writeFile(getString(R.string.button_upload) + ", " + ConstantUtils.UPLOAD_HOST[0][0] + ", " + list.get(uploadIndex).getRecordPath());
-                        disableButton(true);
-                        startUpload();
-                    }
-                });
-                enterpriseDialog.setClickModify(view -> {
-                    enterpriseDialog.dismiss();
-                    disableButton(false);
-                    startActivity(new Intent(ExplosionRecordActivity.this, EnterpriseActivity.class));
-                });
-                enterpriseDialog.show();
+            case 3:
+                if (pDialog.getProgress() > 0) {
+                    if (settingBean.getServerHost() == 3)
+                        uploadZhongBao(false);
+                    else if (-1 != getNextIndex())
+                        uploadDanLing();
+                    else
+                        disableButton(false);
+                } else {
+                    enterpriseDialog = new EnterpriseDialog(ExplosionRecordActivity.this);
+                    enterpriseDialog.setClickConfirm(view -> {
+                        enterpriseDialog.dismiss();
+                        if (settingBean.getServerHost() == 3) {
+                            disableButton(true);
+                            uploadZhongBao(false);
+                        } else if (-1 == getNextIndex()) {
+                            myApp.myToast(ExplosionRecordActivity.this,R.string.message_upload_all_success);
+                        } else {
+                            BaseApplication.writeFile(getString(R.string.button_upload) + ", " + ConstantUtils.UPLOAD_HOST[0][0] + ", " + list.get(uploadIndex).getRecordPath());
+                            disableButton(true);
+                            uploadDanLing();
+                        }
+                    });
+                    enterpriseDialog.setClickModify(view -> {
+                        enterpriseDialog.dismiss();
+                        disableButton(false);
+                        startActivity(new Intent(ExplosionRecordActivity.this, EnterpriseActivity.class));
+                    });
+                    enterpriseDialog.show();
+                }
                 break;
             case 2:
                 if (pDialog.getProgress() > 0)
-                    uploadServer(false);
+                    uploadZhongBao(false);
                 else {
                     enterpriseDialog = new EnterpriseDialog(ExplosionRecordActivity.this);
                     enterpriseDialog.setClickConfirm(view -> {
                         disableButton(true);
                         enterpriseDialog.dismiss();
-                        uploadServer(false);
+                        uploadZhongBao(false);
                     });
                     enterpriseDialog.setClickModify(view -> {
                         enterpriseDialog.dismiss();
@@ -417,7 +421,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                 }
                 break;
             default:
-                uploadServer(false);
+                uploadZhongBao(false);
         }
     }
 
@@ -460,7 +464,8 @@ public class ExplosionRecordActivity extends BaseActivity {
                                     BaiSeCheck baiSeCheck = myApp.readBaiSeCheck();
                                     baiSeCheck.setChecked(false);
                                     myApp.saveBean(baiSeCheck);
-                                    uploadRecord();
+                                    moveFile();
+                                    uploadNextRecord();
                                 } else if (baiSeUploadResult.getMessage() != null) {
                                     myApp.myToast(ExplosionRecordActivity.this, baiSeUploadResult.getMessage());
                                 }
@@ -473,12 +478,12 @@ public class ExplosionRecordActivity extends BaseActivity {
         }
     }
 
-    private void uploadServer(boolean resend) {
+    private void uploadZhongBao(boolean resend) {
         if (!resend && -1 == getNextIndex()) {
             if (successCount >= pDialog.getMax())
-                showMessage(R.string.message_upload_all_success);
+                myApp.myToast(ExplosionRecordActivity.this,R.string.message_upload_all_success);
             else
-                showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_result), successCount, pDialog.getMax() - successCount));
+                myApp.myToast(ExplosionRecordActivity.this,String.format(Locale.getDefault(), getString(R.string.message_upload_result), successCount, pDialog.getMax() - successCount));
             disableButton(false);
         } else {
             BaseApplication.writeFile(getString(R.string.button_upload) + ", " + ConstantUtils.UPLOAD_HOST[1][0] + ", " + list.get(uploadIndex).getRecordPath());
@@ -507,7 +512,7 @@ public class ExplosionRecordActivity extends BaseActivity {
         }
     }
 
-    private void startUpload() {
+    private void uploadDanLing() {
         StringBuilder str = new StringBuilder();
         List<DetonatorInfoBean> detonators = new ArrayList<>();
         myApp.readFromFile(list.get(uploadIndex).getRecordPath(), detonators, DetonatorInfoBean.class);
@@ -546,7 +551,7 @@ public class ExplosionRecordActivity extends BaseActivity {
 
                         @Override
                         public void onError(Call call, Exception e, int i) {
-                            showMessage(R.string.message_check_network);
+                            myApp.myToast(ExplosionRecordActivity.this,R.string.message_check_network);
                             disableButton(false);
                         }
 
@@ -557,26 +562,21 @@ public class ExplosionRecordActivity extends BaseActivity {
                                     if (uploadExplodeRecordsBean.isStatus()) {
                                         if (null != uploadExplodeRecordsBean.getResult()) {
                                             if (!uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                                showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1));
-                                            } else {
+                                                myApp.myToast(ExplosionRecordActivity.this,String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1));
+                                            } else
                                                 moveFile();
-                                            }
                                         }
                                     } else {
-                                        showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1)
+                                        myApp.myToast(ExplosionRecordActivity.this,String.format(Locale.getDefault(), getString(R.string.message_upload_fail_number), uploadIndex + 1)
                                                 + uploadExplodeRecordsBean.getDescription());
                                     }
-                                    if (-1 != getNextIndex()) {
-                                        startUpload();
-                                    } else {
-                                        disableButton(false);
-                                    }
+                                    uploadNextRecord();
                                 } else {
-                                    showMessage(R.string.message_token_error);
+                                    myApp.myToast(ExplosionRecordActivity.this,R.string.message_token_error);
                                     disableButton(false);
                                 }
                             } else {
-                                showMessage(R.string.message_return_data_error);
+                                myApp.myToast(ExplosionRecordActivity.this,R.string.message_return_data_error);
                                 disableButton(false);
                             }
                         }
@@ -593,7 +593,7 @@ public class ExplosionRecordActivity extends BaseActivity {
             String oldFileName = file.getName();
             String newFileName = list.get(uploadIndex).getRecordPath().replace("N", "U");
             if (file.renameTo(new File(newFileName))) {
-                showMessage(String.format(Locale.getDefault(), getString(R.string.message_upload_success_number), uploadIndex + 1));
+                myApp.myToast(ExplosionRecordActivity.this,String.format(Locale.getDefault(), getString(R.string.message_upload_success_number), uploadIndex + 1));
                 try {
                     for (UploadServerBean bean : uploadList) {
                         if (bean.getFile().equals(oldFileName)) {
@@ -608,18 +608,18 @@ public class ExplosionRecordActivity extends BaseActivity {
                         }
                     }
                     myApp.writeToFile(FilePath.FILE_UPLOAD_LIST, uploadList);
-                    if (!UploadExplodeList.getInstance().isAlive())
-                        UploadExplodeList.getInstance().setApp(myApp).start();
+                    if (UploadExplodeList.isNotUploading())
+                        new UploadExplodeList(myApp).start();
                 } catch (Exception e) {
                     BaseApplication.writeErrorLog(e);
                 }
                 list.get(uploadIndex).setRecordPath(newFileName);
                 list.get(uploadIndex).setUploaded(true);
             } else {
-                showMessage(getString(R.string.message_file_not_found));
+                myApp.myToast(ExplosionRecordActivity.this,getString(R.string.message_file_not_found));
             }
         } else {
-            showMessage(getString(R.string.message_file_not_found));
+            myApp.myToast(ExplosionRecordActivity.this,getString(R.string.message_file_not_found));
         }
         adapter.updateList(list);
     }

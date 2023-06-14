@@ -237,7 +237,6 @@ public class WriteSNActivity extends BaseActivity {
                                 break;
                             case STEP_LOCK:
                             case STEP_WRITE_DELAY:
-                                BaseApplication.writeFile(getString(R.string.message_detonator_write_success));
                                 myApp.myToast(WriteSNActivity.this, R.string.message_detonator_write_success);
                                 runOnUiThread(() -> {
                                     try {
