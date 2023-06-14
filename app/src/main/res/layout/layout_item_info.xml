@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/shape_list_item_bg">
+
+    <TextView
+        android:id="@+id/tv_sn"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:gravity="center"
+        android:singleLine="true"
+        android:textColor="@color/colorLabelText" />
+
+    <com.leon.detonator.component.MarqueeTextView
+        android:id="@+id/tv_info1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_toStartOf="@id/rb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
+        android:textColor="@color/colorLabelText" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_info1"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_toStartOf="@id/rb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:background="@color/colorTableLine" />
+
+    <com.leon.detonator.component.MarqueeTextView
+        android:id="@+id/tv_info2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_info1"
+        android:layout_marginTop="2dp"
+        android:layout_toStartOf="@id/rb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
+        android:textColor="@color/colorLabelText" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/tv_info2"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_toStartOf="@id/rb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:background="@color/colorTableLine" />
+
+    <com.leon.detonator.component.MarqueeTextView
+        android:id="@+id/tv_info3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_info2"
+        android:layout_marginTop="2dp"
+        android:layout_toStartOf="@id/rb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
+        android:textColor="@color/colorLabelText" />
+
+    <RadioButton
+        android:id="@+id/rb_selected"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_centerInParent="true"
+        android:layout_gravity="center"
+        android:checked="false"
+        android:clickable="false"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:visibility="invisible" />
+</RelativeLayout>

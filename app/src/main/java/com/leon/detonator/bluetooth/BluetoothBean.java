@@ -2,13 +2,16 @@ package com.leon.detonator.bluetooth;
 
 import android.os.ParcelUuid;
 
+import androidx.annotation.Nullable;
+
 public class BluetoothBean {
-    public final static String MY_UUID = "42BCBC2C-40E7-414B-B08F-E9B0FF25011B";
+    public final static String MY_UUID = "42BCBC2C-40E7-414B-B08F-E9B0FF25011C";
 
     private String name;
     private String address;
     private int type;
     private int deviceType;
+    private boolean selected;
     private boolean connected;
     private ParcelUuid[] uuid;
 
@@ -64,4 +67,18 @@ public class BluetoothBean {
         this.uuid = uuid;
     }
 
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (obj instanceof BluetoothBean)
+            return ((BluetoothBean) obj).getAddress().equals(address);
+        return false;
+    }
 }

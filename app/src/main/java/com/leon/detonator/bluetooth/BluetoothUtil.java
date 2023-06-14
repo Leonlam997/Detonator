@@ -1,6 +1,6 @@
 package com.leon.detonator.bluetooth;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -8,11 +8,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
-
-import androidx.core.app.ActivityCompat;
-
-import com.leon.detonator.base.BaseApplication;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -24,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+@SuppressLint("MissingPermission")
 public class BluetoothUtil implements BluetoothServiceInterface {
 
     public final static String CONNECTED_BLUETOOTH = "ConnectedBluetooth";
@@ -54,41 +50,43 @@ public class BluetoothUtil implements BluetoothServiceInterface {
                             blueTooth.setType(device.getType());
                             blueTooth.setDeviceType(device.getBluetoothClass().getDeviceClass());
                             blueTooth.setUuid(device.getUuids());
-                            try {
-                                Method isConnectedMethod = BluetoothDevice.class.getDeclaredMethod("isConnected", (Class[]) null);
-                                isConnectedMethod.setAccessible(true);
-                                blueTooth.setConnected((boolean) isConnectedMethod.invoke(device, (Object[]) null));
-                            } catch (Exception e) {
-                                BaseApplication.writeErrorLog(e);
-                            }
-                            mSearchListener.foundDevice(blueTooth, false);
+                            blueTooth.setConnected(true);
+//                            try {
+//                                Method isConnectedMethod = BluetoothDevice.class.getDeclaredMethod("isConnected", (Class[]) null);
+//                                isConnectedMethod.setAccessible(true);
+//                                blueTooth.setConnected((boolean) isConnectedMethod.invoke(device, (Object[]) null));
+//                            } catch (Exception e) {
+//                                BaseApplication.writeErrorLog(e);
+//                            }
+                            mSearchListener.foundDevice(blueTooth);
                         }
                     }
                     break;
                 case BluetoothDevice.ACTION_FOUND:
                     BluetoothDevice device = arg1.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                     BluetoothBean blueTooth = new BluetoothBean();
-                    assert device != null;
                     blueTooth.setName(device.getName());
                     blueTooth.setAddress(device.getAddress());
                     blueTooth.setType(device.getType());
                     blueTooth.setDeviceType(device.getBluetoothClass().getDeviceClass());
                     blueTooth.setUuid(device.getUuids());
                     if (device.getBondState() == BluetoothDevice.BOND_BONDED) {
+                        blueTooth.setConnected(true);
                         for (BluetoothBean blueToothPul : connectedBluetooth) {
                             if (blueToothPul.getAddress().equals(blueTooth.getAddress()))
                                 return;
                         }
                         connectedBluetooth.add(blueTooth);
-                        mSearchListener.foundDevice(blueTooth, false);
+                        mSearchListener.foundDevice(blueTooth);
                     } else {
+                        blueTooth.setConnected(false);
                         for (BluetoothBean blueToothPul : newBluetooth) {
                             if (blueToothPul.getAddress().equals(blueTooth.getAddress())) {
                                 return;
                             }
                         }
                         newBluetooth.add(blueTooth);
-                        mSearchListener.foundDevice(blueTooth, true);
+                        mSearchListener.foundDevice(blueTooth);
                     }
                     break;
                 case BluetoothAdapter.ACTION_DISCOVERY_FINISHED:

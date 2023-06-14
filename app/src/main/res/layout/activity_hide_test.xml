@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:columnCount="1"
+    android:rowCount="8"
+    tools:context=".activity.HideTestActivity">
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_semi_product"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/semi_product_title"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="1" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_write_number"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/write_number"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="2" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_upload_log"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/hide_upload_log"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="3" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_unregister"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/hide_register"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="4" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_universal"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/hide_universal_test"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="5" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_serial"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/hide_serial_test"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="6" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_voltage"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/hide_set_voltage"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="7" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_import"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:text="@string/button_restore_list"
+        android:textSize="@dimen/button_text_size"
+        app:keyCode="8" />
+</GridLayout>

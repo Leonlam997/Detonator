@@ -6,7 +6,7 @@ import java.util.Map;
 public interface SearchBluetoothListener {
     void startSearch();
 
-    void foundDevice(BluetoothBean bluetooth, boolean newDevice);
+    void foundDevice(BluetoothBean bluetooth);
 
     void finishSearch(Map<String, List<BluetoothBean>> blueToothMap);
 }

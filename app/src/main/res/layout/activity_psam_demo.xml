@@ -1,0 +1,186 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:orientation="vertical"
+    android:background="@color/colorCommonBackground">
+
+    <!--
+   android:paddingBottom="@dimen/activity_vertical_margin"
+   android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".MainActivity"
+    -->
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dip"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/etComNo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:text="@string/etStrComNo" />
+
+        <EditText
+            android:id="@+id/etBaud"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:text="@string/etStrBaud" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnOpenCom"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.01"
+            android:text="@string/btOpenCom" />
+
+        <Button
+            android:id="@+id/btnCloseCom"
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.01"
+            android:text="@string/btCloseCom" />
+    </LinearLayout>
+
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="卡编号:" />
+
+        <EditText
+            android:id="@+id/etSAMNo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:layout_weight="0.2"
+            android:text="00"></EditText>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="卡编速率:" />
+
+        <Spinner
+            android:id="@+id/spinner_card_speed"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnPowerUp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.01"
+            android:text="上 电 " />
+
+        <Button
+            android:id="@+id/btnPowerDown"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.01"
+            android:text="下 电 " />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/etCosInput"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:inputType="textMultiLine"
+        android:text="0084000008"></EditText>
+
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnReset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.01"
+            android:text="复 位 " />
+
+        <Button
+            android:id="@+id/btnSendCos"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.01"
+            android:text="  发送    " />
+    </LinearLayout>
+
+
+    <EditText
+        android:id="@+id/etResult"
+        android:layout_width="fill_parent"
+        android:layout_height="120dp"
+        android:gravity="top"
+        android:inputType="textMultiLine">
+
+
+        <requestFocus />
+    </EditText>
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnGetVer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.01"
+            android:text="读版本号" />
+
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/TextViewInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#000000"
+        android:inputType="textMultiLine"
+        android:text="输出信息"
+        android:textColor="#FFFFFF" />
+
+    <TextView
+        android:id="@+id/tvResult"
+        android:layout_width="match_parent"
+        android:layout_height="77dp"
+        android:layout_gravity="bottom"
+        android:background="#000000"
+        android:inputType="textMultiLine"
+        android:text="输出信息"
+        android:textColor="#FFFFFF" />
+
+</LinearLayout>

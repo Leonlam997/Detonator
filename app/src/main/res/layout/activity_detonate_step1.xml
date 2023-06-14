@@ -34,63 +34,32 @@
         tools:ignore="RelativeOverlap" />
 
     <GridLayout
-        android:id="@+id/gl_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_gravity="center_vertical"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="2dp"
         android:columnCount="2"
         android:orientation="horizontal">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_online_auth"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:padding="0dp"
             android:text="@string/button_online_auth"
-            android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_offline_auth"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:padding="0dp"
             android:text="@string/button_offline_auth"
-            android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="2" />
-    </GridLayout>
-
-    <GridLayout
-        android:id="@+id/gl_btn2"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_gravity="center_vertical"
-        android:layout_marginBottom="8dp"
-        android:columnCount="1"
-        android:orientation="horizontal">
-
-        <com.leon.detonator.base.MyButton
-            android:id="@+id/btn_detect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_gravity="center"
-            android:padding="0dp"
-            android:text="@string/button_online_detect"
-            android:textColor="@color/colorButtonEnabled"
-            android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
-            button:keyCode="1" />
     </GridLayout>
 </RelativeLayout>

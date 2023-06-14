@@ -6,17 +6,17 @@
     android:orientation="vertical">
 
     <TextView
-        android:id="@+id/tvTitle"
+        android:id="@+id/tv_title"
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:ellipsize="marquee"
         android:gravity="center"
         android:singleLine="true"
         android:textColor="@color/colorPopupTitleText"
-        android:textSize="25sp" />
+        android:textSize="@dimen/menu_title_size" />
 
     <ListView
-        android:id="@+id/lvPopupMenu"
+        android:id="@+id/lv_popup_menu"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:layout_weight="1"

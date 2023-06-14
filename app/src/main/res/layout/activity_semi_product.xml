@@ -10,7 +10,7 @@
         android:id="@+id/tv_select"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="78dp"
+        android:layout_marginStart="60dp"
         android:layout_marginTop="30dp"
         android:text="@string/select_type"
         android:textColor="@color/colorSemiProductCommonText"
@@ -22,7 +22,7 @@
         android:id="@+id/spinner"
         android:layout_width="277dp"
         android:layout_height="43dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="20dp"
         app:layout_constraintLeft_toRightOf="@id/tv_select"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -30,7 +30,7 @@
         android:id="@+id/tv_code_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="78dp"
+        android:layout_marginStart="40dp"
         android:layout_marginTop="30dp"
         android:text="@string/code_text"
         android:textColor="@color/colorSemiProductCommonText"
@@ -43,18 +43,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="172dp"
-        android:layout_marginTop="28dp"
+        android:layout_marginBottom="2dp"
         android:textColor="@color/colorSemiProductCommonText"
         android:textSize="@dimen/common_text_size"
-        app:layout_constraintLeft_toLeftOf="@id/tv_code_text"
-        app:layout_constraintTop_toBottomOf="@id/tv_select" />
+        app:layout_constraintBottom_toBottomOf="@id/tv_code_text"
+        app:layout_constraintLeft_toLeftOf="@id/tv_code_text" />
 
     <TextView
         android:id="@+id/tv_voltage_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="43dp"
-        android:layout_marginTop="22dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="30dp"
         android:text="@string/voltage_text"
         android:textColor="@color/colorSemiProductCommonText"
         android:textSize="@dimen/common_text_size"
@@ -63,22 +63,22 @@
 
     <TextView
         android:id="@+id/tv_voltage"
-        android:layout_width="90dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="80dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="2dp"
         android:gravity="center"
         android:textColor="@color/colorSemiProductCommonText"
         android:textSize="@dimen/common_text_size"
-        app:layout_constraintLeft_toLeftOf="@id/tv_voltage_text"
-        app:layout_constraintTop_toBottomOf="@id/tv_code_text" />
+        app:layout_constraintBottom_toBottomOf="@id/tv_voltage_text"
+        app:layout_constraintRight_toRightOf="@id/tv_voltage_text" />
 
     <TextView
         android:id="@+id/tv_current_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="22dp"
-        android:layout_marginEnd="43dp"
+        android:layout_marginTop="30dp"
+        android:layout_marginEnd="20dp"
         android:text="@string/current_text"
         android:textColor="@color/colorSemiProductCommonText"
         android:textSize="@dimen/common_text_size"
@@ -87,49 +87,81 @@
 
     <TextView
         android:id="@+id/tv_current"
-        android:layout_width="90dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="80dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginEnd="25dp"
+        android:layout_marginBottom="2dp"
         android:gravity="center"
         android:textColor="@color/colorSemiProductCommonText"
         android:textSize="@dimen/common_text_size"
-        app:layout_constraintLeft_toLeftOf="@id/tv_current_text"
-        app:layout_constraintTop_toBottomOf="@id/tv_code_text" />
+        app:layout_constraintBottom_toBottomOf="@id/tv_current_text"
+        app:layout_constraintRight_toRightOf="@id/tv_current_text" />
+
+    <CheckBox
+        android:id="@+id/cb_write"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="30dp"
+        android:checked="true"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:text="@string/text_write_sn"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_voltage" />
+
+    <CheckBox
+        android:id="@+id/cb_lock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:layout_marginEnd="30dp"
+        android:checked="true"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:text="@string/text_lock_detonator"
+        android:textSize="@dimen/common_text_size"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_voltage" />
 
     <GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
-        android:layout_marginBottom="50dp"
-        android:columnCount="2"
+        android:layout_marginBottom="10dp"
+        android:columnCount="3"
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_test"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:padding="0dp"
             android:text="@string/button_self_test"
-            android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_scan"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:padding="0dp"
             android:text="@string/button_scan"
-            android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="2" />
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_manual"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:text="@string/button_manual"
+            android:textSize="@dimen/button_text_size"
+            button:keyCode="3" />
     </GridLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

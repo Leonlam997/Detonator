@@ -14,8 +14,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import com.leon.detonator.adapter.MTModuleListAdapter;
 import com.leon.detonator.R;
+import com.leon.detonator.adapter.MTModuleListAdapter;
 import com.minew.modulekit.MTModule;
 
 import org.jetbrains.annotations.NotNull;
@@ -88,7 +88,7 @@ public class MTModuleDialog extends Dialog {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.layout_mtmodule_dialog);
+        setContentView(R.layout.layout_dialog_mtmodule);
         if (getWindow() != null) {
             final WindowManager.LayoutParams params = getWindow().getAttributes();
             params.width = 380;

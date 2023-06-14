@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/colorCommonBackground"
+    tools:context=".activity.SelectVoltageActivity">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:visibility="gone"
+        android:text="@string/voltage_work"
+        android:textColor="@color/text_black"
+        android:textSize="@dimen/title_text_size" />
+
+    <RadioGroup
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="60dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="60dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rb_12"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/voltage_12"
+            android:textColor="@color/text_black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_16"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/voltage_16"
+            android:textColor="@color/text_black"
+            android:textSize="@dimen/common_text_size" />
+    </RadioGroup>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:gravity="center"
+        android:text="@string/voltage_charge"
+        android:textColor="@color/text_black"
+        android:textSize="@dimen/title_text_size" />
+
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="20dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rb_18"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/voltage_18"
+            android:textColor="@color/text_black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_20"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/voltage_20"
+            android:textColor="@color/text_black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_22"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/voltage_22"
+            android:textColor="@color/text_black"
+            android:textSize="@dimen/common_text_size" />
+    </RadioGroup>
+</LinearLayout>

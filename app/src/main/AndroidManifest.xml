@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:installLocation="internalOnly"
-    android:sharedUserId="android.uid.system">
+    android:installLocation="internalOnly">
 
     <uses-permission
         android:name="android.permission.BATTERY_STATS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_PRIVILEGED"
         tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -57,66 +57,130 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
-        <activity android:name=".activity.SchemeActivity" />
-        <activity android:name=".activity.BaiSeDetectorActivity" />
-        <activity android:name=".activity.BaiSeDataActivity" />
-        <activity android:name=".activity.ChargeActivity" />
-        <activity android:name=".activity.VersionManageActivity" />
-        <activity android:name=".activity.CapacityTestActivity" />
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
         <activity
-            android:name=".activity.WelcomeActivity"
+            android:name=".activity.InfoListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.SelectVoltageActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.SendSchemeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.HideTestActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.PsamDemoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.UniversalTest"
+            android:exported="false" />
+        <activity
+            android:name=".activity.SchemeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.BaiSeDetectorActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.BaiSeDataActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.VersionManageActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activity.ServerSelectActivity" />
-        <activity android:name=".activity.UniteExplodeActivity" />
-        <activity android:name=".activity.ErrorDetonatorListActivity" />
-        <activity android:name=".activity.EnterpriseActivity" />
-        <activity android:name=".activity.LoginActivity" />
-        <activity android:name=".activity.MainActivity" />
-        <activity android:name=".activity.DelayScheduleActivity" />
-        <activity android:name=".activity.DetonatorListActivity" />
-        <activity android:name=".activity.DetectMethodActivity" />
-        <activity android:name=".activity.AuthorizationListActivity" />
-        <activity android:name=".activity.ExplosionRecordActivity" />
-        <activity android:name=".activity.SettingsActivity" />
-        <activity android:name=".activity.WifiActivity" />
-        <activity android:name=".activity.WifiConnectActivity" />
-        <activity android:name=".activity.DisplaySettingsActivity" />
-        <activity android:name=".activity.DetectActivity" />
-        <activity android:name=".activity.CheckLineActivity" />
-        <activity android:name=".activity.VoltageTestActivity" />
-        <activity android:name=".activity.BluetoothActivity" />
-        <activity android:name=".activity.DetonateStep1Activity" />
-        <activity android:name=".activity.DetonateStep2Activity" />
-        <activity android:name=".activity.DetonateStep3Activity" />
-        <activity android:name=".activity.DetonateStep4Activity" />
-        <activity android:name=".activity.WriteSNActivity" />
-        <activity android:name=".activity.SelectModeActivity" />
-        <activity android:name=".activity.UpdateAppActivity" />
-        <activity android:name=".activity.SoundSettingsActivity" />
-        <activity android:name=".activity.SystemInfoActivity" />
-        <activity android:name=".activity.CameraActivity" />
-        <activity android:name=".activity.SemiProductActivity" />
-        <activity android:name=".activity.WaveformActivity" />
+        <activity
+            android:name=".activity.ServerSelectActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.UniteExplodeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.ErrorDetonatorListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.EnterpriseActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.DetonatorListActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activity.AuthorizationListActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activity.ExplosionRecordActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.SettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.DetectActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activity.CheckLineActivity"
+            android:configChanges="orientation|screenSize" />
+        <activity
+            android:name=".activity.DetonateStep1Activity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.DetonateStep2Activity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activity.DetonateStep3Activity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activity.DetonateStep4Activity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.WriteSNActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activity.UpdateAppActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.SystemInfoActivity"
+            android:exported="false" />
+        <activity
+            android:name=".activity.SemiProductActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
 
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
-            android:value="xac7ckQV364AQ9l6agKwAZAEczgWOILp" />
+            android:value="xCSYemDqpCp4BX4EblbWgy1elOPSlkxO" />
 
         <service
             android:name="com.baidu.location.f"
             android:enabled="true"
             android:process=":remote" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.leon.detonator.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

@@ -14,8 +14,8 @@ public class ZbqyBean {
     private String zbqyjd;
     private String zbqywd;
     private String zbqybj;
-    private Object zbqssj;
-    private Object zbjzsj;
+    private String zbqssj;
+    private String zbjzsj;
 
     public String getZbqymc() {
         return zbqymc;
@@ -49,19 +49,19 @@ public class ZbqyBean {
         this.zbqybj = zbqybj;
     }
 
-    public Object getZbqssj() {
+    public String getZbqssj() {
         return zbqssj;
     }
 
-    public void setZbqssj(Object zbqssj) {
+    public void setZbqssj(String zbqssj) {
         this.zbqssj = zbqssj;
     }
 
-    public Object getZbjzsj() {
+    public String getZbjzsj() {
         return zbjzsj;
     }
 
-    public void setZbjzsj(Object zbjzsj) {
+    public void setZbjzsj(String zbjzsj) {
         this.zbjzsj = zbjzsj;
     }
 }

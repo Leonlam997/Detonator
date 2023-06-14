@@ -9,6 +9,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 import com.leon.detonator.R;
+import com.leon.detonator.util.ConstantUtils;
 import com.minew.modulekit.MTModule;
 
 import java.util.ArrayList;
@@ -49,28 +50,22 @@ public class MTModuleListAdapter extends BaseAdapter {
 
     @Override
     public View getView(int i, View view, ViewGroup parent) {
-
         ViewHolder viewHolder;
         if (view == null) {
-
             viewHolder = new ViewHolder();
-
-            view = inflater.inflate(R.layout.layout_mtmodule_list, parent, false);
-            viewHolder.tvName = view.findViewById(R.id.text_name);
+            view = inflater.inflate(R.layout.layout_item_mtmodule, parent, false);
+            viewHolder.tvName = view.findViewById(R.id.tv_name);
             viewHolder.tvAddress = view.findViewById(R.id.text_address);
             viewHolder.tvSignal = view.findViewById(R.id.text_signal);
-
             view.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (ViewHolder) view.getTag();
-        }
-        int textSize = 23;
         viewHolder.tvName.setText(list.get(i).getName());
-        viewHolder.tvName.setTextSize(textSize);
+        viewHolder.tvName.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
         viewHolder.tvAddress.setText(list.get(i).getMacAddress());
-        viewHolder.tvAddress.setTextSize(textSize);
-        viewHolder.tvSignal.setText(String.format(Locale.CHINA, "%ddb", list.get(i).getRssi()));
-        viewHolder.tvSignal.setTextSize(textSize);
+        viewHolder.tvAddress.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
+        viewHolder.tvSignal.setText(String.format(Locale.getDefault(), "%ddb", list.get(i).getRssi()));
+        viewHolder.tvSignal.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
         if (null != mac && list.get(i).getMacAddress().contains(mac)) {
             viewHolder.tvName.setTextColor(inflater.getContext().getColor(R.color.colorLastConnected));
             viewHolder.tvAddress.setTextColor(inflater.getContext().getColor(R.color.colorLastConnected));
@@ -80,7 +75,6 @@ public class MTModuleListAdapter extends BaseAdapter {
             viewHolder.tvAddress.setTextColor(Color.BLACK);
             viewHolder.tvSignal.setTextColor(Color.BLACK);
         }
-
         return view;
     }
 

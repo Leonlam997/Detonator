@@ -19,7 +19,7 @@ public class MinaMessageRec {
     private double lat;
     private String sn;// �ն����к�
     private String qbDate;// ��ʱ��,yyyymmddHHmiss
-    private ConcurrentMap<String, String> leiguan = new ConcurrentHashMap<String, String>();//
+    private final ConcurrentMap<String, String> leiguan = new ConcurrentHashMap<String, String>();//
     //�������ڼ��©������
     private int packCount;
     //�Ƿ��ѽ������

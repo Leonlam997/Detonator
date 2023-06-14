@@ -9,7 +9,6 @@
         <attr name="metaButtonBarButtonStyle" format="reference" />
     </declare-styleable>
     <declare-styleable name="MyButton">
-        <attr name="bigButton" format="boolean" />
-        <attr name="keyCode" format="integer" />
+        <attr name="keyCode" format="string" />
     </declare-styleable>
 </resources>

@@ -99,30 +99,24 @@
         android:columnCount="2"
         android:orientation="horizontal">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_rescan"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:padding="0dp"
             android:text="@string/button_rescan"
-            android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_reconnect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:padding="0dp"
             android:text="@string/button_reconnect"
-            android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="2" />
     </GridLayout>
 </LinearLayout>

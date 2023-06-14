@@ -35,25 +35,25 @@
         android:max="100"
         android:progressDrawable="@drawable/progressbar" />
 
-        <TextView
-            android:id="@+id/tv_dialog_total_progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="10dp"
-            android:textColor="@color/colorLabelText"
-            android:textSize="@dimen/small_text_size" />
+    <TextView
+        android:id="@+id/tv_dialog_total_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="10dp"
+        android:textColor="@color/colorLabelText"
+        android:textSize="@dimen/small_text_size" />
 
-        <TextView
-            android:id="@+id/tv_dialog_progress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginTop="5dp"
-            android:layout_marginEnd="10dp"
-            android:textColor="@color/colorAccent"
-            android:textSize="@dimen/small_text_size"
-            tools:ignore="RelativeOverlap" />
+    <TextView
+        android:id="@+id/tv_dialog_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginTop="5dp"
+        android:layout_marginEnd="10dp"
+        android:textColor="@color/colorAccent"
+        android:textSize="@dimen/small_text_size"
+        tools:ignore="RelativeOverlap" />
 
 </LinearLayout>

@@ -3,5 +3,4 @@
     <item android:drawable="@mipmap/cb_checked" android:state_checked="true" />
     <item android:drawable="@mipmap/cb_uncheck" android:state_checked="false" />
     <item android:drawable="@mipmap/cb_uncheck" />
-
 </selector>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/shape_list_item_bg">
+
+    <TextView
+        android:id="@+id/tv_sn"
+        android:layout_width="48dp"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:gravity="center"
+        android:singleLine="true"
+        android:textAlignment="center" />
+
+    <TextView
+        android:id="@+id/text_address"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:layout_toStartOf="@id/cb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:ellipsize="middle"
+        android:paddingBottom="3dp"
+        android:singleLine="true" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/text_address"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_toStartOf="@id/cb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:background="@color/colorTableLine" />
+
+    <TextView
+        android:id="@+id/text_delay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/text_address"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:layout_toStartOf="@id/cb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:paddingBottom="3dp"
+        android:singleLine="true" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/text_delay"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:layout_toStartOf="@id/cb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:background="@color/colorTableLine" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/text_delay"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:layout_toStartOf="@id/cb_selected"
+        android:layout_toEndOf="@id/tv_sn"
+        android:columnCount="3">
+
+        <TextView
+            android:id="@+id/text_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:paddingBottom="3dp"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/text_hole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:paddingBottom="3dp"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/text_inside"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:paddingBottom="3dp"
+            android:singleLine="true" />
+    </GridLayout>
+
+    <CheckBox
+        android:id="@+id/cb_selected"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentEnd="true"
+        android:layout_centerInParent="true"
+        android:layout_gravity="center"
+        android:checked="false"
+        android:clickable="false"
+        android:focusable="false"
+        android:focusableInTouchMode="false" />
+</RelativeLayout>

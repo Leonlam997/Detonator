@@ -8,8 +8,8 @@ import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.TextView;
 
-import com.leon.detonator.bean.VersionBean;
 import com.leon.detonator.R;
+import com.leon.detonator.bean.VersionBean;
 import com.leon.detonator.util.ConstantUtils;
 
 import java.text.SimpleDateFormat;
@@ -55,33 +55,27 @@ public class VersionAdapter extends BaseAdapter {
     public View getView(final int position, View convertView, ViewGroup parent) {
         ViewHolder viewHolder;
         VersionBean bean = list.get(position);
-
         if (convertView == null) {
-
             viewHolder = new ViewHolder();
-
-            convertView = inflater.inflate(R.layout.layout_version_list, parent, false);
-            viewHolder.serialNo = convertView.findViewById(R.id.text_serial_no);
+            convertView = inflater.inflate(R.layout.layout_item_version, parent, false);
+            viewHolder.serialNo = convertView.findViewById(R.id.tv_sn);
             viewHolder.downloadDate = convertView.findViewById(R.id.text_download_date);
             viewHolder.version = convertView.findViewById(R.id.text_version);
             viewHolder.size = convertView.findViewById(R.id.text_size);
             viewHolder.isSelected = convertView.findViewById(R.id.cb_selected);
-
             convertView.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (ViewHolder) convertView.getTag();
-        }
-        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_CHINESE, Locale.CHINA);
-        int textSize = 28;
+        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_PART, Locale.getDefault());
         String text = (position + 1) + "";
         viewHolder.serialNo.setText(text);
-        viewHolder.serialNo.setTextSize(textSize);
+        viewHolder.serialNo.setTextSize(ConstantUtils.ITEM_TEXT_SIZE - 2);
         viewHolder.downloadDate.setText(formatter.format(bean.getDownloadDate()));
-        viewHolder.downloadDate.setTextSize(textSize);
-        viewHolder.size.setText(String.format(Locale.CHINA, "%.1fMB", bean.getSize() / 1000f / 1000f));
-        viewHolder.size.setTextSize(textSize);
+        viewHolder.downloadDate.setTextSize(ConstantUtils.ITEM_TEXT_SIZE - 2);
+        viewHolder.size.setText(String.format(Locale.getDefault(), "%.1fMB", bean.getSize() / 1000 / 1000f));
+        viewHolder.size.setTextSize(ConstantUtils.ITEM_TEXT_SIZE - 2);
         viewHolder.version.setText(bean.getVersion());
-        viewHolder.version.setTextSize(textSize);
+        viewHolder.version.setTextSize(ConstantUtils.ITEM_TEXT_SIZE - 2);
         viewHolder.isSelected.setChecked(bean.isSelected());
         viewHolder.isSelected.setClickable(false);
         return convertView;

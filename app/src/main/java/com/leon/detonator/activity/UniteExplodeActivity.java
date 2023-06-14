@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ImageView;
@@ -17,25 +16,21 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.base.MyButton;
-import com.leon.detonator.bean.DetonatorInfoBean;
-import com.leon.detonator.bean.LocalSettingBean;
+import com.leon.detonator.bean.DetonatorBean;
+import com.leon.detonator.component.MyButton;
+import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.dialog.MTModuleDialog;
-import com.leon.detonator.R;
 import com.leon.detonator.serial.SerialCommand;
 import com.leon.detonator.serial.SerialPortUtil;
 import com.leon.detonator.util.ConstantUtils;
-import com.leon.detonator.util.FilePath;
 import com.leon.detonator.util.KeyUtils;
 import com.minew.modulekit.MTModule;
 import com.minew.modulekit.MTModuleManager;
 import com.minew.modulekit.interfaces.ScanMTModuleCallback;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -71,181 +66,178 @@ public class UniteExplodeActivity extends BaseActivity {
     private boolean enterExplode;
     private boolean charging = false;
     private BaseApplication myApp;
-    private final Handler refreshStatus = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message message) {
-            int CONNECT_TIMEOUT = 30000;
-            switch (message.what) {
-                case STATUS_SEARCHING:
-                    tvConnect.setText(R.string.unite_searching_devices);
-                    btnReconnect.setEnabled(false);
-                    tvEllipsis1.setText("");
-                    stopScan = false;
-                    setProgressVisibility(true);
-                    rlUnite.setVisibility(View.INVISIBLE);
-                    ivStatus1.setVisibility(View.INVISIBLE);
-                    ivStatus2.setVisibility(View.INVISIBLE);
-                    refreshStatus.removeMessages(STATUS_CONNECTING_ELLIPSIS);
-                    refreshStatus.removeMessages(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
-                    refreshStatus.removeMessages(STATUS_HANDSHAKE);
-                    refreshStatus.removeMessages(STATUS_UNITE_CONNECT_FAIL);
-                    refreshStatus.sendEmptyMessage(STATUS_CONNECTING_ELLIPSIS);
-                    refreshStatus.sendEmptyMessageDelayed(STATUS_SEARCH_FAIL, CONNECT_TIMEOUT);
-                    break;
-                case STATUS_SEARCH_FAIL:
-                    mtModuleManager.stopScan();
-                    setProgressVisibility(false);
-                    tvConnect.setText(R.string.unite_device_not_found);
-                    tvEllipsis1.setText("");
-                    refreshStatus.removeMessages(STATUS_CONNECTING_ELLIPSIS);
-                    ivStatus1.setImageResource(R.mipmap.ic_wrong);
-                    ivStatus1.setVisibility(View.VISIBLE);
-                    btnRescan.setEnabled(true);
-                    break;
-                case STATUS_CONNECTING:
-                    tvConnect.setText(R.string.unite_connecting_device);
-                    tvEllipsis1.setText("");
-                    refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
-                    refreshStatus.removeMessages(STATUS_CONNECTING_ELLIPSIS);
-                    refreshStatus.sendEmptyMessage(STATUS_CONNECTING_ELLIPSIS);
-                    break;
-                case STATUS_CONNECTED:
-                    tvConnect.setText(R.string.unite_connected);
-                    tvEllipsis1.setText("");
-                    refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
-                    refreshStatus.removeMessages(STATUS_CONNECTING_ELLIPSIS);
-                    ivStatus1.setImageResource(R.mipmap.ic_right);
-                    ivStatus1.setVisibility(View.VISIBLE);
-                    rlUnite.setVisibility(View.VISIBLE);
-                    btnRescan.setEnabled(true);
-                    btnReconnect.setEnabled(true);
-                    tvUnite.setText(R.string.unite_connecting_host);
-                    refreshStatus.sendEmptyMessage(STATUS_UNITE_ELLIPSIS);
-                    break;
-                case STATUS_CONNECT_FAIL:
-                    tvConnect.setText(R.string.unite_connect_fail);
-                    tvEllipsis1.setText("");
-                    btnRescan.setEnabled(true);
-                    setProgressVisibility(false);
-                    refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
-                    refreshStatus.removeMessages(STATUS_CONNECTING_ELLIPSIS);
-                    ivStatus1.setImageResource(R.mipmap.ic_wrong);
-                    ivStatus1.setVisibility(View.VISIBLE);
-                    break;
-                case STATUS_DISCONNECT:
-                    tvConnect.setText(R.string.unite_disconnected);
-                    tvEllipsis1.setText("");
-                    btnRescan.setEnabled(true);
-                    btnReconnect.setEnabled(false);
-                    rlUnite.setVisibility(View.INVISIBLE);
-                    setProgressVisibility(false);
-                    refreshStatus.removeMessages(STATUS_CONNECTING_ELLIPSIS);
-                    refreshStatus.removeMessages(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
-                    refreshStatus.removeMessages(STATUS_HANDSHAKE);
-                    refreshStatus.removeMessages(STATUS_UNITE_CONNECT_FAIL);
-                    refreshStatus.sendEmptyMessage(STATUS_CONNECTING_ELLIPSIS);
-                    ivStatus1.setImageResource(R.mipmap.ic_wrong);
-                    ivStatus1.setVisibility(View.VISIBLE);
-                    break;
-                case STATUS_UNITE_WAITING:
-                    tvUnite.setText(R.string.unite_waiting);
-                    tvEllipsis2.setText("");
-                    refreshStatus.removeMessages(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.sendEmptyMessage(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.sendEmptyMessageDelayed(STATUS_UNITE_CONNECT_FAIL, CONNECT_TIMEOUT);
-                    break;
-                case STATUS_UNITE_CONNECT_FAIL:
-                    setProgressVisibility(false);
-                    tvUnite.setText(R.string.unite_host_no_answer);
-                    tvEllipsis2.setText("");
-                    btnRescan.setEnabled(true);
-                    ivStatus2.setImageResource(R.mipmap.ic_wrong);
-                    ivStatus2.setVisibility(View.VISIBLE);
-                    refreshStatus.removeMessages(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.removeMessages(STATUS_HANDSHAKE);
-                    break;
-                case STATUS_UNITE_CONNECTED:
-                    tvUnite.setText(R.string.unite_connected_host);
-                    setProgressVisibility(false);
-                    btnRescan.setEnabled(true);
-                    tvEllipsis2.setText("");
-                    refreshStatus.removeMessages(STATUS_UNITE_CONNECT_FAIL);
-                    refreshStatus.removeMessages(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.removeMessages(STATUS_HANDSHAKE);
-                    ivStatus2.setImageResource(R.mipmap.ic_right);
-                    ivStatus2.setVisibility(View.VISIBLE);
-                    break;
-                case STATUS_UNITE_FAIL:
-                    setProgressVisibility(false);
-                    tvUnite.setText(R.string.unite_communication_fail);
-                    btnRescan.setEnabled(true);
-                    tvEllipsis2.setText("");
-                    ivStatus2.setImageResource(R.mipmap.ic_wrong);
-                    ivStatus2.setVisibility(View.VISIBLE);
-                    refreshStatus.removeMessages(STATUS_UNITE_CONNECT_FAIL);
-                    refreshStatus.removeMessages(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.removeMessages(STATUS_HANDSHAKE);
-                    break;
-                case STATUS_CONNECTING_ELLIPSIS:
-                    switch (tvEllipsis1.getText().length()) {
-                        case 0:
-                            tvEllipsis1.setText("。");
-                            break;
-                        case 1:
-                            tvEllipsis1.setText("。。");
-                            break;
-                        case 2:
-                            tvEllipsis1.setText("。。。");
-                            break;
-                        case 3:
-                            tvEllipsis1.setText("。。。。");
-                            break;
-                        default:
-                            tvEllipsis1.setText("");
-                            break;
+    private final Handler myHandler = new Handler(msg -> {
+        int CONNECT_TIMEOUT = 30000;
+        switch (msg.what) {
+            case STATUS_SEARCHING:
+                tvConnect.setText(R.string.unite_searching_devices);
+                btnReconnect.setEnabled(false);
+                tvEllipsis1.setText("");
+                stopScan = false;
+                setProgressVisibility(true);
+                rlUnite.setVisibility(View.INVISIBLE);
+                ivStatus1.setVisibility(View.INVISIBLE);
+                ivStatus2.setVisibility(View.INVISIBLE);
+                msg.getTarget().removeMessages(STATUS_CONNECTING_ELLIPSIS);
+                msg.getTarget().removeMessages(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().removeMessages(STATUS_SEARCH_FAIL);
+                msg.getTarget().removeMessages(STATUS_HANDSHAKE);
+                msg.getTarget().removeMessages(STATUS_UNITE_CONNECT_FAIL);
+                msg.getTarget().sendEmptyMessage(STATUS_CONNECTING_ELLIPSIS);
+                msg.getTarget().sendEmptyMessageDelayed(STATUS_SEARCH_FAIL, CONNECT_TIMEOUT);
+                break;
+            case STATUS_SEARCH_FAIL:
+                mtModuleManager.stopScan();
+                setProgressVisibility(false);
+                tvConnect.setText(R.string.unite_device_not_found);
+                tvEllipsis1.setText("");
+                msg.getTarget().removeMessages(STATUS_CONNECTING_ELLIPSIS);
+                ivStatus1.setImageResource(R.mipmap.ic_wrong);
+                ivStatus1.setVisibility(View.VISIBLE);
+                btnRescan.setEnabled(true);
+                break;
+            case STATUS_CONNECTING:
+                tvConnect.setText(R.string.unite_connecting_device);
+                tvEllipsis1.setText("");
+                msg.getTarget().removeMessages(STATUS_SEARCH_FAIL);
+                msg.getTarget().removeMessages(STATUS_CONNECTING_ELLIPSIS);
+                msg.getTarget().sendEmptyMessage(STATUS_CONNECTING_ELLIPSIS);
+                break;
+            case STATUS_CONNECTED:
+                tvConnect.setText(R.string.unite_connected);
+                tvEllipsis1.setText("");
+                msg.getTarget().removeMessages(STATUS_SEARCH_FAIL);
+                msg.getTarget().removeMessages(STATUS_CONNECTING_ELLIPSIS);
+                ivStatus1.setImageResource(R.mipmap.ic_right);
+                ivStatus1.setVisibility(View.VISIBLE);
+                rlUnite.setVisibility(View.VISIBLE);
+                btnRescan.setEnabled(true);
+                btnReconnect.setEnabled(true);
+                tvUnite.setText(R.string.unite_connecting_host);
+                msg.getTarget().sendEmptyMessage(STATUS_UNITE_ELLIPSIS);
+                break;
+            case STATUS_CONNECT_FAIL:
+                tvConnect.setText(R.string.unite_connect_fail);
+                tvEllipsis1.setText("");
+                btnRescan.setEnabled(true);
+                setProgressVisibility(false);
+                msg.getTarget().removeMessages(STATUS_SEARCH_FAIL);
+                msg.getTarget().removeMessages(STATUS_CONNECTING_ELLIPSIS);
+                ivStatus1.setImageResource(R.mipmap.ic_wrong);
+                ivStatus1.setVisibility(View.VISIBLE);
+                break;
+            case STATUS_DISCONNECT:
+                tvConnect.setText(R.string.unite_disconnected);
+                tvEllipsis1.setText("");
+                btnRescan.setEnabled(true);
+                btnReconnect.setEnabled(false);
+                rlUnite.setVisibility(View.INVISIBLE);
+                setProgressVisibility(false);
+                msg.getTarget().removeMessages(STATUS_CONNECTING_ELLIPSIS);
+                msg.getTarget().removeMessages(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().removeMessages(STATUS_SEARCH_FAIL);
+                msg.getTarget().removeMessages(STATUS_HANDSHAKE);
+                msg.getTarget().removeMessages(STATUS_UNITE_CONNECT_FAIL);
+                msg.getTarget().sendEmptyMessage(STATUS_CONNECTING_ELLIPSIS);
+                ivStatus1.setImageResource(R.mipmap.ic_wrong);
+                ivStatus1.setVisibility(View.VISIBLE);
+                break;
+            case STATUS_UNITE_WAITING:
+                tvUnite.setText(R.string.unite_waiting);
+                tvEllipsis2.setText("");
+                msg.getTarget().removeMessages(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().sendEmptyMessage(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().sendEmptyMessageDelayed(STATUS_UNITE_CONNECT_FAIL, CONNECT_TIMEOUT);
+                break;
+            case STATUS_UNITE_CONNECT_FAIL:
+                setProgressVisibility(false);
+                tvUnite.setText(R.string.unite_host_no_answer);
+                tvEllipsis2.setText("");
+                btnRescan.setEnabled(true);
+                ivStatus2.setImageResource(R.mipmap.ic_wrong);
+                ivStatus2.setVisibility(View.VISIBLE);
+                msg.getTarget().removeMessages(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().removeMessages(STATUS_HANDSHAKE);
+                break;
+            case STATUS_UNITE_CONNECTED:
+                tvUnite.setText(R.string.unite_connected_host);
+                setProgressVisibility(false);
+                btnRescan.setEnabled(true);
+                tvEllipsis2.setText("");
+                msg.getTarget().removeMessages(STATUS_UNITE_CONNECT_FAIL);
+                msg.getTarget().removeMessages(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().removeMessages(STATUS_HANDSHAKE);
+                ivStatus2.setImageResource(R.mipmap.ic_right);
+                ivStatus2.setVisibility(View.VISIBLE);
+                break;
+            case STATUS_UNITE_FAIL:
+                setProgressVisibility(false);
+                tvUnite.setText(R.string.unite_communication_fail);
+                btnRescan.setEnabled(true);
+                tvEllipsis2.setText("");
+                ivStatus2.setImageResource(R.mipmap.ic_wrong);
+                ivStatus2.setVisibility(View.VISIBLE);
+                msg.getTarget().removeMessages(STATUS_UNITE_CONNECT_FAIL);
+                msg.getTarget().removeMessages(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().removeMessages(STATUS_HANDSHAKE);
+                break;
+            case STATUS_CONNECTING_ELLIPSIS:
+                switch (tvEllipsis1.getText().length()) {
+                    case 0:
+                        tvEllipsis1.setText("。");
+                        break;
+                    case 1:
+                        tvEllipsis1.setText("。。");
+                        break;
+                    case 2:
+                        tvEllipsis1.setText("。。。");
+                        break;
+                    case 3:
+                        tvEllipsis1.setText("。。。。");
+                        break;
+                    default:
+                        tvEllipsis1.setText("");
+                        break;
+                }
+                msg.getTarget().removeMessages(STATUS_CONNECTING_ELLIPSIS);
+                msg.getTarget().sendEmptyMessageDelayed(STATUS_CONNECTING_ELLIPSIS, 500);
+                break;
+            case STATUS_UNITE_ELLIPSIS:
+                switch (tvEllipsis2.getText().length()) {
+                    case 0:
+                        tvEllipsis2.setText("。");
+                        break;
+                    case 1:
+                        tvEllipsis2.setText("。。");
+                        break;
+                    case 2:
+                        tvEllipsis2.setText("。。。");
+                        break;
+                    case 3:
+                        tvEllipsis2.setText("。。。。");
+                        break;
+                    default:
+                        tvEllipsis2.setText("");
+                        break;
+                }
+                msg.getTarget().removeMessages(STATUS_UNITE_ELLIPSIS);
+                msg.getTarget().sendEmptyMessageDelayed(STATUS_UNITE_ELLIPSIS, 500);
+                break;
+            case STATUS_HANDSHAKE:
+                msg.getTarget().removeMessages(STATUS_HANDSHAKE);
+                mtModule.writeData(checksum(amount + ""), (b, e) -> {
+                    if (!b) {
+                        msg.getTarget().sendEmptyMessage(STATUS_UNITE_FAIL);
                     }
-                    refreshStatus.removeMessages(STATUS_CONNECTING_ELLIPSIS);
-                    refreshStatus.sendEmptyMessageDelayed(STATUS_CONNECTING_ELLIPSIS, 500);
-                    break;
-                case STATUS_UNITE_ELLIPSIS:
-                    switch (tvEllipsis2.getText().length()) {
-                        case 0:
-                            tvEllipsis2.setText("。");
-                            break;
-                        case 1:
-                            tvEllipsis2.setText("。。");
-                            break;
-                        case 2:
-                            tvEllipsis2.setText("。。。");
-                            break;
-                        case 3:
-                            tvEllipsis2.setText("。。。。");
-                            break;
-                        default:
-                            tvEllipsis2.setText("");
-                            break;
-                    }
-                    refreshStatus.removeMessages(STATUS_UNITE_ELLIPSIS);
-                    refreshStatus.sendEmptyMessageDelayed(STATUS_UNITE_ELLIPSIS, 500);
-                    break;
-                case STATUS_HANDSHAKE:
-                    refreshStatus.removeMessages(STATUS_HANDSHAKE);
-                    mtModule.writeData(checksum(amount + ""), (b, e) -> {
-                        if (!b) {
-                            refreshStatus.sendEmptyMessage(STATUS_UNITE_FAIL);
-                        }
-                    });
-                    refreshStatus.sendEmptyMessageDelayed(STATUS_HANDSHAKE, ConstantUtils.RESEND_CMD_TIMEOUT);
-                    break;
-                case STATUS_CHARGE_FINISHED:
-                    mtModule.writeData(checksum(SerialCommand.RESPOND_CHARGE_FINISHED), null);
-                    refreshStatus.sendEmptyMessageDelayed(STATUS_CHARGE_FINISHED, ConstantUtils.RESEND_CMD_TIMEOUT);
-                    break;
-            }
-            return false;
+                });
+                msg.getTarget().sendEmptyMessageDelayed(STATUS_HANDSHAKE, ConstantUtils.RESEND_CMD_TIMEOUT);
+                break;
+            case STATUS_CHARGE_FINISHED:
+                mtModule.writeData(checksum(SerialCommand.RESPOND_CHARGE_FINISHED), null);
+                msg.getTarget().sendEmptyMessageDelayed(STATUS_CHARGE_FINISHED, ConstantUtils.RESEND_CMD_TIMEOUT);
+                break;
         }
+        return false;
     });
 
     @Override
@@ -275,13 +267,10 @@ public class UniteExplodeActivity extends BaseActivity {
 
         initManager();
         BaseApplication.acquireWakeLock(this);
-        LocalSettingBean bean = BaseApplication.readSettings();
-        List<DetonatorInfoBean> list = new ArrayList<>();
-        myApp.readFromFile(FilePath.FILE_LIST[myApp.isTunnel() ? 0 : 1][ConstantUtils.LIST_TYPE.END.ordinal()],
-                list, DetonatorInfoBean.class);
+        List<DetonatorBean> list = DbUtil.getCurrentDetonatorList(UniteExplodeActivity.this);
         amount = list.size();
-        mtMac = bean.getMtMac();
-        exploderID = bean.getExploderID();
+        mtMac = BaseApplication.settings.getMtMac();
+        exploderID = BaseApplication.settings.getExploderID();
         if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(UniteExplodeActivity.this, Manifest.permission.BLUETOOTH)
                 && PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(UniteExplodeActivity.this, Manifest.permission.BLUETOOTH_ADMIN)) {
             BTAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -305,12 +294,12 @@ public class UniteExplodeActivity extends BaseActivity {
             } else
                 mtModuleManager.startScan(scanMTModuleCallback);
         }
-        refreshStatus.sendEmptyMessage(STATUS_SEARCHING);
+        myHandler.sendEmptyMessage(STATUS_SEARCHING);
     }
 
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode())
-            refreshStatus.sendEmptyMessage(STATUS_CHARGE_FINISHED);
+            myHandler.sendEmptyMessage(STATUS_CHARGE_FINISHED);
         else
             finish();
     });
@@ -322,24 +311,23 @@ public class UniteExplodeActivity extends BaseActivity {
             if (stopScan) {
                 switch (status) {
                     case DeviceLinkStatus_Connected:
-                        refreshStatus.sendEmptyMessage(STATUS_CONNECTED);
+                        myHandler.sendEmptyMessage(STATUS_CONNECTED);
                         mtMac = mtModule.getMacAddress();
-                        LocalSettingBean bean = BaseApplication.readSettings();
-                        bean.setMtMac(mtMac);
-                        myApp.saveBean(bean);
+                        BaseApplication.settings.setMtMac(mtMac);
+                        BaseApplication.saveSettings();
                         mtModule.writeData("LGE".getBytes(), null);
-                        refreshStatus.sendEmptyMessage(STATUS_UNITE_WAITING);
-                        refreshStatus.sendEmptyMessageDelayed(STATUS_HANDSHAKE, 500);
+                        myHandler.sendEmptyMessage(STATUS_UNITE_WAITING);
+                        myHandler.sendEmptyMessageDelayed(STATUS_HANDSHAKE, 500);
                         mtModule.setMTModuleListener(bytes -> {
                             String rec = new String(bytes);
                             myApp.myToast(UniteExplodeActivity.this, rec);
                             if (rec.contains((null == exploderID || exploderID.isEmpty() ? mtMac : exploderID))) {
                                 if (charging) {
-                                    refreshStatus.removeMessages(STATUS_CHARGE_FINISHED);
+                                    myHandler.removeMessages(STATUS_CHARGE_FINISHED);
                                     charging = false;
                                 } else {
-                                    refreshStatus.removeMessages(STATUS_HANDSHAKE);
-                                    refreshStatus.sendEmptyMessage(STATUS_UNITE_CONNECTED);
+                                    myHandler.removeMessages(STATUS_HANDSHAKE);
+                                    myHandler.sendEmptyMessage(STATUS_UNITE_CONNECTED);
                                 }
                             } else if (rec.contains(SerialCommand.RESPOND_EXPLODE)) {
                                 Intent intent = new Intent(UniteExplodeActivity.this, DetonateStep4Activity.class);
@@ -363,10 +351,10 @@ public class UniteExplodeActivity extends BaseActivity {
                         });
                         break;
                     case DeviceLinkStatus_ConnectFailed:
-                        refreshStatus.sendEmptyMessage(STATUS_CONNECT_FAIL);
+                        myHandler.sendEmptyMessage(STATUS_CONNECT_FAIL);
                         break;
                     case DeviceLinkStatus_Disconnect:
-                        refreshStatus.sendEmptyMessage(STATUS_DISCONNECT);
+                        myHandler.sendEmptyMessage(STATUS_DISCONNECT);
                         break;
                 }
             }
@@ -388,7 +376,7 @@ public class UniteExplodeActivity extends BaseActivity {
         @Override
         public void onScannedMTModule(LinkedList<MTModule> linkedList) {
             if (!stopScan) {
-                refreshStatus.removeMessages(STATUS_SEARCH_FAIL);
+                myHandler.removeMessages(STATUS_SEARCH_FAIL);
 
                 if (null == mtDialog || !mtDialog.isShowing()) {
                     mtDialog = new MTModuleDialog(UniteExplodeActivity.this, linkedList, mtMac);
@@ -397,14 +385,14 @@ public class UniteExplodeActivity extends BaseActivity {
                         mtModuleManager.stopScan();
                         mtDialog.dismiss();
                         stopScan = true;
-                        refreshStatus.sendEmptyMessage(STATUS_CONNECTING);
+                        myHandler.sendEmptyMessage(STATUS_CONNECTING);
                         mtModule = mtDialog.getSelectedMTModule();
                         mtModuleManager.connect(mtModule);
                     });
                     mtDialog.setListener2(view -> {
                         mtModuleManager.stopScan();
                         mtDialog.dismiss();
-                        refreshStatus.sendEmptyMessage(STATUS_SEARCH_FAIL);
+                        myHandler.sendEmptyMessage(STATUS_SEARCH_FAIL);
                     });
                 } else {
                     mtDialog.setList(linkedList);
@@ -424,17 +412,17 @@ public class UniteExplodeActivity extends BaseActivity {
     }
 
     private void reconnect(boolean scan) {
-        refreshStatus.removeCallbacksAndMessages(null);
+        myHandler.removeCallbacksAndMessages(null);
         if (scan) {
             if (null != mtModule) {
                 mtModuleManager.disconnect(mtModule);
             }
             mtModuleManager.reStartScan(scanMTModuleCallback);
-            refreshStatus.sendEmptyMessage(STATUS_SEARCHING);
+            myHandler.sendEmptyMessage(STATUS_SEARCHING);
         } else {
             ivStatus2.setVisibility(View.INVISIBLE);
-            refreshStatus.sendEmptyMessage(STATUS_UNITE_WAITING);
-            refreshStatus.sendEmptyMessage(STATUS_HANDSHAKE);
+            myHandler.sendEmptyMessage(STATUS_UNITE_WAITING);
+            myHandler.sendEmptyMessage(STATUS_HANDSHAKE);
         }
     }
 
@@ -467,7 +455,7 @@ public class UniteExplodeActivity extends BaseActivity {
         BaseApplication.releaseWakeLock(UniteExplodeActivity.this);
         if (!enterExplode) {
             try {
-                SerialPortUtil.getInstance().closeSerialPort();
+                SerialPortUtil.getInstance(this).closeSerialPort();
             } catch (Exception e) {
                 BaseApplication.writeErrorLog(e);
             }
@@ -482,7 +470,7 @@ public class UniteExplodeActivity extends BaseActivity {
         stopScan = true;
         mtModuleManager.clearAllOperation();
         mtModuleManager = null;
-        refreshStatus.removeCallbacksAndMessages(null);
+        myHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
 

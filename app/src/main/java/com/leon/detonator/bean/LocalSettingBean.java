@@ -1,57 +1,36 @@
 package com.leon.detonator.bean;
 
-import com.leon.detonator.util.ConstantUtils;
-
 import java.util.Map;
 
 public class LocalSettingBean {
-    private String serialNum, delayTime, delayPeriod, mtMac, exploderID, IMEI;
-    private int row, hole, holeInside, section, sectionInside, defaultType = 0, userID, volume, serverHost, fontScale,
-            firstPulseTime, secondPulseTime, thirdPulseTime;
-    private boolean vibrate, registered, uploadedLog;
+    private String serialNum;
+    private String delayTime;
+    private String delayPeriod;
+    private String mtMac;
+    private String exploderID;
+    private String IMEI;
+    private int row;
+    private int hole;
+    private int holeInside;
+    private int section;
+    private int sectionInside;
+    private int userID;
+    private int serverHost;
+    private boolean registered;
+    private boolean uploadedLog;
+    private boolean tunnel;
     private float chargeVoltage;
-    private double latitude, longitude;
+    private float workVoltage;
+    private double latitude;
+    private double longitude;
+    private boolean scanMode;
     private Map<Float, Integer> dacMap;
 
     public LocalSettingBean() {
         row = 50;
         hole = 10;
-        holeInside = 0;
         section = 50;
-        sectionInside = 0;
-        volume = ConstantUtils.MAX_VOLUME;
-        latitude = 0;
-        longitude = 0;
         serverHost = 1;
-        firstPulseTime = 1200;
-        secondPulseTime = 600;
-        thirdPulseTime = 600;
-        vibrate = true;
-        registered = false;
-    }
-
-    public int getFirstPulseTime() {
-        return firstPulseTime;
-    }
-
-    public void setFirstPulseTime(int firstPulseTime) {
-        this.firstPulseTime = firstPulseTime;
-    }
-
-    public int getSecondPulseTime() {
-        return secondPulseTime;
-    }
-
-    public void setSecondPulseTime(int secondPulseTime) {
-        this.secondPulseTime = secondPulseTime;
-    }
-
-    public int getThirdPulseTime() {
-        return thirdPulseTime;
-    }
-
-    public void setThirdPulseTime(int thirdPulseTime) {
-        this.thirdPulseTime = thirdPulseTime;
     }
 
     public String getSerialNum() {
@@ -118,36 +97,12 @@ public class LocalSettingBean {
         this.sectionInside = sectionInside;
     }
 
-    public int getDefaultType() {
-        return defaultType;
-    }
-
-    public void setDefaultType(int defaultType) {
-        this.defaultType = defaultType;
-    }
-
     public int getUserID() {
         return userID;
     }
 
     public void setUserID(int userID) {
         this.userID = userID;
-    }
-
-    public int getVolume() {
-        return volume;
-    }
-
-    public void setVolume(int volume) {
-        this.volume = volume;
-    }
-
-    public boolean isVibrate() {
-        return vibrate;
-    }
-
-    public void setVibrate(boolean vibrate) {
-        this.vibrate = vibrate;
     }
 
     public boolean isRegistered() {
@@ -182,14 +137,6 @@ public class LocalSettingBean {
         this.serverHost = serverHost;
     }
 
-    public int getFontScale() {
-        return fontScale;
-    }
-
-    public void setFontScale(int fontScale) {
-        this.fontScale = fontScale;
-    }
-
     public double getLatitude() {
         return latitude;
     }
@@ -214,14 +161,6 @@ public class LocalSettingBean {
         this.IMEI = IMEI;
     }
 
-    public Map<Float, Integer> getDacMap() {
-        return dacMap;
-    }
-
-    public void setDacMap(Map<Float, Integer> dacMap) {
-        this.dacMap = dacMap;
-    }
-
     public boolean isUploadedLog() {
         return uploadedLog;
     }
@@ -236,5 +175,37 @@ public class LocalSettingBean {
 
     public void setChargeVoltage(float chargeVoltage) {
         this.chargeVoltage = chargeVoltage;
+    }
+
+    public boolean isTunnel() {
+        return tunnel;
+    }
+
+    public void setTunnel(boolean tunnel) {
+        this.tunnel = tunnel;
+    }
+
+    public float getWorkVoltage() {
+        return workVoltage;
+    }
+
+    public void setWorkVoltage(float workVoltage) {
+        this.workVoltage = workVoltage;
+    }
+
+    public boolean isScanMode() {
+        return scanMode;
+    }
+
+    public void setScanMode(boolean scanMode) {
+        this.scanMode = scanMode;
+    }
+
+    public Map<Float, Integer> getDacMap() {
+        return dacMap;
+    }
+
+    public void setDacMap(Map<Float, Integer> dacMap) {
+        this.dacMap = dacMap;
     }
 }

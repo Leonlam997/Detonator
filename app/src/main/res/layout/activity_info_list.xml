@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    tools:context=".activity.InfoListActivity">
+
+    <ListView
+        android:id="@+id/lv_info"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/gl_btn"
+        android:cacheColorHint="@android:color/transparent"
+        android:divider="@color/colorCommonBackground"
+        android:dividerHeight="1dp"
+        android:fadingEdge="none"
+        android:footerDividersEnabled="true"
+        android:listSelector="@drawable/shape_list_item_selector"
+        android:orientation="vertical"
+        android:scrollbars="vertical" />
+
+    <GridLayout
+        android:id="@+id/gl_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_gravity="center_vertical"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
+        android:columnCount="3">
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_new"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:text="@string/button_new"
+            android:textSize="@dimen/button_text_size"
+            button:keyCode="+" />
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_modify"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:text="@string/button_modify"
+            android:textSize="@dimen/button_text_size" />
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_rowWeight="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:text="@string/button_delete"
+            android:textSize="@dimen/button_text_size"
+            button:keyCode="-" />
+    </GridLayout>
+</RelativeLayout>

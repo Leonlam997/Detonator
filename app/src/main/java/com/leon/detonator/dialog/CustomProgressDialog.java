@@ -24,11 +24,11 @@ public class CustomProgressDialog extends Dialog {
 
     public void incrementProgressBy(int diff) {
         progressBar.incrementSecondaryProgressBy(diff);
-        textViewProgress.setText(String.format(Locale.CHINA, "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
+        textViewProgress.setText(String.format(Locale.getDefault(), "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
     }
 
     public CustomProgressDialog(@NonNull Context context) {
-        super(context, R.style.Dialog_style);
+        super(context, R.style.dialog_style);
     }
 
     public int getMax() {
@@ -41,12 +41,12 @@ public class CustomProgressDialog extends Dialog {
 
     public void setMax(int max) {
         progressBar.setMax(max);
-        textViewProgress.setText(String.format(Locale.CHINA, "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
+        textViewProgress.setText(String.format(Locale.getDefault(), "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
     }
 
     public void setProgress(int progress) {
         progressBar.setSecondaryProgress(progress);
-        textViewProgress.setText(String.format(Locale.CHINA, "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
+        textViewProgress.setText(String.format(Locale.getDefault(), "%d/%d", progressBar.getSecondaryProgress(), progressBar.getMax()));
     }
 
     public void setSecondaryProgress(int secondaryProgress) {
@@ -60,8 +60,8 @@ public class CustomProgressDialog extends Dialog {
         setContentView(R.layout.layout_dialog_progress);
         if (getWindow() != null) {
             final WindowManager.LayoutParams params = getWindow().getAttributes();
-            params.width = 280;
-            params.height = 140;
+            params.width = 600;
+            params.height = 350;
             getWindow().setAttributes(params);
         }
         progressBar = findViewById(R.id.pb_scan);

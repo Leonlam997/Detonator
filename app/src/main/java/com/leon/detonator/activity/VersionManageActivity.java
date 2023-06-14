@@ -8,12 +8,14 @@ import android.view.KeyEvent;
 import android.widget.CheckBox;
 import android.widget.ListView;
 
+import androidx.core.content.FileProvider;
+
+import com.leon.detonator.R;
 import com.leon.detonator.adapter.VersionAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.VersionBean;
-import com.leon.detonator.R;
+import com.leon.detonator.component.MyButton;
 import com.leon.detonator.util.FilePath;
 
 import java.io.File;
@@ -67,15 +69,17 @@ public class VersionManageActivity extends BaseActivity {
             for (final VersionBean bean : list) {
                 if (bean.isSelected()) {
                     runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
-                            .setTitle(R.string.dialog_title_upload)
-                            .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_install), bean.getVersion()))
-                            .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> {
+                            .setTitle(R.string.dialog_title_install)
+                            .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_confirm_install), bean.getVersion()))
+                            .setPositiveButton(R.string.button_confirm, (dialog1, which) -> {
                                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                                intent.setDataAndType(Uri.fromFile(new File(FilePath.FILE_UPDATE_PATH + "/" + bean.getVersion() + ".apk")), "application/vnd.android.package-archive");
+                                Uri uri = FileProvider.getUriForFile(VersionManageActivity.this, getPackageName() + ".provider", new File(String.format(Locale.getDefault(), FilePath.FILE_UPDATE_APK, bean.getVersion())));
+                                intent.setDataAndType(uri, "application/vnd.android.package-archive");
                                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                                 startActivity(intent);
                             })
-                            .setNegativeButton(R.string.btn_cancel, null)
+                            .setNegativeButton(R.string.button_cancel, null)
                             .show()));
                     break;
                 }
@@ -93,18 +97,18 @@ public class VersionManageActivity extends BaseActivity {
                 if (0 != count) {
                     BaseApplication.customDialog(new AlertDialog.Builder(VersionManageActivity.this, R.style.AlertDialog)
                             .setTitle(R.string.dialog_title_upload)
-                            .setMessage(String.format(Locale.CHINA, getResources().getString(R.string.dialog_confirm_delete_version), count))
-                            .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
+                            .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_confirm_delete_version), count))
+                            .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
                                 for (VersionBean bean : list)
                                     if (bean.isSelected()) {
                                         File file = new File(FilePath.FILE_UPDATE_PATH + "/" + bean.getVersion() + ".apk");
                                         if (file.exists() && !file.delete()) {
                                             myApp.myToast(VersionManageActivity.this,
-                                                    String.format(Locale.CHINA, getResources().getString(R.string.message_delete_file_fail), file.getName()));
+                                                    String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
                                         }
                                     }
                             })
-                            .setNegativeButton(R.string.btn_cancel, null)
+                            .setNegativeButton(R.string.button_cancel, null)
                             .show());
                 }
             });

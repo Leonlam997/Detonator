@@ -36,13 +36,7 @@ public class SemiProductDialog extends Dialog {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.layout_dialog);
-        WindowManager.LayoutParams lp = getWindow().getAttributes();
-        ConstraintLayout layout = findViewById(R.id.cl_dialog);
-        layout.measure(0, 0);
-        lp.width = layout.getMeasuredWidth() + 15;
-        lp.height = layout.getMeasuredHeight() + 20;
-        getWindow().setAttributes(lp);
+        setContentView(R.layout.layout_dialog_semiproduct);
         if (style == 0) {
             findViewById(R.id.iv_dialog_text_back).setVisibility(View.INVISIBLE);
             ((TextView) findViewById(R.id.tv_dialog_message)).setTextColor(mContext.getColor(R.color.colorSemiProductCommonText));

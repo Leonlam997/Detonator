@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.LocationManager;
 import android.net.wifi.WifiInfo;
@@ -20,19 +19,19 @@ import android.os.Message;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
-import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.app.ActivityCompat;
 
-import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.R;
 
 import java.lang.reflect.Method;
@@ -44,37 +43,50 @@ import java.util.Locale;
 
 public abstract class BaseActivity extends AppCompatActivity {
     private static boolean isWifiConnected = false;
-    private final int CHANGE_VOLTAGE = 1,
-            CHANGE_CURRENT = 2,
-            CHANGE_BATTERY = 3,
-            CHANGE_BLUETOOTH = 4,
-            CHANGE_GPS = 5,
-            CHANGE_WIFI = 6,
-            CHANGE_NETWORK = 7;
+    private final int CHANGE_VOLTAGE = 1;
+    private final int CHANGE_CURRENT = 2;
+    private final int CHANGE_BATTERY = 3;
+    private final int CHANGE_BLUETOOTH = 4;
+    private final int CHANGE_GPS = 5;
+    private final int CHANGE_WIFI = 6;
+    private final int CHANGE_NETWORK = 7;
     private LinearLayout parentLinearLayout;
-    private View statusBar, actionBar;
-    private TextView tvBattery, tvCurrentText, tvVoltageText, tvCurrent, tvVoltage;
-    private ImageView ivBattery, ivBluetooth, ivWifi, ivNetwork, ivGPS;
+    private View statusBar;
+    private TextView tvBattery;
+    private TextView tvCurrent;
+    private TextView tvVoltage;
+    private TextView tvTitle;
+    private TextView tvSubtitle;
+    private ImageButton ivBack;
+    private ImageView ivBattery;
+    private ImageView ivBluetooth;
+    private ImageView ivWifi;
+    private ImageView ivNetwork;
+    private ImageView ivGPS;
+    private Context mContext;
+    private BatteryBroadcast batteryBroadcast;
+    private BluetoothBroadcast bluetoothBroadcast;
+    private GpsStatusBroadcast gpsStatusBroadcast;
+    private RssiBroadcast rssiBroadcast;
+    private NetworkBroadcast networkBroadcast;
+    private TelephonyManager telephonyManager;
+
     private final Handler changeStatus = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
                 case CHANGE_VOLTAGE:
-                    tvCurrentText.setVisibility(View.VISIBLE);
-                    tvVoltageText.setVisibility(View.VISIBLE);
                     tvCurrent.setVisibility(View.VISIBLE);
                     tvVoltage.setVisibility(View.VISIBLE);
                     tvVoltage.setText((String) msg.obj);
                     break;
                 case CHANGE_CURRENT:
-                    tvCurrentText.setVisibility(View.VISIBLE);
-                    tvVoltageText.setVisibility(View.VISIBLE);
                     tvCurrent.setVisibility(View.VISIBLE);
                     tvVoltage.setVisibility(View.VISIBLE);
                     tvCurrent.setText((String) msg.obj);
                     break;
                 case CHANGE_BATTERY:
-                    tvBattery.setText(String.format(Locale.CHINA, "%d%%", msg.arg1));
+                    tvBattery.setText(String.format(Locale.getDefault(), "%d%%", msg.arg1));
                     if (1 == msg.arg2)
                         ivBattery.setBackgroundResource(R.mipmap.ic_battery_charging);
                     else if (msg.arg1 >= 80)
@@ -114,47 +126,37 @@ public abstract class BaseActivity extends AppCompatActivity {
             return false;
         }
     });
-    private Context mContext;
-    private BatteryBroadcast batteryBroadcast;
-    private BluetoothBroadcast bluetoothBroadcast;
-    private GpsStatusBroadcast gpsStatusBroadcast;
-    private RssiBroadcast rssiBroadcast;
-    private NetworkBroadcast networkBroadcast;
-    private TelephonyManager telephonyManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         initContentView();
-        initFontScale();
         mContext = this;
     }
 
-    public void hideActionBar() {
-        statusBar.setBackgroundResource(R.drawable.bmp_login_status_bar_background);
-        parentLinearLayout.removeView(actionBar);
-    }
-
     private void initContentView() {
-        ViewGroup viewGroup = (ViewGroup) findViewById(android.R.id.content);
+        ViewGroup viewGroup = findViewById(android.R.id.content);
         viewGroup.removeAllViews();
         parentLinearLayout = new LinearLayout(this);
         parentLinearLayout.setOrientation(LinearLayout.VERTICAL);
         viewGroup.addView(parentLinearLayout);
         statusBar = LayoutInflater.from(this).inflate(R.layout.layout_status_bar, parentLinearLayout, true);
-        actionBar = LayoutInflater.from(this).inflate(R.layout.layout_action_bar, parentLinearLayout, false);
+        View actionBar = LayoutInflater.from(this).inflate(R.layout.layout_action_bar, parentLinearLayout, false);
         parentLinearLayout.addView(actionBar);
         initStatusBar();
         initActionBar();
     }
 
     private void initActionBar() {
-        findViewById(R.id.btn_back).setVisibility(View.VISIBLE);
-        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
+        tvTitle = findViewById(R.id.tv_title);
+        tvSubtitle = findViewById(R.id.tv_subtitle);
+        ivBack = findViewById(R.id.btn_back);
+        ivBack.setVisibility(View.VISIBLE);
+        ivBack.setOnClickListener(v -> finish());
     }
 
     private void initStatusBar() {
-        statusBar.setBackgroundColor(getColor(R.color.colorActionbarBackground));
+        statusBar.setBackgroundColor(getColor(BaseApplication.settings.isTunnel() ? R.color.colorActionbarBackground : R.color.colorOpenAirBackground));
         tvBattery = findViewById(R.id.tvBattery);
         ivBattery = findViewById(R.id.ivBattery);
         ivBluetooth = findViewById(R.id.ivBluetooth);
@@ -162,12 +164,8 @@ public abstract class BaseActivity extends AppCompatActivity {
         ivNetwork = findViewById(R.id.ivNetworkSignal);
         ivGPS = findViewById(R.id.ivGps);
 
-        tvCurrentText = findViewById(R.id.tvCurrentText);
-        tvVoltageText = findViewById(R.id.tvVoltageText);
         tvCurrent = findViewById(R.id.tvCurrent);
         tvVoltage = findViewById(R.id.tvVoltage);
-        tvCurrentText.setVisibility(View.INVISIBLE);
-        tvVoltageText.setVisibility(View.INVISIBLE);
         tvCurrent.setVisibility(View.INVISIBLE);
         tvVoltage.setVisibility(View.INVISIBLE);
 
@@ -211,41 +209,45 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
+    public void setBarColor(boolean tunnel) {
+        statusBar.setBackgroundColor(getColor(tunnel ? R.color.colorActionbarBackground : R.color.colorOpenAirBackground));
+    }
+
     public void setProgressVisibility(boolean visibility) {
         findViewById(R.id.pb_processing).setVisibility(visibility ? View.VISIBLE : View.INVISIBLE);
     }
 
     public void setBackButtonVisibility(boolean visibility) {
-        findViewById(R.id.btn_back).setVisibility(visibility ? View.VISIBLE : View.GONE);
+        ivBack.setVisibility(visibility ? View.VISIBLE : View.GONE);
     }
 
     public void setTitle(@StringRes int title, @StringRes int subtitle) {
-        if (title != 0) {
-            ((TextView) findViewById(R.id.tv_title)).setText(title);
-            ((TextView) findViewById(R.id.tv_title_shape)).setText(title);
-        }
+        if (title != 0)
+            tvTitle.setText(title);
         if (subtitle != 0) {
-            findViewById(R.id.tv_subtitle).setVisibility(View.VISIBLE);
-            ((TextView) findViewById(R.id.tv_subtitle)).setText(subtitle);
-            findViewById(R.id.tv_subtitle_shape).setVisibility(View.VISIBLE);
-            ((TextView) findViewById(R.id.tv_subtitle_shape)).setText(subtitle);
+            tvSubtitle.setVisibility(View.VISIBLE);
+            tvSubtitle.setText(subtitle);
         }
+    }
+
+    public void setSubtitleClickListener(View.OnClickListener listener) {
+        tvSubtitle.setBackground(AppCompatResources.getDrawable(this, R.drawable.btn_subtitle_style));
+        tvSubtitle.setOnClickListener(listener);
+    }
+
+    public void setTitleClickListener(View.OnClickListener listener) {
+        tvTitle.setOnClickListener(listener);
     }
 
     public void setTitle(@StringRes int title) {
-        if (title != 0) {
-            ((TextView) findViewById(R.id.tv_title)).setText(title);
-            ((TextView) findViewById(R.id.tv_title_shape)).setText(title);
-        }
-        findViewById(R.id.tv_subtitle).setVisibility(View.GONE);
-        findViewById(R.id.tv_subtitle_shape).setVisibility(View.GONE);
+        if (title != 0)
+            tvTitle.setText(title);
+        tvSubtitle.setVisibility(View.GONE);
     }
 
     public void setTitle(String title) {
-        ((TextView) findViewById(R.id.tv_title)).setText(title);
-        ((TextView) findViewById(R.id.tv_title_shape)).setText(title);
-        findViewById(R.id.tv_subtitle).setVisibility(View.GONE);
-        findViewById(R.id.tv_subtitle_shape).setVisibility(View.GONE);
+        tvTitle.setText(title);
+        tvSubtitle.setVisibility(View.GONE);
     }
 
     @Override
@@ -278,19 +280,6 @@ public abstract class BaseActivity extends AppCompatActivity {
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 
-    private void initFontScale() {
-        LocalSettingBean settingBean = BaseApplication.readSettings();
-        Configuration configuration = getResources().getConfiguration();
-        final float[] scale = {1f, 1.15f, 1.3f, 1.45f};
-        if (settingBean.getFontScale() > 0 && settingBean.getFontScale() < scale.length)
-            configuration.fontScale = scale[settingBean.getFontScale()];
-        else
-            configuration.fontScale = scale[0];
-        DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        metrics.scaledDensity = configuration.fontScale * metrics.density;
-        getBaseContext().getResources().updateConfiguration(configuration, metrics);
-    }
 
     @Override
     protected void onDestroy() {
@@ -305,20 +294,11 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     public void setVoltage(float vol) {
-        Message msg = Message.obtain();
-        msg.what = CHANGE_VOLTAGE;
-        msg.obj = String.format(Locale.CHINA, "%.2fV", vol);
-        changeStatus.sendMessage(msg);
+        changeStatus.obtainMessage(CHANGE_VOLTAGE, String.format(Locale.getDefault(), "%.2fV", vol)).sendToTarget();
     }
 
     public void setCurrent(float current) {
-        Message msg = Message.obtain();
-        msg.what = CHANGE_CURRENT;
-        if (current >= 1000)
-            msg.obj = String.format(Locale.CHINA, "%.2fmA", current / 1000);
-        else
-            msg.obj = String.format(Locale.CHINA, "%.2fμA", current);
-        changeStatus.sendMessage(msg);
+        changeStatus.obtainMessage(CHANGE_CURRENT, current >= 1000 ? String.format(Locale.getDefault(), "%.2fmA", current / 1000) : String.format(Locale.getDefault(), "%.2fμA", current)).sendToTarget();
     }
 
     /**
@@ -330,14 +310,10 @@ public abstract class BaseActivity extends AppCompatActivity {
             Bundle bundle = intent.getExtras();
             int current = bundle.getInt(BatteryManager.EXTRA_LEVEL);
             int total = bundle.getInt(BatteryManager.EXTRA_SCALE);
-            int battryValue = current * 100 / total;
+            int battery = current * 100 / total;
 
-            Message msg = Message.obtain();
-            msg.what = CHANGE_BATTERY;
-            msg.arg1 = battryValue;
             int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-            msg.arg2 = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL) ? 1 : 0;
-            changeStatus.sendMessage(msg);
+            changeStatus.obtainMessage(CHANGE_BATTERY, battery, (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL) ? 1 : 0).sendToTarget();
         }
     }
 
@@ -350,8 +326,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             String action = intent.getAction();
 //            BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if (action != null) {
-                Message msg = Message.obtain();
-                msg.what = CHANGE_BLUETOOTH;
+                Message msg = changeStatus.obtainMessage(CHANGE_BLUETOOTH);
                 switch (action) {
                     case BluetoothDevice.ACTION_ACL_CONNECTED:
                         msg.arg1 = R.mipmap.ic_bluetooth_connected;
@@ -407,10 +382,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             if (action != null)
                 if (action.equals(LocationManager.PROVIDERS_CHANGED_ACTION)) {
                     LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-                    Message msg = Message.obtain();
-                    msg.what = CHANGE_GPS;
-                    msg.arg1 = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ? R.mipmap.ic_gps : R.mipmap.ic_none;
-                    changeStatus.sendMessage(msg);
+                    changeStatus.obtainMessage(CHANGE_GPS, locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ? R.mipmap.ic_gps : R.mipmap.ic_none, 0).sendToTarget();
                 }
         }
     }
@@ -422,8 +394,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 // Wifi的连接速度及信号强度：
                 int strength;
                 WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
-                Message msg = Message.obtain();
-                msg.what = CHANGE_WIFI;
+                Message msg = changeStatus.obtainMessage(CHANGE_WIFI);
                 if (wifiManager.getWifiState() == WifiManager.WIFI_STATE_ENABLED) {
                     WifiInfo info = wifiManager.getConnectionInfo();
                     String ssid = info.getSSID();
@@ -497,10 +468,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 else if (dbm > -90) level = 3;
                 else if (dbm > -95) level = 2;
                 else level = 1;
-                Message msg = Message.obtain();
-                msg.what = CHANGE_NETWORK;
-                msg.arg1 = networkSignal[level];
-                changeStatus.sendMessage(msg);
+                changeStatus.obtainMessage(CHANGE_NETWORK, networkSignal[level], 0).sendToTarget();
             }
         }
     }

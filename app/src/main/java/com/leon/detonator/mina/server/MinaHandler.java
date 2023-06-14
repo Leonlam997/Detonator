@@ -15,7 +15,7 @@ public class MinaHandler extends IoHandlerAdapter {
 
     //private static Logger logger = Logger.getLogger(MinaHandler.class);
 
-    private static ConcurrentMap<String, IoSession> connctionMap = new ConcurrentHashMap<String, IoSession>();
+    private static final ConcurrentMap<String, IoSession> connctionMap = new ConcurrentHashMap<String, IoSession>();
 
     public void messageReceived(IoSession session, Object message) {
         if (message == null) {

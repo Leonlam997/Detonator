@@ -26,11 +26,11 @@ public class MinaServer {
     private static MinaServer minaServer = null;
     public boolean isOpen = false;
     public IoAcceptor dataAccepter = null;
-    private MinaHandler handler = new MinaHandler();
+    private final MinaHandler handler = new MinaHandler();
     private Thread bufaProcess = null;
     private boolean bufaProcessSwitch = false;
 
-    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(10);//�̳߳�
+    private final ExecutorService fixedThreadPool = Executors.newFixedThreadPool(10);//�̳߳�
 
     private MinaServer() {
         //����ģʽ

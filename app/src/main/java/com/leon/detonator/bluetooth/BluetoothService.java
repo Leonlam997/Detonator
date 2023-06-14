@@ -1,20 +1,14 @@
 package com.leon.detonator.bluetooth;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
-import androidx.core.app.ActivityCompat;
-
-import com.leon.detonator.R;
-import com.leon.detonator.activity.BluetoothActivity;
+import com.leon.detonator.util.ConstantUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,6 +20,7 @@ import java.util.UUID;
  *
  * @author Administrator
  */
+@SuppressLint("MissingPermission")
 public class BluetoothService {
     //蓝牙状态常量
     public static final int IDLE = 0;       // 闲置
@@ -44,16 +39,14 @@ public class BluetoothService {
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
     private int BtState;
-    private final Context mContext;
 
     /**
      * @param handler 在线程与UI间通讯
      */
-    public BluetoothService(Handler handler, Context context) {
+    public BluetoothService(Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         BtState = IDLE;
         mHandler = handler;
-        mContext = context;
     }
 
     /**
@@ -120,7 +113,7 @@ public class BluetoothService {
         mConnectedThread.start();
 
         //发送已连接设备名回UI
-        sendString2UI(BluetoothActivity.STATUS_CONNECTED, device.getName());
+        sendString2UI(ConstantUtils.BT_CONNECTED, device.getName());
         setState(CONNECTED);
     }
 
@@ -169,7 +162,7 @@ public class BluetoothService {
         mConnectedThread = null;
         BluetoothService.this.acceptWait();
         //向UI发送连接失败通知
-        sendString2UI(BluetoothActivity.STATUS_ERROR, "连接失败！");
+        sendString2UI(ConstantUtils.BT_ERROR, "连接失败！");
     }
 
     /**
@@ -178,9 +171,7 @@ public class BluetoothService {
      * @param str 字符串
      */
     private void sendString2UI(int what, String str) {
-        Message msg = mHandler.obtainMessage(what);
-        msg.obj = str;
-        mHandler.sendMessage(msg);
+        mHandler.obtainMessage(what, str).sendToTarget();
     }
 
     /**
@@ -191,7 +182,7 @@ public class BluetoothService {
         mConnectedThread = null;
         BluetoothService.this.acceptWait();
         // 向UI发送连接断开通知
-        //sendString2UI(BluetoothActivity.STATUS_ERROR, "连接断开！");
+        //sendString2UI(ConstantUtils.BT_ERROR, "连接断开！");
     }
 
     /**
@@ -355,7 +346,7 @@ public class BluetoothService {
                         bytes = mInputStream.read(buffer);
                         // 将接受数据发回UI处理
                         if (bytes != -1) {
-                            mHandler.obtainMessage(BluetoothActivity.STATUS_DATA, bytes, -1, buffer).sendToTarget();
+                            mHandler.obtainMessage(ConstantUtils.BT_DATA, bytes, -1, buffer).sendToTarget();
                         }
                     }
                 } catch (Exception e) {

@@ -2,66 +2,87 @@ package com.leon.detonator.activity;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.text.method.NumberKeyListener;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.viewpager.widget.ViewPager;
+import androidx.appcompat.content.res.AppCompatResources;
 
-import com.google.android.material.tabs.TabLayout;
+import com.leon.detonator.R;
 import com.leon.detonator.adapter.OfflineListAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.base.CheckRegister;
-import com.leon.detonator.bean.DetonatorInfoBean;
+import com.leon.detonator.bean.DetonatorBean;
 import com.leon.detonator.bean.DownloadDetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.bean.LgBean;
-import com.leon.detonator.dialog.EnterpriseDialog;
-import com.leon.detonator.fragment.OfflineControlFragment;
-import com.leon.detonator.fragment.OfflineListFragment;
-import com.leon.detonator.R;
+import com.leon.detonator.component.MarqueeTextView;
+import com.leon.detonator.component.MyButton;
+import com.leon.detonator.database.DbUtil;
+import com.leon.detonator.serial.DataReceiveListener;
+import com.leon.detonator.serial.SerialCommand;
+import com.leon.detonator.serial.SerialPortUtil;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.ErrorCode;
-import com.leon.detonator.util.FilePath;
+import com.leon.detonator.util.KeyUtils;
 import com.leon.detonator.util.MethodUtils;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.Callback;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import okhttp3.Call;
 import okhttp3.Response;
 
 public class AuthorizationListActivity extends BaseActivity {
-    private final int[] title = {R.string.tab_title_detonators, R.string.tab_title_control};
-    private List<DetonatorInfoBean> list;
-    private TabLayout tabList;
-    private ViewPager pagerList;
-    private List<Fragment> fragments;
-    private OfflineControlFragment controlFragment;
-    private OfflineListFragment listFragment;
-    private OfflineListAdapter adapter;
-    private EnterpriseDialog enterpriseDialog;
-    private String token;
+    private List<DetonatorBean> detonatorList;
+    private List<DetonatorBean> list;
+    private AlertDialog enterpriseDialog;
     private EnterpriseBean enterpriseBean;
     private BaseApplication myApp;
+    private SerialPortUtil serialPortUtil;
+    private DataReceiveListener myReceiveListener;
+    private ListView listView;
+    private MyButton btnAdd;
+    private MyButton btnDownload;
+    private MyButton btnDelete;
+    private EditText etStart;
+    private OfflineListAdapter adapter;
+    private SoundPool soundPool;
+    private String token;
+    private int soundSuccess;
+    private int soundFail;
+    private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (RESULT_OK == result.getResultCode()) {
+            enterpriseBean = DbUtil.getCurrentEnterprise(AuthorizationListActivity.this);
+            prepareDownload();
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,285 +91,401 @@ public class AuthorizationListActivity extends BaseActivity {
 
         setTitle(R.string.auth_list);
         myApp = (BaseApplication) getApplication();
-        enterpriseBean = myApp.readEnterprise();
-        initPage();
-    }
-
-    private final Handler checkExploderHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message message) {
-            switch (message.what) {
-                case 1:
-                    disableClick(false);
-                    break;
-                case 2:
-                    if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
-                        showMessage(R.string.message_fill_enterprise);
-                        startActivity(new Intent(AuthorizationListActivity.this, EnterpriseActivity.class));
-                    } else {
-                        BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
-                                .setTitle(R.string.dialog_title_download)
-                                .setMessage(R.string.dialog_confirm_offline_download)
-                                .setPositiveButton(R.string.btn_confirm, (dialog1, which) -> offlineDownload())
-                                .setNegativeButton(R.string.btn_cancel, null)
-                                .show());
-                    }
-                    break;
-                case 3:
-                    myApp.myToast(AuthorizationListActivity.this, (String) message.obj);
-                    break;
-            }
-            return false;
-        }
-    });
-
-    private void initPage() {
-        tabList = findViewById(R.id.tab_title);
-        pagerList = findViewById(R.id.view_pager);
-        try {
-            list = new ArrayList<>();
-            myApp.readFromFile(FilePath.FILE_OFFLINE_LIST, list, DetonatorInfoBean.class);
-            if (list.size() > 0) {
-                checkList(myApp.readDownloadList(false).getResult().getLgs().getLg());
-            }
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
-        fragments = new ArrayList<>();
-
-        tabList.addTab(tabList.newTab());
-        adapter = new OfflineListAdapter(this, list);
-
-        listFragment = new OfflineListFragment();
-        listFragment.setListAdapter(adapter);
-        listFragment.setClickDownload(view -> {
-            if (!BaseApplication.readSettings().isRegistered()) {
+        btnAdd = findViewById(R.id.btn_add);
+        btnDownload = findViewById(R.id.btn_offline_download);
+        btnDelete = findViewById(R.id.btn_delete);
+        listView = findViewById(R.id.lv_auth);
+        findViewById(R.id.table_title).setBackgroundColor(getColor(R.color.colorTableTitleBackground));
+        listView.setOnItemClickListener((adapterView, view, i, l) -> {
+            if (list.get(i).getRow() != 0 && ErrorCode.downloadErrorCode.get(list.get(i).getRow() + "") != null)
+                BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+                        .setTitle(R.string.detonator_error_info)
+                        .setMessage(ErrorCode.downloadErrorCode.get(list.get(i).getRow() + ""))
+                        .setPositiveButton(R.string.button_confirm, null)
+                        .show());
+        });
+        btnAdd.setOnClickListener(view -> manualAppend());
+        btnDownload.setOnClickListener(view -> {
+            if (!BaseApplication.settings.isRegistered()) {
                 myApp.registerExploder();
-                disableClick(true);
-                new CheckRegister() {
+                enabledButton(true);
+                new CheckRegister(AuthorizationListActivity.this) {
                     @Override
                     public void onError() {
-                        checkExploderHandler.sendEmptyMessage(1);
+                        enabledButton(false);
                     }
 
                     @Override
                     public void onSuccess() {
-                        checkExploderHandler.sendEmptyMessage(2);
+                        prepareDownload();
                     }
-                }.setActivity(AuthorizationListActivity.this).start();
+                }.start();
             } else {
-                checkExploderHandler.sendEmptyMessage(2);
+                prepareDownload();
             }
         });
-        listFragment.setClickDelete(view -> BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
-                .setTitle(R.string.dialog_title_delete_detonator)
-                .setMessage(R.string.dialog_confirm_delete_detonator)
-                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
-                    Iterator<DetonatorInfoBean> iterator = list.iterator();
-                    DownloadDetonatorBean bean = myApp.readDownloadList(false);
-                    while (iterator.hasNext()) {
-                        DetonatorInfoBean bean1 = iterator.next();
-                        if (bean1.isSelected()) {
-                            if (bean1.isDownloaded()) {
-                                for (LgBean b : bean.getResult().getLgs().getLg()) {
-                                    if (b.getFbh().equals(bean1.getAddress())) {
-                                        bean.getResult().getLgs().getLg().remove(b);
-                                        break;
-                                    }
-                                }
+        btnDelete.setOnClickListener(view -> deleteDetonator());
+        try {
+            serialPortUtil = SerialPortUtil.getInstance(this);
+            myReceiveListener = DataReceiveListener.getInstance(this, new Handler(msg -> {
+                byte[] received = (byte[]) msg.obj;
+                if (received != null && received.length > 0)
+                    if (received[0] == SerialCommand.ALERT_SHORT_CIRCUIT) {
+                        myApp.shortCircuit(AuthorizationListActivity.this, msg.getTarget());
+                    } else if (received.length > 20 && 0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
+                        myApp.playSoundVibrate(soundPool, soundSuccess);
+                        String tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
+                        if (Pattern.matches(ConstantUtils.SHELL_PATTERN, tempAddress) && etStart != null)
+                            etStart.setText(tempAddress);
+                    } else if (received.length >= SerialCommand.CODE_CHAR_AT) {
+                        myApp.playSoundVibrate(soundPool, soundFail);
+                        myApp.myToast(AuthorizationListActivity.this, R.string.message_scan_timeout);
+                    }
+                return false;
+            }));
+            serialPortUtil.setOnDataReceiveListener(myReceiveListener);
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
+        }
+        initData();
+        initSound();
+        enabledButton(true);
+    }
+
+    private void deleteDetonator() {
+        if (btnDelete.isEnabled())
+            runOnUiThread(() -> {
+                final View deleteView = LayoutInflater.from(AuthorizationListActivity.this).inflate(R.layout.layout_dialog_batch_modify, listView, false);
+                final EditText etFrom = deleteView.findViewById(R.id.et_from);
+                final EditText etTo = deleteView.findViewById(R.id.et_to);
+                final CheckBox cbSelectAll = deleteView.findViewById(R.id.cb_selected_all);
+                deleteView.findViewById(R.id.ll_delay).setVisibility(View.GONE);
+                deleteView.findViewById(R.id.ll_row).setVisibility(View.GONE);
+                deleteView.findViewById(R.id.ll_hole).setVisibility(View.GONE);
+                deleteView.findViewById(R.id.ll_inside).setVisibility(View.GONE);
+                etFrom.requestFocus();
+                cbSelectAll.setOnCheckedChangeListener((compoundButton, b) -> {
+                    etFrom.setEnabled(!b);
+                    etTo.setEnabled(!b);
+                    if (b) {
+                        etFrom.setText("1");
+                        etTo.setText(String.format(Locale.getDefault(), "%d", list.size()));
+                        etFrom.setTextColor(getColor(R.color.colorDisabledText));
+                        etTo.setTextColor(getColor(R.color.colorDisabledText));
+                    } else {
+                        etTo.requestFocus();
+                        etTo.setSelection(etTo.getText().length());
+                        etFrom.setTextColor(getColor(R.color.colorLabelText));
+                        etTo.setTextColor(getColor(R.color.colorLabelText));
+                    }
+                });
+                TextWatcher watcher = new TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+                    }
+
+                    @Override
+                    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                        if (!charSequence.toString().isEmpty())
+                            try {
+                                int num = Integer.parseInt(charSequence.toString());
+                                if (num <= 0 || num > list.size())
+                                    myApp.myToast(AuthorizationListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                            } catch (Exception e) {
+                                myApp.myToast(AuthorizationListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
                             }
-                            iterator.remove();
+                    }
+
+                    @Override
+                    public void afterTextChanged(Editable editable) {
+
+                    }
+                };
+                etFrom.addTextChangedListener(watcher);
+                etTo.addTextChangedListener(watcher);
+                BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+                        .setTitle(R.string.dialog_title_batch_delete)
+                        .setView(deleteView)
+                        .setPositiveButton(R.string.button_confirm, (dialog, which1) -> {
+                            try {
+                                if (etTo.getText().toString().isEmpty())
+                                    etTo.setText(etFrom.getText());
+                                int from = Integer.parseInt(etFrom.getText().toString());
+                                int to = Integer.parseInt(etTo.getText().toString());
+                                if (from <= 0 || from > list.size() || to <= 0 || to > list.size() || to < from) {
+                                    myApp.myToast(AuthorizationListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                                    return;
+                                }
+                                for (int i = 0; i < list.size(); i++)
+                                    list.get(i).setSelected(i >= from - 1 && i < to);
+                                runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+                                        .setTitle(R.string.dialog_title_delete_detonator)
+                                        .setMessage(R.string.dialog_confirm_delete_detonator)
+                                        .setPositiveButton(R.string.button_confirm, (dialog1, which) -> {
+                                            list.removeIf(DetonatorBean::isSelected);
+                                            adapter.updateList(list);
+                                            DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
+                                        })
+                                        .setNegativeButton(R.string.button_cancel, null)
+                                        .setOnKeyListener((dialog1, keyCode, event) -> {
+                                            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK)
+                                                dialog1.dismiss();
+                                            return false;
+                                        })
+                                        .show()));
+                            } catch (Exception e) {
+                                myApp.myToast(AuthorizationListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                            }
+                        })
+                        .setNegativeButton(R.string.button_cancel, null)
+                        .show());
+            });
+    }
+
+    private void initData() {
+        enterpriseBean = DbUtil.getCurrentEnterprise(AuthorizationListActivity.this);
+        detonatorList = DbUtil.getCurrentDetonatorList(AuthorizationListActivity.this);
+        list = DbUtil.getAuthDetonatorList(AuthorizationListActivity.this);
+        adapter = new OfflineListAdapter(AuthorizationListActivity.this, list);
+        listView.setAdapter(adapter);
+    }
+
+    private LinearLayout newItem(@StringRes int res, String text) {
+        final LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        layoutParams.setMargins(2, 2, 2, 2);
+        layoutParams.gravity = Gravity.CENTER;
+        LinearLayout layoutItem = new LinearLayout(AuthorizationListActivity.this);
+        layoutItem.setLayoutParams(layoutParams);
+        layoutItem.setOrientation(LinearLayout.VERTICAL);
+        layoutItem.setBackground(AppCompatResources.getDrawable(AuthorizationListActivity.this, R.drawable.shape_list_item_bg));
+        TextView textView = new TextView(AuthorizationListActivity.this);
+        textView.setText(res);
+        textView.setTextColor(getColor(R.color.colorLabelText));
+        textView.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
+        textView.setGravity(Gravity.CENTER);
+        textView.setLayoutParams(layoutParams);
+        layoutItem.addView(textView);
+        textView = new MarqueeTextView(AuthorizationListActivity.this);
+        textView.setText(text);
+        textView.setTextColor(getColor(R.color.colorLabelText));
+        textView.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
+        textView.setGravity(Gravity.CENTER);
+        textView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        textView.setMarqueeRepeatLimit(Integer.MAX_VALUE);
+        textView.setLayoutParams(layoutParams);
+        textView.setSingleLine(true);
+        layoutItem.addView(textView);
+        return layoutItem;
+    }
+
+    private void prepareDownload() {
+        if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
+            myApp.myToast(AuthorizationListActivity.this, R.string.message_select_enterprise);
+            Intent intent = new Intent(AuthorizationListActivity.this, InfoListActivity.class);
+            intent.putExtra(KeyUtils.KEY_INFO_TYPE, ConstantUtils.INFO_ENTERPRISE);
+            launcher.launch(new Intent(AuthorizationListActivity.this, EnterpriseActivity.class));
+        } else {
+            final LinearLayout layout = new LinearLayout(AuthorizationListActivity.this);
+            layout.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            layout.setOrientation(LinearLayout.VERTICAL);
+            layout.addView(newItem(R.string.enterprise_code, enterpriseBean.getCode()));
+            layout.addView(newItem(R.string.enterprise_id, enterpriseBean.getBlasterId()));
+            if (enterpriseBean.isCommercial()) {
+                layout.addView(newItem(R.string.enterprise_contract_code, enterpriseBean.getContract()));
+                layout.addView(newItem(R.string.enterprise_project_code, enterpriseBean.getProject()));
+            }
+            final LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            layoutParams.setMargins(2, 5, 2, 2);
+            layoutParams.gravity = Gravity.CENTER;
+            TextView textView = new TextView(AuthorizationListActivity.this);
+            textView.setText(enterpriseBean.isCommercial() ? R.string.enterprise_commercial : R.string.enterprise_not_commercial);
+            textView.setTextColor(AuthorizationListActivity.this.getColor(R.color.colorLabelText));
+            textView.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
+            textView.setGravity(Gravity.CENTER);
+            textView.setLayoutParams(layoutParams);
+            layout.addView(textView);
+            enterpriseDialog = new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+                    .setTitle(R.string.settings_enterprise)
+                    .setView(layout)
+                    .setNegativeButton(R.string.button_cancel, null)
+                    .setPositiveButton(R.string.button_confirm, (dialogInterface, i) -> {
+                        enabledButton(false);
+                        StringBuilder str = new StringBuilder();
+                        for (DetonatorBean bean : list) {
+                            str.append(bean.getAddress()).append(",");
                         }
-                    }
-                    myApp.saveDownloadList(bean, false);
-                    saveList();
-                    controlFragment.setNewButtonEnabled(list.size() > 0);
-                    adapter.updateList(list);
-                    listFragment.checkStatus(false);
-                    resetTabTitle(false);
-                })
-                .setNegativeButton(R.string.btn_cancel, null)
-                .setOnKeyListener((dialog, keyCode, event) -> {
-                    if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                        dialog.dismiss();
-                    }
-                    return false;
-                })
-                .show()));
-
-        controlFragment = new OfflineControlFragment();
-        controlFragment.setNewButtonEnabled(list.size() > 0);
-
-        controlFragment.setClickAdd(view -> {
-            for (DetonatorInfoBean bean : controlFragment.getList()) {
-                boolean add = true;
-                for (DetonatorInfoBean bean1 : list)
-                    if (bean.getAddress().equals(bean1.getAddress())) {
-                        add = false;
-                        break;
-                    }
-                if (add)
-                    list.add(bean);
-            }
-            controlFragment.setNewButtonEnabled(list.size() > 0);
-            adapter.updateList(list);
-            resetTabTitle(false);
-            listFragment.checkStatus(false);
-            saveList();
-        });
-        controlFragment.setClickNew(view -> BaseApplication.customDialog(new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
-                .setTitle(R.string.dialog_title_new_list)
-                .setMessage(R.string.dialog_clear_list)
-                .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
-                    list.clear();
-                    saveList();
-                    File file = new File(FilePath.FILE_OFFLINE_DOWNLOAD_LIST);
-                    if (file.exists() && !file.delete()) {
-                        showMessage(R.string.message_delete_fail);
-                    }
-                    listFragment.checkStatus(false);
-                    controlFragment.setNewButtonEnabled(false);
-                    adapter.updateList(list);
-                    resetTabTitle(false);
-                })
-                .setNegativeButton(R.string.btn_cancel, null)
-                .setOnKeyListener((dialog, keyCode, event) -> {
-                    if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                        dialog.dismiss();
-                    }
-                    return false;
-                })
-                .show()));
-        fragments.add(listFragment);
-        fragments.add(controlFragment);
-
-        pagerList.setAdapter(new ListPagerAdapter(getSupportFragmentManager()));
-        tabList.setupWithViewPager(pagerList);
-
-        resetTabTitle(true);
-        tabList.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                resetTabTitle(false);
-                pagerList.setCurrentItem(tab.getPosition());
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {
-
-            }
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {
-
-            }
-        });
-    }
-
-    private void showMessage(String s) {
-        Message m = checkExploderHandler.obtainMessage(3);
-        m.obj = s;
-        checkExploderHandler.sendMessage(m);
-    }
-
-    private void showMessage(@StringRes int s) {
-        Message m = checkExploderHandler.obtainMessage(3);
-        m.obj = getResources().getString(s);
-        checkExploderHandler.sendMessage(m);
-    }
-
-    private void disableClick(boolean disabled) {
-        setProgressVisibility(disabled);
-        tabList.setEnabled(!disabled);
-        pagerList.setEnabled(!disabled);
-        listFragment.checkStatus(disabled);
-    }
-
-    private void offlineDownload() {
-        enterpriseDialog = new EnterpriseDialog(AuthorizationListActivity.this);
-        enterpriseDialog.setClickConfirm(view -> {
-            disableClick(true);
-            enterpriseDialog.dismiss();
-            StringBuilder str = new StringBuilder();
-            for (DetonatorInfoBean bean : list) {
-                str.append(bean.getAddress()).append(",");
-            }
-            str.deleteCharAt(str.length() - 1);
-            token = myApp.makeToken();
-            Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_OFFLINE_DOWNLOAD);
-            if (null != params) {
-                params.put("dsc", str.toString());
-                params.put("dwdm", enterpriseBean.getCode());
-                if (enterpriseBean.isCommercial()) {
-                    params.put("htid", enterpriseBean.getContract());
-                    params.put("xmbh", enterpriseBean.getProject());
-                }
-                params.put("signature", myApp.signature(params));
-                OkHttpUtils.post()
-                        .url(ConstantUtils.HOST_URL)
-                        .params(params)
-                        .build().execute(new Callback<DownloadDetonatorBean>() {
-                            @Override
-                            public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
-                                if (response.body() != null) {
-                                    String string = Objects.requireNonNull(response.body()).string();
-                                    return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
-                                }
-                                return null;
+                        str.deleteCharAt(str.length() - 1);
+                        token = myApp.makeToken();
+                        Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_OFFLINE_DOWNLOAD);
+                        if (null != params) {
+                            params.put("dsc", str.toString());
+                            params.put("dwdm", enterpriseBean.getCode());
+                            if (enterpriseBean.isCommercial()) {
+                                params.put("htid", enterpriseBean.getContract());
+                                params.put("xmbh", enterpriseBean.getProject());
                             }
-
-                            @Override
-                            public void onError(Call call, Exception e, int i) {
-                                showMessage(R.string.message_offline_download_fail);
-                                disableClick(false);
-                            }
-
-                            @Override
-                            public void onResponse(DownloadDetonatorBean downloadDetonatorBean, int i) {
-                                disableClick(false);
-                                if (null != downloadDetonatorBean) {
-                                    if (downloadDetonatorBean.getToken().equals(token)) {
-                                        if (downloadDetonatorBean.isStatus()) {
-                                            if (null != downloadDetonatorBean.getResult()) {
-                                                if (downloadDetonatorBean.getResult().getCwxx().equals("0")) {
-                                                    List<LgBean> detonators = downloadDetonatorBean.getResult().getLgs().getLg();
-                                                    if (null != detonators) {
-                                                        myApp.saveDownloadList(downloadDetonatorBean, false);
-                                                        checkList(detonators);
-                                                    }
-                                                    showMessage(R.string.message_offline_download_success);
-                                                } else {
-                                                    String error = ErrorCode.downloadErrorCode.get(downloadDetonatorBean.getResult().getCwxx());
-                                                    if (null == error) {
-                                                        error = getResources().getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
-                                                    }
-                                                    showMessage(error);
-                                                }
+                            params.put("signature", myApp.signature(params));
+                            OkHttpUtils.post()
+                                    .url(ConstantUtils.HOST_URL)
+                                    .params(params)
+                                    .build().execute(new Callback<DownloadDetonatorBean>() {
+                                        @Override
+                                        public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
+                                            if (response.body() != null) {
+                                                String string = Objects.requireNonNull(response.body()).string();
+                                                return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
                                             }
-                                        } else {
-                                            showMessage(downloadDetonatorBean.getDescription());
+                                            return null;
                                         }
-                                    } else {
-                                        showMessage(R.string.message_token_error);
-                                    }
-                                } else {
-                                    showMessage(R.string.message_return_data_error);
-                                }
-                            }
-                        });
+
+                                        @Override
+                                        public void onError(Call call, Exception e, int i) {
+                                            myApp.myToast(AuthorizationListActivity.this, R.string.message_offline_download_fail);
+                                            enabledButton(true);
+                                        }
+
+                                        @Override
+                                        public void onResponse(DownloadDetonatorBean downloadDetonatorBean, int i) {
+                                            enabledButton(true);
+                                            if (null != downloadDetonatorBean) {
+                                                if (downloadDetonatorBean.getToken().equals(token)) {
+                                                    if (downloadDetonatorBean.isStatus()) {
+                                                        if (null != downloadDetonatorBean.getResult()) {
+                                                            if (downloadDetonatorBean.getResult().getCwxx().equals("0")) {
+                                                                List<LgBean> detonators = downloadDetonatorBean.getResult().getLgs().getLg();
+                                                                if (null != detonators) {
+                                                                    DbUtil.addDownloadDetonator(AuthorizationListActivity.this, true, downloadDetonatorBean);
+                                                                    checkList(detonators);
+                                                                }
+                                                                myApp.myToast(AuthorizationListActivity.this, R.string.message_offline_download_success);
+                                                            } else {
+                                                                String error = ErrorCode.downloadErrorCode.get(downloadDetonatorBean.getResult().getCwxx());
+                                                                if (null == error) {
+                                                                    error = getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
+                                                                }
+                                                                myApp.myToast(AuthorizationListActivity.this, error);
+                                                            }
+                                                        }
+                                                    } else
+                                                        myApp.myToast(AuthorizationListActivity.this, downloadDetonatorBean.getDescription());
+                                                } else
+                                                    myApp.myToast(AuthorizationListActivity.this, R.string.message_token_error);
+                                            } else
+                                                myApp.myToast(AuthorizationListActivity.this, R.string.message_return_data_error);
+                                        }
+                                    });
+                        }
+                    })
+                    .setNeutralButton(R.string.button_modify, (dialogInterface, i) -> {
+                        enabledButton(true);
+                        launcher.launch(new Intent(AuthorizationListActivity.this, EnterpriseActivity.class));
+                    })
+                    .show();
+            BaseApplication.customDialog(enterpriseDialog);
+        }
+    }
+
+    private void manualAppend() {
+        final View inputCodeView = LayoutInflater.from(AuthorizationListActivity.this).inflate(R.layout.layout_dialog_add_detonator, listView, false);
+        final EditText etAmount = inputCodeView.findViewById(R.id.et_amount);
+        final CheckBox cbImport = inputCodeView.findViewById(R.id.cb_import);
+        etStart = inputCodeView.findViewById(R.id.et_start);
+        cbImport.setEnabled(detonatorList.size() > 0);
+        cbImport.setOnCheckedChangeListener((compoundButton, b) -> {
+            etStart.setEnabled(!b);
+            etAmount.setEnabled(!b);
+        });
+        etStart.setKeyListener(new NumberKeyListener() {
+            @NonNull
+            @Override
+            protected char[] getAcceptedChars() {
+                return ConstantUtils.INPUT_DETONATOR_ACCEPT.toCharArray();
+            }
+
+            @Override
+            public int getInputType() {
+                return InputType.TYPE_TEXT_VARIATION_PASSWORD;
             }
         });
-        enterpriseDialog.setClickModify(view -> {
-            enterpriseDialog.dismiss();
-            disableClick(false);
-            startActivity(new Intent(AuthorizationListActivity.this, EnterpriseActivity.class));
+        etAmount.setHint("100");
+        final AlertDialog addDialog = new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
+                .setTitle(R.string.dialog_title_manual_input)
+                .setView(inputCodeView)
+                .setPositiveButton(R.string.button_confirm, (dialogInterface, ii) -> confirmInput(cbImport.isChecked(), etAmount.getText().toString()))
+                .setNegativeButton(R.string.button_cancel, null)
+                .setOnDismissListener(dialogInterface -> etStart = null)
+                .setOnKeyListener((dialogInterface, i, keyEvent) -> {
+                    if (keyEvent.getAction() == KeyEvent.ACTION_UP)
+                        switch (keyEvent.getKeyCode()) {
+                            case ConstantUtils.KEYCODE_CENTER_SCAN:
+                            case ConstantUtils.KEYCODE_RIGHT_SCAN:
+                            case ConstantUtils.KEYCODE_LEFT_SCAN:
+                                scanCode();
+                                break;
+                            case KeyEvent.KEYCODE_DPAD_CENTER:
+                                confirmInput(cbImport.isChecked(), etAmount.getText().toString());
+                                break;
+                        }
+                    return false;
+                })
+                .show();
+        addDialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextSize(20);
+        addDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(20);
+    }
+
+    private void confirmInput(boolean isImport, String amount) {
+        if (isImport) {
+            if (detonatorList.size() > 0) {
+                boolean success = false;
+                for (DetonatorBean bean : detonatorList)
+                    if (!list.contains(bean)) {
+                        success = true;
+                        bean.setDownloaded(false);
+                        list.add(bean);
+                    }
+                if (success) {
+                    myApp.myToast(AuthorizationListActivity.this, R.string.message_restore_success);
+                    adapter.updateList(list);
+                    btnDownload.setEnabled(true);
+                    DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
+                }
+            }
+        } else if (Pattern.matches(ConstantUtils.SHELL_PATTERN, etStart.getText().toString().toUpperCase())) {
+            try {
+                int j = amount.isEmpty() ? 100 : Integer.parseInt(amount);
+                for (int i = 0; i < j; i++) {
+                    DetonatorBean bean = new DetonatorBean(etStart.getText().toString().substring(0, 8)
+                            + String.format(Locale.getDefault(), "%05d", Integer.parseInt(etStart.getText().toString().substring(8)) + i));
+                    bean.setDownloaded(false);
+                    list.add(bean);
+                }
+                adapter.updateList(list);
+                DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
+                btnDownload.setEnabled(true);
+            } catch (Exception e) {
+                myApp.myToast(AuthorizationListActivity.this, R.string.message_amount_input_error);
+            }
+        } else
+            myApp.myToast(AuthorizationListActivity.this, R.string.message_detonator_input_error);
+    }
+
+    public void scanCode() {
+        serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_CODE, ConstantUtils.SCAN_CODE_TIME);
+    }
+
+    private void enabledButton(boolean enabled) {
+        runOnUiThread(() -> {
+            setProgressVisibility(!enabled);
+            btnDownload.setEnabled(enabled && list.size() > 0);
+            btnDelete.setEnabled(enabled && list.size() > 0);
+            btnAdd.setEnabled(enabled);
         });
-        enterpriseDialog.show();
     }
 
     private void checkList(List<LgBean> detonators) {
         for (LgBean bean : detonators) {
-            for (DetonatorInfoBean bean1 : list) {
+            for (DetonatorBean bean1 : list) {
                 if (bean.getFbh().equals(bean1.getAddress())) {
                     bean1.setDownloaded(true);
                     bean1.setRow(Integer.parseInt(bean.getGzmcwxx()));
@@ -356,67 +493,65 @@ public class AuthorizationListActivity extends BaseActivity {
             }
         }
         adapter.updateList(list);
+        DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
     }
 
     @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        if ((null == enterpriseDialog || !enterpriseDialog.isShowing()) && KeyEvent.ACTION_UP == event.getAction() && 0 == tabList.getSelectedTabPosition()) {
-            if (KeyEvent.KEYCODE_1 == keyCode) {
-                listFragment.getClickDownload().onClick(listFragment.getView());
-            } else if (KeyEvent.KEYCODE_2 == keyCode) {
-                listFragment.getClickDelete().onClick(listFragment.getView());
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if ((enterpriseDialog == null || !enterpriseDialog.isShowing()) && event.getAction() == KeyEvent.ACTION_UP)
+            switch (event.getKeyCode()) {
+                case ConstantUtils.KEYCODE_ADD:
+                    btnAdd.callOnClick();
+                    return true;
+                case KeyEvent.KEYCODE_TAB:
+                    btnDownload.callOnClick();
+                    return true;
+                case ConstantUtils.KEYCODE_SUB:
+                    btnDelete.callOnClick();
+                    return true;
+                case KeyEvent.KEYCODE_2:
+                    listView.requestFocus();
+                    if (listView.getSelectedItemPosition() > 0) {
+                        listView.setSelection(listView.getSelectedItemPosition() - 1);
+                    } else
+                        listView.setSelection(list.size() - 1);
+                    break;
+                case KeyEvent.KEYCODE_8:
+                    listView.requestFocus();
+                    if (listView.getSelectedItemPosition() < list.size() - 1) {
+                        listView.setSelection(listView.getSelectedItemPosition() + 1);
+                    } else
+                        listView.setSelection(0);
+                    break;
             }
-        }
-        return super.onKeyUp(keyCode, event);
-    }
-
-    private void resetTabTitle(boolean init) {
-        for (int i = 0; i < title.length; i++) {
-            TextView tv = (TextView) LayoutInflater.from(this).inflate(R.layout.layout_tab_view, tabList, false);
-            String text = getResources().getString(title[i]) + (0 == i ? "(" + list.size() + ")" : "");
-            tv.setText(text);
-            TabLayout.Tab tab = tabList.getTabAt(i);
-            if (tab != null) {
-                if (tab.isSelected())
-                    tv.setTextColor(getColor(R.color.text_blue));
-                else
-                    tv.setTextColor(getColor(R.color.text_black));
-                if (!init && null != tab.getCustomView()) {
-                    final ViewParent customParent = tab.getCustomView().getParent();
-                    if (null != customParent) {
-                        ((ViewGroup) customParent).removeView(tab.getCustomView());
-                    }
-                }
-                tab.setCustomView(tv);
+        else if (event.getAction() == KeyEvent.ACTION_DOWN)
+            switch (event.getKeyCode()) {
+                case ConstantUtils.KEYCODE_ADD:
+                case KeyEvent.KEYCODE_TAB:
+                case ConstantUtils.KEYCODE_SUB:
+                    return true;
             }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private void initSound() {
+        soundPool = myApp.getSoundPool();
+        if (null != soundPool) {
+            soundSuccess = soundPool.load(this, R.raw.found, 1);
+            soundFail = soundPool.load(this, R.raw.fail, 1);
         }
     }
 
-    private void saveList() {
-        try {
-            myApp.writeToFile(FilePath.FILE_OFFLINE_LIST, list);
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
+    @Override
+    protected void onDestroy() {
+        if (null != soundPool) {
+            soundPool.autoPause();
+            soundPool.unload(soundSuccess);
+            soundPool.unload(soundFail);
+            soundPool.release();
+            soundPool = null;
         }
+        myReceiveListener.closeAllHandler();
+        super.onDestroy();
     }
-
-    private class ListPagerAdapter extends FragmentPagerAdapter {
-        ListPagerAdapter(FragmentManager fm) {
-            super(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
-        }
-
-        @NotNull
-        @Override
-        public Fragment getItem(int position) {
-            return fragments.get(position);
-        }
-
-        @Override
-        public int getCount() {
-            return fragments.size();
-        }
-
-    }
-
-
 }

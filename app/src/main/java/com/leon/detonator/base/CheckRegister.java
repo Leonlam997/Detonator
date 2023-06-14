@@ -2,17 +2,15 @@ package com.leon.detonator.base;
 
 import android.app.Activity;
 
-import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.R;
 
 public abstract class CheckRegister extends Thread {
-    private Activity activity;
-    private BaseApplication myApp;
+    private final Activity activity;
+    private final BaseApplication myApp;
 
-    public CheckRegister setActivity(Activity activity) {
+    public CheckRegister(Activity activity) {
         this.activity = activity;
         myApp = (BaseApplication) activity.getApplication();
-        return this;
     }
 
     public abstract void onError();
@@ -28,8 +26,7 @@ public abstract class CheckRegister extends Thread {
                 BaseApplication.writeErrorLog(e);
             }
         }
-        LocalSettingBean b = BaseApplication.readSettings();
-        if (null == b || !b.isRegistered()) {
+        if (null == BaseApplication.settings || !BaseApplication.settings.isRegistered()) {
             myApp.myToast(activity, activity.getResources().getString(R.string.message_registered_fail));
             onError();
         } else {
