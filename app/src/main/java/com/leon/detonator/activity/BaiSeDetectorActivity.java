@@ -15,41 +15,48 @@ import androidx.annotation.NonNull;
 import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.bean.BaiSeCheck;
-import com.leon.detonator.bean.BaiSeUpload;
+import com.leon.detonator.bean.BaiSeBlasterBean;
+import com.leon.detonator.bean.BaiSeInfoBean;
+import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.util.ConstantUtils;
+import com.leon.detonator.util.KeyUtils;
 
 import java.util.regex.Pattern;
 
 public class BaiSeDetectorActivity extends BaseActivity {
-    private BaseApplication myApp;
-    private BaiSeCheck baiSeCheck;
+    private BaiSeBlasterBean baiSeBlasterBean;
     private EditText etId;
-    private EditText etCode;
+    private EditText etName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bai_se_detector);
         setTitle(R.string.bai_se_detector);
-        myApp = (BaseApplication) getApplication();
-        BaiSeUpload baiSeUpload = myApp.readBaiSeUpload();
-        baiSeCheck = myApp.readBaiSeCheck();
-        if (baiSeUpload.getProjectType().equals(ConstantUtils.ENTERPRISE_CONTRACT)) {
-            ((TextView) findViewById(R.id.txt_code)).setText(R.string.enterprise_contract_code);
-        } else {
-            ((TextView) findViewById(R.id.txt_code)).setText(R.string.enterprise_project_code);
-
-        }
+        BaiSeInfoBean baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
         etId = findViewById(R.id.et_id);
-        etCode = findViewById(R.id.et_code);
-        if (baiSeCheck != null && baiSeCheck.getData() != null) {
-            if (!baiSeCheck.getData().getProjectCode().isEmpty())
-                etCode.setText(baiSeCheck.getData().getProjectCode());
-            else if (!baiSeUpload.getProjectCode().isEmpty())
-                etCode.setText(baiSeUpload.getProjectCode());
-            if (!baiSeCheck.getData().getUserIdCard().isEmpty())
-                etId.setText(baiSeCheck.getData().getUserIdCard());
+        etName = findViewById(R.id.et_name);
+        if (baiSeInfoBean == null) {
+            myApp.myToast(this, R.string.message_select_enterprise);
+            finish();
+            return;
+        }
+        boolean project = baiSeInfoBean.getProjectType().equals(ConstantUtils.ENTERPRISE_PROJECT);
+        ((TextView) findViewById(R.id.tv_project_code)).setText(String.format("%s%s",
+                getString(project ? R.string.enterprise_project_code : R.string.enterprise_contract_code), baiSeInfoBean.getProjectCode()));
+        ((TextView) findViewById(R.id.tv_company_name)).setText(String.format("%s%s", getString(R.string.enterprise_name), baiSeInfoBean.getBurstOrgName()));
+        if (getIntent().getBooleanExtra(KeyUtils.KEY_NEW_INFO, false)) {
+            baiSeBlasterBean = new BaiSeBlasterBean();
+            baiSeBlasterBean.setId(-1);
+            baiSeBlasterBean.setSelected(true);
+        } else
+            baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
+        etName.requestFocus();
+        if (baiSeBlasterBean != null && baiSeBlasterBean.getData() != null) {
+            if (!baiSeBlasterBean.getData().getProjectCode().isEmpty())
+                etName.setText(baiSeBlasterBean.getName());
+            if (!baiSeBlasterBean.getData().getUserIdCard().isEmpty())
+                etId.setText(baiSeBlasterBean.getData().getUserIdCard());
         }
         etId.setKeyListener(new NumberKeyListener() {
             @NonNull
@@ -84,18 +91,21 @@ public class BaiSeDetectorActivity extends BaseActivity {
         findViewById(R.id.btn_save).setOnClickListener(view -> {
             if (etId.getText() == null || etId.getText().toString().isEmpty()) {
                 etId.requestFocus();
-            } else if (etCode.getText() == null || etCode.getText().toString().isEmpty()) {
-                etCode.requestFocus();
+            } else if (etName.getText() == null || etName.getText().toString().isEmpty()) {
+                etName.requestFocus();
             } else {
                 if (!Pattern.matches(ConstantUtils.ID_PATTERN, etId.getText().toString())) {
                     myApp.myToast(BaiSeDetectorActivity.this, R.string.message_input_id_error);
                     etId.requestFocus();
                 } else {
-                    if (baiSeCheck == null)
-                        baiSeCheck = new BaiSeCheck();
-                    baiSeCheck.getData().setProjectCode(etCode.getText().toString());
-                    baiSeCheck.getData().setUserIdCard(etId.getText().toString());
-                    myApp.saveBean(baiSeCheck);
+                    baiSeBlasterBean.setSelected(true);
+                    baiSeBlasterBean.setName(etName.getText().toString());
+                    baiSeBlasterBean.getData().setUserIdCard(etId.getText().toString());
+                    baiSeBlasterBean.getData().setProjectCode(baiSeInfoBean.getProjectCode());
+                    baiSeBlasterBean.getData().setBurstOrgCode(baiSeInfoBean.getBurstOrgCode());
+                    baiSeBlasterBean.setProject(project);
+                    DbUtil.updateBaiSeBlaster(baiSeBlasterBean);
+                    setResult(RESULT_OK);
                     finish();
                 }
                 return;
@@ -103,26 +113,20 @@ public class BaiSeDetectorActivity extends BaseActivity {
             myApp.myToast(BaiSeDetectorActivity.this, R.string.message_data_input_error);
         });
         findViewById(R.id.btn_clear).setOnClickListener(view -> {
-            etCode.setText("");
+            etName.setText("");
             etId.setText("");
         });
     }
 
     @Override
     public void finish() {
-        if (!etCode.getText().toString().equals(null == baiSeCheck ? "" : baiSeCheck.getData().getProjectCode())
-                || !etId.getText().toString().equals(null == baiSeCheck ? "" : baiSeCheck.getData().getUserIdCard())) {
+        if (!etName.getText().toString().equals(null == baiSeBlasterBean ? "" : baiSeBlasterBean.getName())
+                || !etId.getText().toString().equals(null == baiSeBlasterBean ? "" : baiSeBlasterBean.getData().getUserIdCard())) {
             BaseApplication.customDialog(new AlertDialog.Builder(BaiSeDetectorActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_abort_modify)
                     .setMessage(R.string.dialog_exit_modify)
-                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> BaiSeDetectorActivity.super.finish())
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .setOnKeyListener((dialog, keyCode, event) -> {
-                        if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                            dialog.dismiss();
-                        }
-                        return false;
-                    })
+                    .setPositiveButton(R.string.button_save, (dialog, which) -> findViewById(R.id.btn_save).callOnClick())
+                    .setNegativeButton(R.string.button_cancel, (dialog, which) -> BaiSeDetectorActivity.super.finish())
                     .show(), true);
         } else
             super.finish();

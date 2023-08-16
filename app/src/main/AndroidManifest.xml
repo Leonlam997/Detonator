@@ -60,12 +60,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <activity android:name=".activity.HideActivity" />
+        <activity android:name=".activity.InfoListActivity" />
         <activity android:name=".activity.SchemeActivity" />
         <activity android:name=".activity.BaiSeDetectorActivity" />
         <activity android:name=".activity.BaiSeDataActivity" />
-        <activity android:name=".activity.ChargeActivity" />
         <activity android:name=".activity.VersionManageActivity" />
-        <activity android:name=".activity.CapacityTestActivity" />
         <activity
             android:name=".activity.WelcomeActivity"
             android:exported="true">
@@ -83,18 +83,14 @@
         <activity android:name=".activity.EnterpriseActivity" />
         <activity android:name=".activity.LoginActivity" />
         <activity android:name=".activity.MainActivity" />
-        <activity android:name=".activity.DelayScheduleActivity" />
         <activity android:name=".activity.DetonatorListActivity" />
-        <activity android:name=".activity.DetectMethodActivity" />
         <activity android:name=".activity.AuthorizationListActivity" />
         <activity android:name=".activity.ExplosionRecordActivity" />
         <activity android:name=".activity.SettingsActivity" />
         <activity android:name=".activity.WifiActivity" />
-        <activity android:name=".activity.WifiConnectActivity" />
         <activity android:name=".activity.DisplaySettingsActivity" />
         <activity android:name=".activity.DetectActivity" />
         <activity android:name=".activity.CheckLineActivity" />
-        <activity android:name=".activity.VoltageTestActivity" />
         <activity android:name=".activity.BluetoothActivity" />
         <activity android:name=".activity.DetonateStep1Activity" />
         <activity android:name=".activity.DetonateStep2Activity" />
@@ -107,7 +103,6 @@
         <activity android:name=".activity.SystemInfoActivity" />
         <activity android:name=".activity.CameraActivity" />
         <activity android:name=".activity.SemiProductActivity" />
-        <activity android:name=".activity.WaveformActivity" />
 
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"

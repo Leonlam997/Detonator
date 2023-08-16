@@ -2,8 +2,6 @@ package com.leon.detonator.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.View;
@@ -13,14 +11,13 @@ import android.widget.ImageButton;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.StringRes;
 
 import com.google.gson.Gson;
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.EnterpriseProjectBean;
 import com.leon.detonator.bean.EnterpriseUserBean;
-import com.leon.detonator.R;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
 import com.leon.detonator.util.KeyUtils;
@@ -28,9 +25,6 @@ import com.leon.detonator.util.MethodUtils;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.Callback;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,11 +36,15 @@ import okhttp3.Call;
 import okhttp3.Response;
 
 public class LoginActivity extends BaseActivity {
+    private List<EnterpriseProjectBean.ResultBean.PageListBean> projectList;
+    private List<EnterpriseUserBean.ResultBean.PageListBean> userList;
+    private ImageButton btnLogin;
+    private EditText etUser;
+    private EditText etPwd;
+    private String token;
     private final int pageSize = 1;
     private final int userID = 0;
-    private EditText etUser, etPwd;
-    private ImageButton btnLogin;
-    private BaseApplication myApp;
+    private int pageIndex;
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode() && null != result.getData()) {
             myApp.myToast(LoginActivity.this,
@@ -56,56 +54,31 @@ public class LoginActivity extends BaseActivity {
             finish();
         }
     });
-    private final Handler respondUI = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message msg) {
-            switch (msg.what) {
-                case 2:
-                    btnLogin.setEnabled(true);
-                    break;
-                case 3:
-                    btnLogin.setEnabled(false);
-                    break;
-                default:
-                    myApp.myToast(LoginActivity.this, (String) msg.obj);
-            }
-            return false;
-        }
-    });
-    private String token;
-    private List<EnterpriseUserBean.ResultBean.PageListBean> userList;
-    private List<EnterpriseProjectBean.ResultBean.PageListBean> projectList;
-    private int pageIndex;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         hideActionBar();
-        myApp = (BaseApplication) getApplication();
         btnLogin = findViewById(R.id.btn_login);
         etUser = findViewById(R.id.et_username);
         etPwd = findViewById(R.id.et_password);
         etUser.requestFocus();
         projectList = new ArrayList<>();
-
         ((CheckBox) findViewById(R.id.cb_show_psw)).setOnCheckedChangeListener((buttonView, isChecked) -> {
             etPwd.setInputType(isChecked ? (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) :
                     (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD));
             etPwd.setSelection(etPwd.getText().length());
         });
-
         findViewById(R.id.btn_face).setOnClickListener(view -> launcher.launch(new Intent(LoginActivity.this, CameraActivity.class)));
-
         btnLogin.setOnClickListener(v -> {
             if (etUser.getText().toString().isEmpty()) {
                 Intent intent = new Intent(LoginActivity.this, SelectModeActivity.class);
                 startActivity(intent);
                 finish();
-                //sendMsg(1, "用户名不能为空！");
+                //myApp.myToast(LoginActivity.this, "用户名不能为空！");
             } else if (etPwd.getText().toString().isEmpty()) {
-                sendMsg(R.string.message_not_allow_empty_password);
+                myApp.myToast(LoginActivity.this, R.string.message_not_allow_empty_password);
             }
 //                } else {
 //                    boolean invalid = true;
@@ -114,12 +87,12 @@ public class LoginActivity extends BaseActivity {
 //                        for (EnterpriseUserBean.ResultBean.PageListBean bean : userList) {
 //                            if (bean.getAccount().toUpperCase().equals(etUser.getText().toString().toUpperCase()) && bean.getPassword().equals(MD5.encryptTo16BitString(etPwd.getText().toString()))) {
 //                                if (bean.isIsLock()) {
-//                                    sendMsg(1, "用户：\"" + etUser.getText().toString() + "\"已经被锁！");
+//                                    myApp.myToast(LoginActivity.this, "用户：\"" + etUser.getText().toString() + "\"已经被锁！");
 //                                } else {
 //                                    userID = bean.getUserID();
-//                                    LocalSettingBean settingBeans = BaseApplication.readSettings();
-//                                    settingBeans.setUserID(userID);
-//                                    myApp.saveBean(settingBeans);
+//                                    LocalSettingBean BaseApplication.settingss = BaseApplication.readSettings();
+//                                    BaseApplication.settingss.setUserID(userID);
+//                                    myApp.saveSettings(BaseApplication.settingss);
 //                                    projectList = new ArrayList<>();
 //                                    sendMsg(3, "");
 //                                    new GetEnterpriseProject().start();
@@ -130,10 +103,9 @@ public class LoginActivity extends BaseActivity {
 //                        }
 //                    }
 //                    if (invalid)
-//                        sendMsg(1, "用户名或密码不正确！");
+//                        myApp.myToast(LoginActivity.this, "用户名或密码不正确！");
 //                }
         });
-
         //btnLogin.setEnabled(false);
         pageIndex = 0;
         userList = new ArrayList<>();
@@ -148,20 +120,6 @@ public class LoginActivity extends BaseActivity {
             finish();
         }
         return super.onKeyUp(keyCode, event);
-    }
-
-    private void sendMsg(int what, String hint) {
-        Message msg = respondUI.obtainMessage(what);
-        if (!hint.isEmpty()) {
-            msg.obj = hint;
-        }
-        respondUI.sendMessage(msg);
-    }
-
-    private void sendMsg(@StringRes int hint) {
-        Message msg = respondUI.obtainMessage(1);
-        msg.obj = getString(hint);
-        respondUI.sendMessage(msg);
     }
 
     @Override
@@ -205,7 +163,7 @@ public class LoginActivity extends BaseActivity {
 
                         @Override
                         public void onError(Call call, Exception e, int i) {
-                            sendMsg(R.string.message_check_network);
+                            myApp.myToast(LoginActivity.this, R.string.message_check_network);
                         }
 
                         @Override
@@ -223,14 +181,14 @@ public class LoginActivity extends BaseActivity {
                                         } catch (Exception e) {
                                             BaseApplication.writeErrorLog(e);
                                         }
-                                        sendMsg(2, "");
+                                        btnLogin.setEnabled(true);
                                     }
                                 }
                             } else {
                                 if (userBean != null)
-                                    sendMsg(1, userBean.getDescription());
+                                    myApp.myToast(LoginActivity.this, userBean.getDescription());
                                 else
-                                    sendMsg(R.string.message_token_error);
+                                    myApp.myToast(LoginActivity.this, R.string.message_token_error);
                             }
                         }
                     });
@@ -264,7 +222,7 @@ public class LoginActivity extends BaseActivity {
 
                         @Override
                         public void onError(Call call, Exception e, int i) {
-                            sendMsg(R.string.message_check_network);
+                            myApp.myToast(LoginActivity.this, R.string.message_check_network);
                         }
 
                         @Override
@@ -289,10 +247,10 @@ public class LoginActivity extends BaseActivity {
                                 }
                             } else {
                                 if (enterpriseProjectBean != null)
-                                    sendMsg(1, enterpriseProjectBean.getDescription());
+                                    myApp.myToast(LoginActivity.this, enterpriseProjectBean.getDescription());
                                 else
-                                    sendMsg(R.string.message_token_error);
-                                sendMsg(2, "");
+                                    myApp.myToast(LoginActivity.this, R.string.message_token_error);
+                                btnLogin.setEnabled(true);
                             }
                         }
                     });

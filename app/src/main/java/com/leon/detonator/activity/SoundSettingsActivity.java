@@ -6,37 +6,29 @@ import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Vibrator;
-import android.view.View;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.SeekBar;
 
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.bean.LocalSettingBean;
-import com.leon.detonator.R;
 import com.leon.detonator.util.ConstantUtils;
 
 public class SoundSettingsActivity extends BaseActivity {
-    private SeekBar sbSound;
-    private CheckBox cbVibrate;
-    private LocalSettingBean settings;
     private SoundPool soundSample;
-    private BaseApplication myApp;
+    private CheckBox cbVibrate;
+    private SeekBar sbSound;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sound_settings);
-
         setTitle(R.string.settings_sound);
-        myApp = (BaseApplication) getApplication();
         sbSound = findViewById(R.id.sb_sound);
         cbVibrate = findViewById(R.id.cb_vibrate);
         sbSound.setMax(ConstantUtils.MAX_VOLUME);
-        settings = BaseApplication.readSettings();
-        sbSound.setProgress(settings.getVolume());
-        cbVibrate.setChecked(settings.isVibrate());
+        sbSound.setProgress(BaseApplication.settings.getVolume());
+        cbVibrate.setChecked(BaseApplication.settings.isVibrate());
         cbVibrate.setOnCheckedChangeListener((compoundButton, b) -> {
             if (b) {
                 Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
@@ -87,10 +79,10 @@ public class SoundSettingsActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
-        if (settings.isVibrate() != cbVibrate.isChecked() || settings.getVolume() != sbSound.getProgress()) {
-            settings.setVibrate(cbVibrate.isChecked());
-            settings.setVolume(sbSound.getProgress());
-            myApp.saveBean(settings);
+        if (BaseApplication.settings.isVibrate() != cbVibrate.isChecked() || BaseApplication.settings.getVolume() != sbSound.getProgress()) {
+            BaseApplication.settings.setVibrate(cbVibrate.isChecked());
+            BaseApplication.settings.setVolume(sbSound.getProgress());
+            myApp.saveSettings();
         }
         super.onDestroy();
     }

@@ -1,12 +1,11 @@
 package com.leon.detonator.activity;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.wifi.ScanResult;
@@ -15,93 +14,74 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
+import android.text.InputFilter;
+import android.text.InputType;
 import android.text.TextUtils;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.core.app.ActivityCompat;
-
+import com.leon.detonator.R;
 import com.leon.detonator.adapter.WifiListAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.bean.WifiListBean;
-import com.leon.detonator.R;
-import com.leon.detonator.util.KeyUtils;
-
-import org.jetbrains.annotations.NotNull;
+import com.leon.detonator.bean.WifiBean;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+@SuppressLint("MissingPermission")
 public class WifiActivity extends BaseActivity {
+    private List<WifiBean> list;
+    private WifiListAdapter adapter;
+    private RssiBroadcast broadcast;
+    private PopupWindow popupMenu;
+    private WifiManager wm;
     private final int WIFI_SECURE_NO = 1;
     private final int WIFI_SECURE_WEP = 2;
     private final int WIFI_SECURE_WPA = 3;
-    private int scanCount, index, lastTouchX, lastPosition;
-    private List<WifiListBean> list;
-    private WifiListAdapter adapter;
-    private boolean isStop;
     private boolean isConnecting;
-    private RssiBroadcast broadcast;
-    private WifiManager wm;
-    private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        if (RESULT_OK == result.getResultCode() && null != result.getData()) {
-            WifiListBean bean = list.get(index);
-            String psw = result.getData().getStringExtra(KeyUtils.KEY_WIFI_CONNECT_PASSWORD);
-            int netID = wm.addNetwork(createWifiInfo(bean.getSSID(), psw, (bean.getCapabilities().contains("WPA") || bean.getCapabilities().contains("wpa")) ? WIFI_SECURE_WPA
-                    : (bean.getCapabilities().contains("WEP") || bean.getCapabilities().contains("wep") ? WIFI_SECURE_WEP : WIFI_SECURE_NO)));
-            bean.setConnecting(true);
-            adapter.updateList(list);
-            new ConnectWifiThread(netID).start();
+    private boolean isStop;
+    private int lastPosition;
+    private int lastTouchX;
+    private int scanCount;
+    private final Handler myHandler = new Handler(msg -> {
+        adapter.updateList(list);
+        if (msg.what == WifiManager.WIFI_STATE_ENABLED) {
+            isStop = false;
+            scanCount = 0;
+            new ScanWifiThread().start();
         }
+        return false;
     });
-    private final Handler refreshHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message msg) {
-            if (msg.what != 1000)
-                initData();
-            adapter.updateList(list);
-            if (msg.what == WifiManager.WIFI_STATE_ENABLED) {
-                isStop = false;
-                scanCount = 0;
-                new ScanWifiThread().start();
-            }
-            return false;
-        }
-    });
-    private BaseApplication myApp;
-    private PopupWindow popupMenu;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi);
-
         setTitle(R.string.settings_wifi);
-        myApp = (BaseApplication) getApplication();
         wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         initData();
         ListView lvWifiList = findViewById(R.id.lv_wifi);
-        adapter = new WifiListAdapter(this, list);
-        adapter.setOnButtonClickListener(which -> {
-            WifiListBean bean;
+        adapter = new WifiListAdapter(this, list, which -> {
+            WifiBean bean;
             switch (which) {
                 case 0:
                     bean = list.get(0);
                     bean.setEnabled(false);
                     bean.setChangingStatus(true);
                     list.set(0, bean);
-                    Iterator<WifiListBean> it = list.iterator();
+                    Iterator<WifiBean> it = list.iterator();
                     if (it.hasNext())
                         it.next();
                     while (it.hasNext()) {
@@ -110,7 +90,6 @@ public class WifiActivity extends BaseActivity {
                     }
                     isStop = true;
                     adapter.updateList(list);
-//                    openGPS(false);
                     wm.setWifiEnabled(false);
                     new WaitForStateThread(false).start();
                     break;
@@ -121,7 +100,6 @@ public class WifiActivity extends BaseActivity {
                     list.set(0, bean);
                     adapter.updateList(list);
                     isStop = true;
-//                    openGPS(true);
                     wm.setWifiEnabled(true);
                     new WaitForStateThread(true).start();
                     break;
@@ -134,9 +112,7 @@ public class WifiActivity extends BaseActivity {
                     break;
             }
         });
-
         lvWifiList.setAdapter(adapter);
-
         lvWifiList.setOnTouchListener((v, event) -> {
             lastTouchX = (int) event.getX();
             if (MotionEvent.ACTION_UP == event.getAction())
@@ -147,35 +123,26 @@ public class WifiActivity extends BaseActivity {
             if (list.size() > 1) {
                 if (position > (list.get(1).isConnected() ? 2 : 1) || (list.get(1).isConnected() && position == 1)) {
                     String[] menu;
-                    if (position == 1) {
-                        menu = new String[]{getString(R.string.menu_wifi_forget),
-                                getString(R.string.menu_wifi_modify)};
-                    } else {
-                        WifiListBean bean = list.get(position);
-                        if (isExist(bean.getSSID()) != null) {
-                            menu = new String[]{getString(R.string.menu_wifi_connect),
-                                    getString(R.string.menu_wifi_forget),
-                                    getString(R.string.menu_wifi_modify)};
-                        } else {
+                    if (position == 1)
+                        menu = new String[]{getString(R.string.menu_wifi_forget), getString(R.string.menu_wifi_modify)};
+                    else {
+                        WifiBean bean = list.get(position);
+                        if (isExist(bean.getSSID()) != null)
+                            menu = new String[]{getString(R.string.menu_wifi_connect), getString(R.string.menu_wifi_forget), getString(R.string.menu_wifi_modify)};
+                        else
                             menu = new String[]{getString(R.string.menu_wifi_connect)};
-                        }
                     }
-                    View popupView = WifiActivity.this.getLayoutInflater().inflate(R.layout.layout_popupwindow, parent, false);
+                    View popupView = WifiActivity.this.getLayoutInflater().inflate(R.layout.layout_popup_window, parent, false);
                     ListView lsvMore = popupView.findViewById(R.id.lvPopupMenu);
                     lastPosition = position;
                     ((TextView) popupView.findViewById(R.id.tvTitle)).setText(list.get(position).getSSID());
-                    lsvMore.setAdapter(new ArrayAdapter<>(WifiActivity.this, R.layout.layout_popupwindow_menu, menu));
+                    lsvMore.setAdapter(new ArrayAdapter<>(WifiActivity.this, R.layout.layout_item_popup_window, menu));
                     lsvMore.setOnItemClickListener((parent1, view1, position1, id1) -> {
                         String title = ((TextView) view1).getText().toString();
-                        String ssid = list.get(lastPosition).getSSID();
-                        if (getString(R.string.menu_wifi_modify).equals(title)) {
-                            Intent intent = new Intent();
-                            intent.setClass(WifiActivity.this, WifiConnectActivity.class);
-                            intent.putExtra(KeyUtils.KEY_WIFI_CONNECT_SSID, ssid);
-                            index = lastPosition;
-                            launcher.launch(intent);
-                        } else if (getString(R.string.menu_wifi_forget).equals(title)) {
-                            WifiConfiguration tempConfig = isExist(ssid);
+                        if (getString(R.string.menu_wifi_modify).equals(title))
+                            showPasswordDialog(true);
+                        else if (getString(R.string.menu_wifi_forget).equals(title)) {
+                            WifiConfiguration tempConfig = isExist(list.get(lastPosition).getSSID());
                             if (tempConfig != null) {
                                 wm.removeNetwork(tempConfig.networkId);
                                 wm.saveConfiguration();
@@ -186,25 +153,19 @@ public class WifiActivity extends BaseActivity {
                                 }
                             }
                         } else if (getString(R.string.menu_wifi_connect).equals(title)) {
-                            WifiListBean bean = list.get(lastPosition);
+                            WifiBean bean = list.get(lastPosition);
                             if (bean.isSaved()) {
                                 bean.setConnecting(true);
                                 adapter.updateList(list);
-                                WifiConfiguration tempConfig = isExist(ssid);
+                                WifiConfiguration tempConfig = isExist(bean.getSSID());
                                 if (null != tempConfig)
                                     new ConnectWifiThread(tempConfig.networkId).start();
-                            } else {
-                                Intent intent = new Intent();
-                                intent.setClass(WifiActivity.this, WifiConnectActivity.class);
-                                intent.putExtra(KeyUtils.KEY_WIFI_CONNECT_SSID, ssid);
-                                index = lastPosition;
-                                launcher.launch(intent);
-                            }
+                            } else
+                                showPasswordDialog(false);
                         }
                         popupMenu.dismiss();
                     });
-
-                    popupMenu = new PopupWindow(popupView, 150, 40 * (menu.length + 1));
+                    popupMenu = new PopupWindow(popupView, 150 + BaseApplication.settings.getFontScale() * 10, 40 * (menu.length + 1));
                     popupMenu.setAnimationStyle(R.style.popup_window_anim);
                     popupMenu.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
                     popupMenu.setFocusable(true);
@@ -215,25 +176,21 @@ public class WifiActivity extends BaseActivity {
             }
             return true;
         });
-
         lvWifiList.setOnItemClickListener((parent, view, position, id) -> {
             if (list.size() > 1 && !isConnecting) {
                 if (position > (list.get(1).isConnected() ? 2 : 1)) {
                     if (!isStop)
                         isStop = true;
-                    WifiListBean bean = list.get(position);
+                    WifiBean bean = list.get(position);
                     WifiConfiguration config = isExist(bean.getSSID());
+                    lastPosition = position;
                     if (config == null) {
-                        if (bean.isEncrypted()) {
-                            Intent intent = new Intent();
-                            intent.setClass(WifiActivity.this, WifiConnectActivity.class);
-                            intent.putExtra(KeyUtils.KEY_WIFI_CONNECT_SSID, bean.getSSID());
-                            index = position;
-                            launcher.launch(intent);
-                        } else {
+                        if (bean.isEncrypted())
+                            showPasswordDialog(false);
+                        else {
                             bean.setConnecting(true);
                             adapter.updateList(list);
-                            new ConnectWifiThread(wm.addNetwork(createWifiInfo(bean.getSSID(), "", WIFI_SECURE_NO))).start();
+                            new ConnectWifiThread(wm.addNetwork(createWifiInfo(bean.getSSID(), null, WIFI_SECURE_NO))).start();
                         }
                     } else {
                         bean.setConnecting(true);
@@ -258,30 +215,25 @@ public class WifiActivity extends BaseActivity {
         registerReceiver(broadcast, ifrssi);
     }
 
-    public WifiConfiguration createWifiInfo(String SSID, String Password, int Type) {
+    public WifiConfiguration createWifiInfo(String ssid, String password, int type) {
         WifiConfiguration configuration = new WifiConfiguration();
         configuration.allowedAuthAlgorithms.clear();
         configuration.allowedGroupCiphers.clear();
         configuration.allowedKeyManagement.clear();
         configuration.allowedPairwiseCiphers.clear();
         configuration.allowedProtocols.clear();
-        configuration.SSID = "\"" + SSID + "\"";
+        configuration.SSID = "\"" + ssid + "\"";
 
-        WifiConfiguration tempConfig = isExist(SSID);
-        if (tempConfig != null) {
+        WifiConfiguration tempConfig = isExist(ssid);
+        if (tempConfig != null)
             wm.removeNetwork(tempConfig.networkId);
-        }
-
-        switch (Type) {
+        switch (type) {
             case WIFI_SECURE_NO://不加密
-                configuration.wepKeys[0] = "";
                 configuration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
-                configuration.wepTxKeyIndex = 0;
-                configuration.priority = 20000;
                 break;
             case WIFI_SECURE_WEP://wep加密
                 configuration.hiddenSSID = true;
-                configuration.wepKeys[0] = "\"" + Password + "\"";
+                configuration.wepKeys[0] = "\"" + password + "\"";
                 configuration.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.SHARED);
                 configuration.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.CCMP);
                 configuration.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
@@ -290,7 +242,7 @@ public class WifiActivity extends BaseActivity {
                 configuration.allowedKeyManagement.set(WifiConfiguration.KeyMgmt.NONE);
                 break;
             case WIFI_SECURE_WPA: //wpa加密
-                configuration.preSharedKey = "\"" + Password + "\"";
+                configuration.preSharedKey = "\"" + password + "\"";
                 configuration.hiddenSSID = true;
                 configuration.allowedAuthAlgorithms.set(WifiConfiguration.AuthAlgorithm.OPEN);
                 configuration.allowedGroupCiphers.set(WifiConfiguration.GroupCipher.TKIP);
@@ -304,17 +256,58 @@ public class WifiActivity extends BaseActivity {
         return configuration;
     }
 
+    private void showPasswordDialog(boolean modify) {
+        runOnUiThread(() -> {
+            final View v = LayoutInflater.from(WifiActivity.this).inflate(R.layout.layout_dialog_edit, null, false);
+            final EditText etPassword = v.findViewById(R.id.et_dialog);
+            v.findViewById(R.id.tv_dialog).setVisibility(View.INVISIBLE);
+            v.findViewById(R.id.cb_dispose).setVisibility(View.VISIBLE);
+            ((CheckBox) v.findViewById(R.id.cb_dispose)).setOnCheckedChangeListener((buttonView, isChecked) -> {
+                etPassword.setInputType(isChecked ? (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD) :
+                        (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD));
+                etPassword.setSelection(etPassword.getText().length());
+            });
+            etPassword.setHint(R.string.hint_input_password);
+            etPassword.setFilters(new InputFilter[]{new InputFilter.LengthFilter(20)});
+            etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            etPassword.setSelection(etPassword.getText().length());
+            BaseApplication.customDialog(new AlertDialog.Builder(WifiActivity.this, R.style.AlertDialog)
+                    .setTitle(String.format(getString(R.string.dialog_title_input_password), list.get(lastPosition).getSSID()))
+                    .setView(v)
+                    .setCancelable(false)
+                    .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
+                        if (etPassword.getText() != null && !etPassword.getText().toString().isEmpty()) {
+                            WifiBean bean = list.get(lastPosition);
+                            int netID;
+                            if (modify) {
+                                WifiConfiguration configuration = isExist(list.get(lastPosition).getSSID());
+                                if (configuration == null)
+                                    return;
+                                if (bean.getCapabilities().toUpperCase().contains("WPA"))
+                                    configuration.wepKeys[0] = "\"" + etPassword.getText().toString() + "\"";
+                                else
+                                    configuration.preSharedKey = "\"" + etPassword.getText().toString() + "\"";
+                                netID = wm.updateNetwork(configuration);
+                            } else
+                                netID = wm.addNetwork(createWifiInfo(bean.getSSID(), etPassword.getText().toString(), (bean.getCapabilities().toUpperCase().contains("WPA")) ? WIFI_SECURE_WPA : WIFI_SECURE_WEP));
+                            if (lastPosition != 1)
+                                bean.setConnecting(true);
+                            adapter.updateList(list);
+                            new ConnectWifiThread(netID).start();
+                        } else
+                            myApp.myToast(WifiActivity.this, R.string.message_name_input_error);
+                    })
+                    .setNegativeButton(R.string.button_cancel, null)
+                    .show(), false);
+        });
+    }
+
     private WifiConfiguration isExist(String ssid) {
-        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(WifiActivity.this, Manifest.permission.ACCESS_WIFI_STATE)
-                && PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(WifiActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)) {
-            List<WifiConfiguration> configs = wm.getConfiguredNetworks();
-            if (configs != null)
-                for (WifiConfiguration config : configs) {
-                    if (config.SSID.equals("\"" + ssid + "\"")) {
-                        return config;
-                    }
-                }
-        }
+        List<WifiConfiguration> configs = wm.getConfiguredNetworks();
+        if (configs != null)
+            for (WifiConfiguration config : configs)
+                if (config.SSID.equals("\"" + ssid + "\""))
+                    return config;
         return null;
     }
 
@@ -323,17 +316,15 @@ public class WifiActivity extends BaseActivity {
             list = new ArrayList<>();
         else
             list.clear();
-        WifiListBean bean = new WifiListBean();
+        WifiBean bean = new WifiBean();
         bean.setSSID("Wifi");
-        bean.setSignalLevel(100);
+        bean.setSignalLevel(WifiBean.ITEM_WIFI);
         if (wm.getWifiState() == WifiManager.WIFI_STATE_ENABLED) {
             bean.setEnabled(true);
             list.add(bean);
-
             connectedWifiList();
-
-            bean = new WifiListBean();
-            bean.setSignalLevel(80);
+            bean = new WifiBean();
+            bean.setSignalLevel(WifiBean.ITEM_AVAILABLE);
             bean.setSSID(getString(R.string.wifi_available_list));
             bean.setRescanLine(true);
             bean.setScanning(true);
@@ -342,57 +333,43 @@ public class WifiActivity extends BaseActivity {
     }
 
     private int connectedWifiList() {
-        WifiInfo wi = wm.getConnectionInfo();
-        boolean isConnected = false;
-        WifiListBean bean;
-        String ssid = wi.getSSID();
+        WifiInfo wifiInfo = wm.getConnectionInfo();
+        WifiBean bean;
+        String ssid = wifiInfo.getSSID();
         int hasChanged = 0;
-
-        if (list.size() > 1) {
-            if (list.get(1).isConnected())
-                isConnected = true;
-        }
         if (ssid.startsWith("\"") && ssid.endsWith("\""))
             ssid = ssid.substring(1, ssid.length() - 1);
         final boolean b = ssid.length() > 0 && !"0x".equals(ssid) && !"<unknown ssid>".equals(ssid);
-        if (isConnected) {
+        if (list.size() > 1 && list.get(1).isConnected()) {
             if (b) {
                 bean = list.get(1);
-                int level = WifiManager.calculateSignalLevel(wi.getRssi(), 4);
+                int level = WifiManager.calculateSignalLevel(wifiInfo.getRssi(), 4);
                 if (bean.getSignalLevel() != level) {
                     bean.setSignalLevel(level);
                     hasChanged = 1;
                 }
-
                 if (!ssid.equals(bean.getSSID())) {
                     bean.setSSID(ssid);
                     hasChanged = 2;
                 }
-                list.set(1, bean);
-            } else {
+            } else
                 list.remove(1);
-            }
-        } else {
-            if (b) {
-                bean = new WifiListBean(wi.getSSID(), wi.getBSSID(), "", WifiManager.calculateSignalLevel(wi.getRssi(), 4), false);
-                bean.setConnected(true);
-                bean.setSSID(ssid);
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    return hasChanged;
-                }
-                List<WifiConfiguration> wifiConfiguration = wm.getConfiguredNetworks();
-                for (WifiConfiguration configuration : wifiConfiguration) {
-                    if (configuration != null && configuration.status == WifiConfiguration.Status.CURRENT) {
-                        if (TextUtils.isEmpty(wi.getSSID()) || wi.getSSID().equalsIgnoreCase(configuration.SSID)) {
-                            //KeyMgmt.NONE表示无需密码
-                            bean.setEncrypted(!configuration.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.NONE));
-                            break;
-                        }
+        } else if (b) {
+            bean = new WifiBean(wifiInfo.getSSID(), wifiInfo.getBSSID(), "", WifiManager.calculateSignalLevel(wifiInfo.getRssi(), 4), false);
+            bean.setConnected(true);
+            bean.setSSID(ssid);
+            List<WifiConfiguration> wifiConfiguration = wm.getConfiguredNetworks();
+            for (WifiConfiguration configuration : wifiConfiguration) {
+                if (configuration != null && configuration.status == WifiConfiguration.Status.CURRENT) {
+                    if (TextUtils.isEmpty(wifiInfo.getSSID()) || wifiInfo.getSSID().equalsIgnoreCase(configuration.SSID)) {
+                        //KeyMgmt.NONE表示无需密码
+                        bean.setEncrypted(!configuration.allowedKeyManagement.get(WifiConfiguration.KeyMgmt.NONE));
+                        break;
                     }
                 }
-                list.add(1, bean);
-                hasChanged = 2;
             }
+            list.add(1, bean);
+            hasChanged = 2;
         }
         return hasChanged;
     }
@@ -413,52 +390,45 @@ public class WifiActivity extends BaseActivity {
                         WifiInfo wi = wm.getConnectionInfo();
                         connectedWifiList();
                         int count = list.get(1).isConnected() ? 2 : 1;
-                        List<WifiListBean> tempList = new ArrayList<>(list);
-
-                        if (tempList.size() > count + 1) {
+                        List<WifiBean> tempList = new ArrayList<>(list);
+                        if (tempList.size() > count + 1)
                             tempList.subList(count + 1, tempList.size()).clear();
-                        }
                         List<ScanResult> scanResults = wm.getScanResults();
                         String ssid = wi.getSSID();
-                        WifiListBean bean;
+                        WifiBean bean;
                         bean = tempList.get(count);
                         bean.setScanning(true);
                         tempList.set(count, bean);
                         if (ssid.startsWith("\"") && ssid.endsWith("\""))
                             ssid = ssid.substring(1, ssid.length() - 1);
-
                         for (ScanResult sr : scanResults) {
                             if (!sr.SSID.equals(ssid) && !sr.SSID.isEmpty()) {
                                 boolean encrypted = false;
                                 if (!TextUtils.isEmpty(sr.capabilities)) {
-                                    encrypted = (sr.capabilities.contains("WPA")
-                                            || sr.capabilities.contains("wpa")
-                                            || sr.capabilities.contains("WEP")
-                                            || sr.capabilities.contains("wep"));
+                                    encrypted = (sr.capabilities.toUpperCase().contains("WPA")
+                                            || sr.capabilities.toUpperCase().contains("WEP"));
                                 }
-                                bean = new WifiListBean(sr.SSID, sr.BSSID, sr.capabilities, WifiManager.calculateSignalLevel(sr.level, 4), encrypted);
+                                bean = new WifiBean(sr.SSID, sr.BSSID, sr.capabilities, WifiManager.calculateSignalLevel(sr.level, 4), encrypted);
                                 bean.setSaved(isExist(sr.SSID) != null);
                                 tempList.add(bean);
                             }
                         }
                         Collections.sort(tempList);
-                        int SCANTIMES = 5;
-                        if (scanCount >= SCANTIMES) {
+                        final int scanTimes = 10;
+                        if (scanCount >= scanTimes) {
                             bean = tempList.get(count);
                             bean.setScanning(false);
                             tempList.set(count, bean);
                         }
-
                         list.clear();
                         list.addAll(tempList);
-                        refreshHandler.sendEmptyMessage(1000);
-
-                        if (scanCount++ > SCANTIMES) {
+                        myHandler.sendEmptyMessage(100);
+                        if (scanCount++ > scanTimes) {
                             isStop = true;
                             interrupt();
                         } else {
                             try {
-                                Thread.sleep(1000);
+                                Thread.sleep(100);
                             } catch (InterruptedException e) {
                                 BaseApplication.writeErrorLog(e);
                             }
@@ -481,7 +451,11 @@ public class WifiActivity extends BaseActivity {
             super.run();
             while (true) {
                 if (wm.getWifiState() == status) {
-                    refreshHandler.sendEmptyMessage(status);
+                    initData();
+                    if (WifiManager.WIFI_STATE_ENABLED == status)
+                        myHandler.sendEmptyMessageDelayed(status, 3000);
+                    else
+                        myHandler.sendEmptyMessage(status);
                     break;
                 }
                 try {
@@ -512,19 +486,15 @@ public class WifiActivity extends BaseActivity {
             }
             isConnecting = true;
             try {
-                if (!wm.enableNetwork(networkId, true)) {
+                if (!wm.enableNetwork(networkId, true))
                     runOnUiThread(() -> myApp.myToast(WifiActivity.this, R.string.wifi_check_password));
-                }
-                if (!wm.reconnect()) {
+                if (!wm.reconnect())
                     runOnUiThread(() -> myApp.myToast(WifiActivity.this, R.string.wifi_reconnect_fail));
-                }
                 scanCount = 0;
-
                 if (isStop) {
                     isStop = false;
                     new ScanWifiThread().start();
                 }
-
             } catch (Exception e) {
                 BaseApplication.writeErrorLog(e);
             }
@@ -551,9 +521,8 @@ public class WifiActivity extends BaseActivity {
             }
             if (intent.getAction().equals(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION)) {
                 int linkWifiResult = intent.getIntExtra(WifiManager.EXTRA_SUPPLICANT_ERROR, 123);
-                if (linkWifiResult == WifiManager.ERROR_AUTHENTICATING) {
+                if (linkWifiResult == WifiManager.ERROR_AUTHENTICATING)
                     myApp.myToast(WifiActivity.this, R.string.wifi_password_error);
-                }
             }
         }
     }

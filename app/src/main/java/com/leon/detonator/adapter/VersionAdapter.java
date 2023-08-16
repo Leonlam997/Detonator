@@ -8,8 +8,8 @@ import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.TextView;
 
-import com.leon.detonator.bean.VersionBean;
 import com.leon.detonator.R;
+import com.leon.detonator.bean.VersionBean;
 import com.leon.detonator.util.ConstantUtils;
 
 import java.text.SimpleDateFormat;
@@ -34,11 +34,7 @@ public class VersionAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        int ret = 0;
-        if (list != null) {
-            ret = list.size();
-        }
-        return ret;
+        return list.size();
     }
 
     @Override
@@ -55,22 +51,17 @@ public class VersionAdapter extends BaseAdapter {
     public View getView(final int position, View convertView, ViewGroup parent) {
         ViewHolder viewHolder;
         VersionBean bean = list.get(position);
-
         if (convertView == null) {
-
             viewHolder = new ViewHolder();
-
-            convertView = inflater.inflate(R.layout.layout_version_list, parent, false);
+            convertView = inflater.inflate(R.layout.layout_item_version, parent, false);
             viewHolder.serialNo = convertView.findViewById(R.id.text_serial_no);
             viewHolder.downloadDate = convertView.findViewById(R.id.text_download_date);
             viewHolder.version = convertView.findViewById(R.id.text_version);
             viewHolder.size = convertView.findViewById(R.id.text_size);
             viewHolder.isSelected = convertView.findViewById(R.id.cb_selected);
-
             convertView.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (ViewHolder) convertView.getTag();
-        }
         SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_CHINESE, Locale.getDefault());
         int textSize = 28;
         String text = (position + 1) + "";

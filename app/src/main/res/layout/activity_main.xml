@@ -1,41 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_gravity="center_vertical"
     android:layout_marginTop="5dp"
     android:background="@color/colorCommonBackground"
     android:columnCount="3"
+    android:rowCount="2"
     android:orientation="horizontal">
-
-
-    <ImageButton
-        android:id="@+id/btn_delay"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_rowWeight="1"
-        android:layout_columnWeight="1"
-        android:layout_gravity="center"
-        android:background="@drawable/btn_delay_style" />
-
-    <ImageButton
-        android:id="@+id/btn_control"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_rowWeight="1"
-        android:layout_columnWeight="1"
-        android:layout_gravity="center"
-        android:background="@drawable/btn_control_style" />
-
-    <ImageButton
-        android:id="@+id/btn_authorize"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_rowWeight="1"
-        android:layout_columnWeight="1"
-        android:layout_gravity="center"
-        android:background="@drawable/btn_auth_style" />
-
 
     <TextView
         android:id="@+id/tv_delay"
@@ -43,9 +16,12 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:drawablePadding="5dp"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
+        android:textSize="@dimen/label_text_size"
+        app:drawableTopCompat="@drawable/btn_delay_style" />
 
     <TextView
         android:id="@+id/tv_control"
@@ -53,9 +29,12 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:drawablePadding="5dp"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
+        android:textSize="@dimen/label_text_size"
+        app:drawableTopCompat="@drawable/btn_control_style" />
 
     <TextView
         android:id="@+id/tv_auth"
@@ -63,37 +42,12 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:drawablePadding="5dp"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
-
-
-    <ImageButton
-        android:id="@+id/btn_records"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_rowWeight="1"
-        android:layout_columnWeight="1"
-        android:layout_gravity="center"
-        android:background="@drawable/btn_record_style" />
-
-    <ImageButton
-        android:id="@+id/btn_cooperate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_rowWeight="1"
-        android:layout_columnWeight="1"
-        android:layout_gravity="center"
-        android:background="@drawable/btn_single_style" />
-
-    <ImageButton
-        android:id="@+id/btn_settings"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_rowWeight="1"
-        android:layout_columnWeight="1"
-        android:layout_gravity="center"
-        android:background="@drawable/btn_settings_style" />
+        android:textSize="@dimen/label_text_size"
+        app:drawableTopCompat="@drawable/btn_auth_style" />
 
     <TextView
         android:id="@+id/tv_records"
@@ -101,10 +55,12 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:drawablePadding="5dp"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
-
+        android:textSize="@dimen/label_text_size"
+        app:drawableTopCompat="@drawable/btn_record_style" />
 
     <TextView
         android:id="@+id/tv_cooperate"
@@ -112,9 +68,12 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:drawablePadding="5dp"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
+        android:textSize="@dimen/label_text_size"
+        app:drawableTopCompat="@drawable/btn_check_detonator_style" />
 
     <TextView
         android:id="@+id/tv_settings"
@@ -122,9 +81,10 @@
         android:layout_height="wrap_content"
         android:layout_rowWeight="1"
         android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:drawablePadding="5dp"
         android:textAlignment="center"
         android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
-
+        android:textSize="@dimen/label_text_size"
+        app:drawableTopCompat="@drawable/btn_settings_style" />
 </GridLayout>
-

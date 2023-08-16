@@ -12,25 +12,24 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.leon.detonator.bean.BluetoothListBean;
 import com.leon.detonator.R;
+import com.leon.detonator.bean.BluetoothBean;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class BluetoothListAdapter extends BaseAdapter {
-    private final List<BluetoothListBean> list;
+    private final List<BluetoothBean> list;
     private final LayoutInflater inflater;
+    private final OnButtonClickListener onButtonClickListener;
 
-    private OnButtonClickListener onButtonClickListener;
-
-
-    public BluetoothListAdapter(Context context, List<BluetoothListBean> list) {
+    public BluetoothListAdapter(Context context, List<BluetoothBean> list, OnButtonClickListener onButtonClickListener) {
         this.list = new ArrayList<>(list);
         inflater = LayoutInflater.from(context);
+        this.onButtonClickListener = onButtonClickListener;
     }
 
-    public void updateList(List<BluetoothListBean> list) {
+    public void updateList(List<BluetoothBean> list) {
         this.list.clear();
         this.list.addAll(list);
         notifyDataSetChanged();
@@ -38,11 +37,7 @@ public class BluetoothListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        int ret = 0;
-        if (list != null) {
-            ret = list.size();
-        }
-        return ret;
+        return list.size();
     }
 
     @Override
@@ -57,36 +52,27 @@ public class BluetoothListAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        BluetoothListBean bean = (BluetoothListBean) this.getItem(position);
-
+        BluetoothBean bean = (BluetoothBean) this.getItem(position);
         BluetoothListAdapter.ViewHolder viewHolder;
-
         if (convertView == null) {
             viewHolder = new ViewHolder();
-
-            convertView = inflater.inflate(R.layout.layout_settings_btlist, parent, false);
+            convertView = inflater.inflate(R.layout.layout_item_settings_bt, parent, false);
             viewHolder.ivType = convertView.findViewById(R.id.ivType);
             viewHolder.tvName = convertView.findViewById(R.id.tvName);
             viewHolder.pbScan = convertView.findViewById(R.id.pbScan);
             viewHolder.tvRescan = convertView.findViewById(R.id.tvRescan);
             viewHolder.ivArrow = convertView.findViewById(R.id.ivArrow);
             viewHolder.cbSwitch = convertView.findViewById(R.id.cbBT);
-
             convertView.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (BluetoothListAdapter.ViewHolder) convertView.getTag();
-        }
-
         viewHolder.pbScan.setVisibility(bean.isScanning() ? View.VISIBLE : View.INVISIBLE);
         viewHolder.tvRescan.setVisibility((!bean.isScanning() && bean.isRescanLine() && position != 2) || position == 1 ? View.VISIBLE : View.INVISIBLE);
         viewHolder.ivArrow.setVisibility((position == 1) ? View.VISIBLE : View.INVISIBLE);
         viewHolder.cbSwitch.setVisibility(position == 0 ? View.VISIBLE : View.INVISIBLE);
         viewHolder.ivType.setVisibility((position > 1 && !bean.isRescanLine()) ? View.VISIBLE : View.INVISIBLE);
-
         viewHolder.tvRescan.setTextColor(convertView.getContext().getColor(position == 1 ? R.color.colorHintText : R.color.colorRescanText));
-
         viewHolder.tvName.setText(bean.getBluetooth().getName() == null ? bean.getBluetooth().getAddress() : bean.getBluetooth().getName());
-
         switch (position) {
             case 0:
                 convertView.setBackgroundColor(Color.WHITE);
@@ -149,22 +135,15 @@ public class BluetoothListAdapter extends BaseAdapter {
                             break;
                     }
                     viewHolder.ivType.setImageResource(btIcon);
-
                     viewHolder.tvName.setTextColor(bean.getBluetooth().isConnected() ? Color.parseColor("#3891ff") : Color.BLACK);
                 }
         }
-
         viewHolder.cbSwitch.setOnClickListener(v -> {
             if (onButtonClickListener != null) {
                 onButtonClickListener.OnButtonClick(((CheckBox) v).isChecked() ? 1 : 0);
             }
         });
-
         return convertView;
-    }
-
-    public void setOnButtonClickListener(OnButtonClickListener listener) {
-        onButtonClickListener = listener;
     }
 
     public interface OnButtonClickListener {

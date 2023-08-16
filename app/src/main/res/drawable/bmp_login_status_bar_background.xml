@@ -2,4 +2,4 @@
 <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
     android:gravity="top"
     android:src="@mipmap/login_status_bar"
-    android:tileMode="disabled"></bitmap>
+    android:tileMode="disabled" />

@@ -6,11 +6,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.CheckBox;
 import android.widget.TextView;
 
-import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.R;
+import com.leon.detonator.base.BaseApplication;
+import com.leon.detonator.bean.DetonatorBean;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,49 +21,23 @@ import java.util.Locale;
  */
 
 public class DetonatorListAdapter extends BaseAdapter {
-    private final List<DetonatorInfoBean> list;
+    private final List<DetonatorBean> list;
     private final LayoutInflater inflater;
-    private boolean canSelect = false;
-    private boolean enabled;
-    private boolean tunnel;
 
-    public DetonatorListAdapter(Context context, List<DetonatorInfoBean> list) {
+    public DetonatorListAdapter(Context context, List<DetonatorBean> list) {
         this.list = new ArrayList<>(list);
-        enabled = true;
-        tunnel = false;
         inflater = LayoutInflater.from(context);
     }
 
-    public void updateList(List<DetonatorInfoBean> list) {
+    public void updateList(List<DetonatorBean> list) {
         this.list.clear();
         this.list.addAll(list);
         notifyDataSetChanged();
     }
 
-    public boolean isCanSelect() {
-        return canSelect;
-    }
-
-    public void setCanSelect(boolean select) {
-        this.canSelect = select;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-        notifyDataSetChanged();
-    }
-
-    public void setTunnel(boolean tunnel) {
-        this.tunnel = tunnel;
-    }
-
     @Override
     public int getCount() {
-        int ret = 0;
-        if (list != null) {
-            ret = list.size();
-        }
-        return ret;
+        return list.size();
     }
 
     @Override
@@ -78,67 +52,49 @@ public class DetonatorListAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-
-        DetonatorInfoBean detonatorInfoBean = (DetonatorInfoBean) this.getItem(position);
-
+        DetonatorBean detonatorBean = (DetonatorBean) this.getItem(position);
         ViewHolder viewHolder;
-
         if (convertView == null) {
             viewHolder = new ViewHolder();
-            convertView = inflater.inflate(R.layout.layout_delay_list, parent, false);
+            convertView = inflater.inflate(R.layout.layout_item_detonator, parent, false);
             viewHolder.serialNo = convertView.findViewById(R.id.text_serial_no);
             viewHolder.address = convertView.findViewById(R.id.text_address);
             viewHolder.delayTime = convertView.findViewById(R.id.text_delay);
             viewHolder.row = convertView.findViewById(R.id.text_row);
             viewHolder.hole = convertView.findViewById(R.id.text_hole);
             viewHolder.inside = convertView.findViewById(R.id.text_inside);
-            viewHolder.isSelected = convertView.findViewById(R.id.cb_selected);
             convertView.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (ViewHolder) convertView.getTag();
-        }
         int textSize = 30;
         viewHolder.serialNo.setText(String.format(Locale.getDefault(), "%d", position + 1));
-        viewHolder.serialNo.setTextSize(textSize);
-        viewHolder.address.setText(detonatorInfoBean.getAddress());
+        viewHolder.serialNo.setTextSize(position >= 99 ? textSize - 2 : textSize);
+        viewHolder.address.setText(detonatorBean.getAddress());
         viewHolder.address.setTextSize(textSize + 4);
-        viewHolder.delayTime.setText(String.format(Locale.getDefault(), "%dms", detonatorInfoBean.getDelayTime()));
+        viewHolder.delayTime.setText(String.format(Locale.getDefault(), "%d", detonatorBean.getDelayTime()));
         viewHolder.delayTime.setTextSize(textSize);
-        if (tunnel) {
-            convertView.findViewById(R.id.line_row).setVisibility(View.GONE);
-            convertView.findViewById(R.id.text_row).setVisibility(View.GONE);
+        if (BaseApplication.isTunnel) {
+            convertView.findViewById(R.id.line_inside).setVisibility(View.GONE);
+            convertView.findViewById(R.id.text_inside).setVisibility(View.GONE);
+            viewHolder.row.setText(String.format(Locale.getDefault(), "%d", detonatorBean.getHole()));
+            viewHolder.row.setTextSize(detonatorBean.getHole() > 99 ? textSize - 2 : textSize);
+            viewHolder.hole.setText(String.format(Locale.getDefault(), "%d", detonatorBean.getInside()));
+            viewHolder.hole.setTextSize(detonatorBean.getInside() > 99 ? textSize - 2 : textSize);
         } else {
-            viewHolder.row.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getRow()));
-            viewHolder.row.setTextSize(textSize);
+            viewHolder.row.setText(String.format(Locale.getDefault(), "%d", detonatorBean.getRow()));
+            viewHolder.row.setTextSize(detonatorBean.getRow() > 99 ? textSize - 2 : textSize);
+            viewHolder.hole.setText(String.format(Locale.getDefault(), "%d", detonatorBean.getHole()));
+            viewHolder.hole.setTextSize(detonatorBean.getHole() > 99 ? textSize - 2 : textSize);
+            viewHolder.inside.setText(String.format(Locale.getDefault(), "%d", detonatorBean.getInside()));
+            viewHolder.inside.setTextSize(detonatorBean.getInside() > 99 ? textSize - 2 : textSize);
         }
-        viewHolder.hole.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getHole()));
-        viewHolder.hole.setTextSize(textSize);
-        viewHolder.inside.setText(String.format(Locale.getDefault(), "%d", detonatorInfoBean.getInside()));
-        viewHolder.inside.setTextSize(textSize);
-        if (canSelect) {
-            viewHolder.isSelected.setChecked(detonatorInfoBean.isSelected());
-            viewHolder.isSelected.setClickable(false);
-            viewHolder.isSelected.setEnabled(enabled);
-        } else {
-            convertView.findViewById(R.id.v_selected).setVisibility(View.GONE);
-            convertView.findViewById(R.id.rl_cb).setVisibility(View.GONE);
-            viewHolder.isSelected.setVisibility(View.GONE);
-        }
-        if (detonatorInfoBean.isDownloaded()) {
-            viewHolder.serialNo.setTextColor(Color.BLACK);
-            viewHolder.address.setTextColor(Color.BLACK);
-            viewHolder.delayTime.setTextColor(Color.BLACK);
-            viewHolder.row.setTextColor(Color.BLACK);
-            viewHolder.hole.setTextColor(Color.BLACK);
-            viewHolder.inside.setTextColor(Color.BLACK);
-        } else {
-            viewHolder.serialNo.setTextColor(Color.RED);
-            viewHolder.address.setTextColor(Color.RED);
-            viewHolder.delayTime.setTextColor(Color.RED);
-            viewHolder.row.setTextColor(Color.RED);
-            viewHolder.hole.setTextColor(Color.RED);
-            viewHolder.inside.setTextColor(Color.RED);
-        }
+        int color = detonatorBean.isDownloaded() ? Color.BLACK : Color.RED;
+        viewHolder.serialNo.setTextColor(color);
+        viewHolder.address.setTextColor(color);
+        viewHolder.delayTime.setTextColor(color);
+        viewHolder.row.setTextColor(color);
+        viewHolder.hole.setTextColor(color);
+        viewHolder.inside.setTextColor(color);
         return convertView;
     }
 
@@ -149,6 +105,5 @@ public class DetonatorListAdapter extends BaseAdapter {
         TextView row;
         TextView hole;
         TextView inside;
-        CheckBox isSelected;
     }
 }

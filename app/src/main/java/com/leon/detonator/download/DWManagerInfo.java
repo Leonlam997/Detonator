@@ -3,10 +3,10 @@ package com.leon.detonator.download;
 import java.io.Serializable;
 
 public class DWManagerInfo implements Serializable {
-    private int dwId=0;
-    private int threadId=0;
-    private int downloadLength=0;
-    private String downloadPath="";
+    private int dwId = 0;
+    private int threadId = 0;
+    private int downloadLength = 0;
+    private String downloadPath = "";
 
     public int getDwId() {
         return dwId;

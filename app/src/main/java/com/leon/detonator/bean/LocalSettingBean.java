@@ -5,12 +5,32 @@ import com.leon.detonator.util.ConstantUtils;
 import java.util.Map;
 
 public class LocalSettingBean {
-    private String serialNum, delayTime, delayPeriod, mtMac, exploderID, IMEI;
-    private int row, hole, holeInside, section, sectionInside, defaultType = 0, userID, volume, serverHost, fontScale,
-            firstPulseTime, secondPulseTime, thirdPulseTime;
-    private boolean vibrate, registered, uploadedLog;
+    private String serialNum;
+    private String delayTime;
+    private String delayPeriod;
+    private String mtMac;
+    private String exploderID;
+    private String IMEI;
+    private int row;
+    private int hole;
+    private int holeInside;
+    private int section;
+    private int sectionInside;
+    private int defaultType = 0;
+    private int userID;
+    private int volume;
+    private int serverHost;
+    private int fontScale;
+    private int firstPulseTime;
+    private int secondPulseTime;
+    private int thirdPulseTime;
+    private boolean vibrate;
+    private boolean registered;
+    private boolean uploadedLog;
+    private boolean updateHint;
     private float chargeVoltage;
-    private double latitude, longitude;
+    private double latitude;
+    private double longitude;
     private Map<Float, Integer> dacMap;
 
     public LocalSettingBean() {
@@ -236,5 +256,13 @@ public class LocalSettingBean {
 
     public void setChargeVoltage(float chargeVoltage) {
         this.chargeVoltage = chargeVoltage;
+    }
+
+    public boolean isUpdateHint() {
+        return updateHint;
+    }
+
+    public void setUpdateHint(boolean updateHint) {
+        this.updateHint = updateHint;
     }
 }

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/gl_hide_btn"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorCommonBackground"
+    android:columnCount="2">
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_semi_product"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:padding="0dp"
+        android:text="@string/button_semi_product"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true"
+        button:keyCode="1" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_write_sn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:padding="0dp"
+        android:text="@string/button_write_sn"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true"
+        button:keyCode="2" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_upload_log"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:padding="0dp"
+        android:text="@string/button_upload_log"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true"
+        button:keyCode="3" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_register"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:padding="0dp"
+        android:text="@string/button_unregister"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true"
+        button:keyCode="4" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_import"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:padding="0dp"
+        android:text="@string/text_import"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true"
+        button:keyCode="5" />
+
+    <com.leon.detonator.component.MyButton
+        android:id="@+id/btn_export"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_rowWeight="1"
+        android:layout_columnWeight="1"
+        android:layout_gravity="center"
+        android:padding="0dp"
+        android:text="@string/button_export"
+        android:textColor="@color/colorButtonEnabled"
+        android:textSize="@dimen/button_text_size"
+        button:bigButton="true"
+        button:keyCode="6" />
+
+</GridLayout>

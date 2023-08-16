@@ -413,7 +413,7 @@ public class SerialPortUtil {
      * 关闭串口
      */
     public void closeSerialPort() {
-        if (BaseApplication.isRemote()) {
+        if (BaseApplication.isRemote) {
             sendCmd("", SerialCommand.CODE_BUS_CONTROL, 0, 0, 0x12);
             try {
                 Thread.sleep(200);

@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 
 import com.leon.detonator.R;
+import com.leon.detonator.base.BaseApplication;
 
 import java.util.Locale;
 
@@ -57,11 +58,11 @@ public class CustomProgressDialog extends Dialog {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.layout_dialog_progress);
+        setContentView(R.layout.layout_dialog_detect_progress);
         if (getWindow() != null) {
             final WindowManager.LayoutParams params = getWindow().getAttributes();
-            params.width = 280;
-            params.height = 140;
+            params.width = 330;
+            params.height = 140 + BaseApplication.settings.getFontScale() * 10;
             getWindow().setAttributes(params);
         }
         progressBar = findViewById(R.id.pb_scan);

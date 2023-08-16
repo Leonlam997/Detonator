@@ -34,10 +34,10 @@ import androidx.core.app.ActivityCompat;
 import com.baidu.aip.face.AipFace;
 import com.baidu.aip.util.Base64Util;
 import com.google.gson.Gson;
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.FaceIdentifyBean;
-import com.leon.detonator.R;
 import com.leon.detonator.util.KeyUtils;
 
 import org.jetbrains.annotations.NotNull;
@@ -53,16 +53,6 @@ public class CameraActivity extends BaseActivity {
     public static final String APP_ID = "16706105";
     public static final String API_KEY = "70s2Tb7TNOARiTxY8xjcI4nO";
     public static final String SECRET_KEY = "gHdWY3maEZKN7UkxKSpCC6H8d3vqFi4r";
-    private static final SparseIntArray ORIENTATION = new SparseIntArray();
-
-    static {
-        ORIENTATION.append(Surface.ROTATION_0, 90);
-        ORIENTATION.append(Surface.ROTATION_90, 0);
-        ORIENTATION.append(Surface.ROTATION_180, 270);
-        ORIENTATION.append(Surface.ROTATION_270, 180);
-    }
-
-    private BaseApplication myApp;
     private String mCameraId;
     private Size mPreviewSize;
     private Size mCaptureSize;
@@ -73,6 +63,15 @@ public class CameraActivity extends BaseActivity {
     private CaptureRequest.Builder mCaptureRequestBuilder;
     private CaptureRequest mCaptureRequest;
     private CameraCaptureSession mCameraCaptureSession;
+    private static final SparseIntArray ORIENTATION = new SparseIntArray() {
+        {
+            append(Surface.ROTATION_0, 90);
+            append(Surface.ROTATION_90, 0);
+            append(Surface.ROTATION_180, 270);
+            append(Surface.ROTATION_270, 180);
+        }
+    };
+
     private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NotNull CameraDevice camera) {
@@ -135,13 +134,9 @@ public class CameraActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
-
         setTitle(R.string.camera_title);
         detecting = false;
-
-        myApp = (BaseApplication) getApplication();
         mTextureView = findViewById(R.id.ttv_Camera);
-
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
             mTextureView.setOnClickListener(view -> {
                 if (!detecting) {

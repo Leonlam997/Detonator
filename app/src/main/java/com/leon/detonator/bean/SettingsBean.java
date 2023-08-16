@@ -8,8 +8,9 @@ import android.view.View;
 
 public class SettingsBean {
     private int icon;
-    private String menuText;
-    private boolean subMenu;
+    private String title;
+    private String subtitle;
+    private boolean more;
     private boolean checkBox;
     private boolean checked;
     private boolean changing;
@@ -23,20 +24,20 @@ public class SettingsBean {
         this.icon = icon;
     }
 
-    public String getMenuText() {
-        return menuText;
+    public String getTitle() {
+        return title;
     }
 
-    public void setMenuText(String menuText) {
-        this.menuText = menuText;
+    public void setTitle(String title) {
+        this.title = title;
     }
 
-    public boolean isSubMenu() {
-        return subMenu;
+    public boolean isMore() {
+        return more;
     }
 
-    public void setSubMenu(boolean subMenu) {
-        this.subMenu = subMenu;
+    public void setMore(boolean more) {
+        this.more = more;
     }
 
     public boolean isCheckBox() {
@@ -69,5 +70,13 @@ public class SettingsBean {
 
     public void setChanging(boolean changing) {
         this.changing = changing;
+    }
+
+    public String getSubtitle() {
+        return subtitle;
+    }
+
+    public void setSubtitle(String subtitle) {
+        this.subtitle = subtitle;
     }
 }

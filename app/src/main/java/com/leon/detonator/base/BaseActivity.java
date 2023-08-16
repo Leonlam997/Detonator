@@ -1,13 +1,12 @@
 package com.leon.detonator.base;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.location.LocationManager;
@@ -30,104 +29,106 @@ import android.widget.TextView;
 
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 
-import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.R;
 
 import java.lang.reflect.Method;
 import java.util.Locale;
 
 /**
- * Created by Administrator on 2018/1/24.
+ * Created by Leon on 2018/1/24.
  */
 
 public abstract class BaseActivity extends AppCompatActivity {
-    private static boolean isWifiConnected = false;
-    private final int CHANGE_VOLTAGE = 1,
-            CHANGE_CURRENT = 2,
-            CHANGE_BATTERY = 3,
-            CHANGE_BLUETOOTH = 4,
-            CHANGE_GPS = 5,
-            CHANGE_WIFI = 6,
-            CHANGE_NETWORK = 7;
-    private LinearLayout parentLinearLayout;
-    private View statusBar, actionBar;
-    private TextView tvBattery, tvCurrentText, tvVoltageText, tvCurrent, tvVoltage;
-    private ImageView ivBattery, ivBluetooth, ivWifi, ivNetwork, ivGPS;
-    private final Handler changeStatus = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            switch (msg.what) {
-                case CHANGE_VOLTAGE:
-                    tvCurrentText.setVisibility(View.VISIBLE);
-                    tvVoltageText.setVisibility(View.VISIBLE);
-                    tvCurrent.setVisibility(View.VISIBLE);
-                    tvVoltage.setVisibility(View.VISIBLE);
-                    tvVoltage.setText((String) msg.obj);
-                    break;
-                case CHANGE_CURRENT:
-                    tvCurrentText.setVisibility(View.VISIBLE);
-                    tvVoltageText.setVisibility(View.VISIBLE);
-                    tvCurrent.setVisibility(View.VISIBLE);
-                    tvVoltage.setVisibility(View.VISIBLE);
-                    tvCurrent.setText((String) msg.obj);
-                    break;
-                case CHANGE_BATTERY:
-                    tvBattery.setText(String.format(Locale.getDefault(), "%d%%", msg.arg1));
-                    if (1 == msg.arg2)
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_charging);
-                    else if (msg.arg1 >= 80)
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_1);
-                    else if (msg.arg1 >= 60)
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_2);
-                    else if (msg.arg1 >= 40)
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_3);
-                    else if (msg.arg1 >= 20)
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_4);
-                    else if (msg.arg1 >= 10)
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_5);
-                    else if (msg.arg1 >= 0)
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_6);
-                    else
-                        ivBattery.setBackgroundResource(R.mipmap.ic_battery_7);
-                    break;
-                case CHANGE_BLUETOOTH:
-                    if (0 != msg.arg1)
-                        ivBluetooth.setBackgroundResource(msg.arg1);
-                    break;
-                case CHANGE_GPS:
-                    if (0 != msg.arg1)
-                        ivGPS.setBackgroundResource(msg.arg1);
-                    break;
-                case CHANGE_WIFI:
-                    if (0 != msg.arg1)
-                        ivWifi.setBackgroundResource(msg.arg1);
-                    break;
-                case CHANGE_NETWORK:
-                    if (0 != msg.arg1)
-                        ivNetwork.setBackgroundResource(msg.arg1);
-                    break;
-                default:
-                    break;
-            }
-            return false;
-        }
-    });
-    private Context mContext;
-    private BatteryBroadcast batteryBroadcast;
+    public BaseApplication myApp;
     private BluetoothBroadcast bluetoothBroadcast;
     private GpsStatusBroadcast gpsStatusBroadcast;
-    private RssiBroadcast rssiBroadcast;
+    private BatteryBroadcast batteryBroadcast;
     private NetworkBroadcast networkBroadcast;
+    private RssiBroadcast rssiBroadcast;
     private TelephonyManager telephonyManager;
+    private LinearLayout parentLinearLayout;
+    private TextView tvCurrentText;
+    private TextView tvVoltageText;
+    private TextView tvBattery;
+    private TextView tvCurrent;
+    private TextView tvVoltage;
+    private ImageView ivBluetooth;
+    private ImageView ivNetwork;
+    private ImageView ivBattery;
+    private ImageView ivWifi;
+    private ImageView ivGPS;
+    private View statusBar;
+    private View actionBar;
+    private static boolean isWifiConnected = false;
+    private final int CHANGE_VOLTAGE = 1;
+    private final int CHANGE_CURRENT = 2;
+    private final int CHANGE_BATTERY = 3;
+    private final int CHANGE_BLUETOOTH = 4;
+    private final int CHANGE_GPS = 5;
+    private final int CHANGE_WIFI = 6;
+    private final int CHANGE_NETWORK = 7;
+    private final Handler changeStatus = new Handler(msg -> {
+        switch (msg.what) {
+            case CHANGE_VOLTAGE:
+                tvCurrentText.setVisibility(View.VISIBLE);
+                tvVoltageText.setVisibility(View.VISIBLE);
+                tvCurrent.setVisibility(View.VISIBLE);
+                tvVoltage.setVisibility(View.VISIBLE);
+                tvVoltage.setText((String) msg.obj);
+                break;
+            case CHANGE_CURRENT:
+                tvCurrentText.setVisibility(View.VISIBLE);
+                tvVoltageText.setVisibility(View.VISIBLE);
+                tvCurrent.setVisibility(View.VISIBLE);
+                tvVoltage.setVisibility(View.VISIBLE);
+                tvCurrent.setText((String) msg.obj);
+                break;
+            case CHANGE_BATTERY:
+                tvBattery.setText(String.format(Locale.getDefault(), "%d%%", msg.arg1));
+                if (1 == msg.arg2)
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_charging);
+                else if (msg.arg1 >= 80)
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_1);
+                else if (msg.arg1 >= 60)
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_2);
+                else if (msg.arg1 >= 40)
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_3);
+                else if (msg.arg1 >= 20)
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_4);
+                else if (msg.arg1 >= 10)
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_5);
+                else if (msg.arg1 >= 0)
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_6);
+                else
+                    ivBattery.setBackgroundResource(R.mipmap.ic_battery_7);
+                break;
+            case CHANGE_BLUETOOTH:
+                if (0 != msg.arg1)
+                    ivBluetooth.setBackgroundResource(msg.arg1);
+                break;
+            case CHANGE_GPS:
+                if (0 != msg.arg1)
+                    ivGPS.setBackgroundResource(msg.arg1);
+                break;
+            case CHANGE_WIFI:
+                if (0 != msg.arg1)
+                    ivWifi.setBackgroundResource(msg.arg1);
+                break;
+            case CHANGE_NETWORK:
+                if (0 != msg.arg1)
+                    ivNetwork.setBackgroundResource(msg.arg1);
+                break;
+        }
+        return false;
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        myApp = (BaseApplication) getApplication();
         initContentView();
         initFontScale();
-        mContext = this;
     }
 
     public void hideActionBar() {
@@ -136,13 +137,13 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     private void initContentView() {
-        ViewGroup viewGroup = (ViewGroup) findViewById(android.R.id.content);
+        ViewGroup viewGroup = findViewById(android.R.id.content);
         viewGroup.removeAllViews();
         parentLinearLayout = new LinearLayout(this);
         parentLinearLayout.setOrientation(LinearLayout.VERTICAL);
         viewGroup.addView(parentLinearLayout);
-        statusBar = LayoutInflater.from(this).inflate(R.layout.layout_status_bar, parentLinearLayout, true);
-        actionBar = LayoutInflater.from(this).inflate(R.layout.layout_action_bar, parentLinearLayout, false);
+        statusBar = LayoutInflater.from(this).inflate(R.layout.layout_bar_status, parentLinearLayout, true);
+        actionBar = LayoutInflater.from(this).inflate(R.layout.layout_bar_action, parentLinearLayout, false);
         parentLinearLayout.addView(actionBar);
         initStatusBar();
         initActionBar();
@@ -161,7 +162,6 @@ public abstract class BaseActivity extends AppCompatActivity {
         ivWifi = findViewById(R.id.ivWifiSignal);
         ivNetwork = findViewById(R.id.ivNetworkSignal);
         ivGPS = findViewById(R.id.ivGps);
-
         tvCurrentText = findViewById(R.id.tvCurrentText);
         tvVoltageText = findViewById(R.id.tvVoltageText);
         tvCurrent = findViewById(R.id.tvCurrent);
@@ -170,24 +170,21 @@ public abstract class BaseActivity extends AppCompatActivity {
         tvVoltageText.setVisibility(View.INVISIBLE);
         tvCurrent.setVisibility(View.INVISIBLE);
         tvVoltage.setVisibility(View.INVISIBLE);
-
         batteryBroadcast = new BatteryBroadcast();
         registerReceiver(batteryBroadcast, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter != null) {
             bluetoothBroadcast = new BluetoothBroadcast();
-            IntentFilter ifbtb = new IntentFilter();
-            ifbtb.addAction("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED");
-            ifbtb.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
-            ifbtb.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
-            ifbtb.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-            ifbtb.addAction("android.bluetooth.BluetoothAdapter.STATE_OFF");
-            ifbtb.addAction("android.bluetooth.BluetoothAdapter.STATE_ON");
-            registerReceiver(bluetoothBroadcast, ifbtb);
+            IntentFilter btb = new IntentFilter();
+            btb.addAction("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED");
+            btb.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+            btb.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+            btb.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+            btb.addAction("android.bluetooth.BluetoothAdapter.STATE_OFF");
+            btb.addAction("android.bluetooth.BluetoothAdapter.STATE_ON");
+            registerReceiver(bluetoothBroadcast, btb);
             ivBluetooth.setBackgroundResource(isWifiConnected ? R.mipmap.ic_bluetooth_connected : mBluetoothAdapter.isEnabled() ? R.mipmap.ic_alert_bluetooth : R.mipmap.ic_none);
         }
-
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         try {
             ivGPS.setBackgroundResource(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ? R.mipmap.ic_gps : R.mipmap.ic_none);
@@ -197,55 +194,40 @@ public abstract class BaseActivity extends AppCompatActivity {
             BaseApplication.writeErrorLog(e);
         }
         rssiBroadcast = new RssiBroadcast();
-        IntentFilter ifrssi = new IntentFilter();
-        ifrssi.addAction(WifiManager.RSSI_CHANGED_ACTION);
-        ifrssi.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
-        registerReceiver(rssiBroadcast, ifrssi);
-
+        IntentFilter rssi = new IntentFilter();
+        rssi.addAction(WifiManager.RSSI_CHANGED_ACTION);
+        rssi.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+        registerReceiver(rssiBroadcast, rssi);
         telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         networkBroadcast = new NetworkBroadcast();
-        if (telephonyManager.getSimOperatorName() != null) {
+        if (telephonyManager.getSimOperatorName() != null)
             telephonyManager.listen(networkBroadcast, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-        } else {
+        else
             ivNetwork.setBackgroundResource(R.mipmap.ic_none);
-        }
     }
 
     public void setProgressVisibility(boolean visibility) {
         findViewById(R.id.pb_processing).setVisibility(visibility ? View.VISIBLE : View.INVISIBLE);
     }
 
-    public void setBackButtonVisibility(boolean visibility) {
-        findViewById(R.id.btn_back).setVisibility(visibility ? View.VISIBLE : View.GONE);
-    }
-
     public void setTitle(@StringRes int title, @StringRes int subtitle) {
-        if (title != 0) {
+        if (title != 0)
             ((TextView) findViewById(R.id.tv_title)).setText(title);
-            ((TextView) findViewById(R.id.tv_title_shape)).setText(title);
-        }
         if (subtitle != 0) {
             findViewById(R.id.tv_subtitle).setVisibility(View.VISIBLE);
             ((TextView) findViewById(R.id.tv_subtitle)).setText(subtitle);
-            findViewById(R.id.tv_subtitle_shape).setVisibility(View.VISIBLE);
-            ((TextView) findViewById(R.id.tv_subtitle_shape)).setText(subtitle);
         }
     }
 
     public void setTitle(@StringRes int title) {
-        if (title != 0) {
+        if (title != 0)
             ((TextView) findViewById(R.id.tv_title)).setText(title);
-            ((TextView) findViewById(R.id.tv_title_shape)).setText(title);
-        }
         findViewById(R.id.tv_subtitle).setVisibility(View.GONE);
-        findViewById(R.id.tv_subtitle_shape).setVisibility(View.GONE);
     }
 
     public void setTitle(String title) {
         ((TextView) findViewById(R.id.tv_title)).setText(title);
-        ((TextView) findViewById(R.id.tv_title_shape)).setText(title);
         findViewById(R.id.tv_subtitle).setVisibility(View.GONE);
-        findViewById(R.id.tv_subtitle_shape).setVisibility(View.GONE);
     }
 
     @Override
@@ -279,11 +261,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     private void initFontScale() {
-        LocalSettingBean settingBean = BaseApplication.readSettings();
         Configuration configuration = getResources().getConfiguration();
         final float[] scale = {1f, 1.15f, 1.3f, 1.45f};
-        if (settingBean.getFontScale() > 0 && settingBean.getFontScale() < scale.length)
-            configuration.fontScale = scale[settingBean.getFontScale()];
+        if (BaseApplication.settings.getFontScale() > 0 && BaseApplication.settings.getFontScale() < scale.length)
+            configuration.fontScale = scale[BaseApplication.settings.getFontScale()];
         else
             configuration.fontScale = scale[0];
         DisplayMetrics metrics = new DisplayMetrics();
@@ -419,7 +400,6 @@ public abstract class BaseActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
-                // Wifi的连接速度及信号强度：
                 int strength;
                 WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
                 Message msg = Message.obtain();
@@ -429,31 +409,13 @@ public abstract class BaseActivity extends AppCompatActivity {
                     String ssid = info.getSSID();
                     if (ssid.startsWith("\"") && ssid.endsWith("\""))
                         ssid = ssid.substring(1, ssid.length() - 1);
-
                     if (ssid.length() > 0 && !"0x".equals(ssid) && !"<unknown ssid>".equals(ssid)) {
-                        int[] wifiSignal = {R.mipmap.ic_wifi_1, R.mipmap.ic_wifi_2, R.mipmap.ic_wifi_3, R.mipmap.ic_wifi_4};
-
+                        final int[] wifiSignal = {R.mipmap.ic_wifi_1, R.mipmap.ic_wifi_2, R.mipmap.ic_wifi_3, R.mipmap.ic_wifi_4};
                         strength = WifiManager.calculateSignalLevel(info.getRssi(), wifiSignal.length);
-                    /*
-                    int level = info.getRssi();
-                    //根据获得的信号强度发送信息
-                    if (level <= 0 && level >= -50) strength = 3;
-                    else if (level < -50 && level >= -70) strength = 2;
-                    else if (level < -70 && level >= -90) strength = 1;
-                        //else if (level < -80 && level >= -100)
-                    else strength = 0;
-                    */
                         msg.arg1 = wifiSignal[strength];
-                        // 链接速度
-                        //int speed = info.getLinkSpeed();
-                        // 链接速度单位
-                        //String units = WifiInfo.LINK_SPEED_UNITS;
-                        // Wifi源名称
-                        //String ssid = info.getSSID();
                     }
-                } else {
+                } else
                     msg.arg1 = R.mipmap.ic_none;
-                }
                 changeStatus.sendMessage(msg);
             } catch (Exception e) {
                 BaseApplication.writeErrorLog(e);
@@ -464,44 +426,43 @@ public abstract class BaseActivity extends AppCompatActivity {
     }
 
     private class NetworkBroadcast extends PhoneStateListener {
+        @SuppressLint("MissingPermission")
         @Override
         public void onSignalStrengthsChanged(SignalStrength signalStrength) {
             super.onSignalStrengthsChanged(signalStrength);
-            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-                int level;
-                int dbm = 0;
-                int[] networkSignal = {R.mipmap.ic_none, R.mipmap.ic_signal_1, R.mipmap.ic_signal_2, R.mipmap.ic_signal_3, R.mipmap.ic_signal_4, R.mipmap.ic_signal_5};
+            int level;
+            int dbm = 0;
+            int[] networkSignal = {R.mipmap.ic_none, R.mipmap.ic_signal_1, R.mipmap.ic_signal_2, R.mipmap.ic_signal_3, R.mipmap.ic_signal_4, R.mipmap.ic_signal_5};
 
-                if (telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_LTE) {
-                    //4G网络 最佳范围   >-90dBm 越大越好
-                    String signalInfo = signalStrength.toString();
-                    String[] params = signalInfo.split(" ");
-                    dbm = Integer.parseInt(params[9]);
-                } else if (telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_HSDPA ||
-                        telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_HSPA ||
-                        telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_HSUPA ||
-                        telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_UMTS) {
-                    //3G网络最佳范围  >-90dBm  越大越好  ps:中国移动3G获取不到  返回的无效dbm值是正数（85dbm）
-                    //在这个范围的已经确定是3G，但不同运营商的3G有不同的获取方法，故在此需做判断 判断运营商与网络类型的工具类在最下方
-                    String yys = telephonyManager.getSimOperatorName();//获取当前运营商
+            if (telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_LTE) {
+                //4G网络 最佳范围   >-90dBm 越大越好
+                String signalInfo = signalStrength.toString();
+                String[] params = signalInfo.split(" ");
+                dbm = Integer.parseInt(params[9]);
+            } else if (telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_HSDPA ||
+                    telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_HSPA ||
+                    telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_HSUPA ||
+                    telephonyManager.getNetworkType() == TelephonyManager.NETWORK_TYPE_UMTS) {
+                //3G网络最佳范围  >-90dBm  越大越好  ps:中国移动3G获取不到  返回的无效dbm值是正数（85dbm）
+                //在这个范围的已经确定是3G，但不同运营商的3G有不同的获取方法，故在此需做判断 判断运营商与网络类型的工具类在最下方
+                String yys = telephonyManager.getSimOperatorName();//获取当前运营商
 
-                    if (yys.equals("中国联通")) dbm = signalStrength.getCdmaDbm();
-                    else if (yys.equals("中国电信")) dbm = signalStrength.getEvdoDbm();
-                    //else if (yys.equals("中国移动")) //中国移动3G不可获取，故在此返回0
-                } else {
-                    //2G网络最佳范围>-90dBm 越大越好
-                    dbm = -113 + 2 * signalStrength.getGsmSignalStrength();
-                }
-                if (dbm > -75) level = 5;
-                else if (dbm > -85) level = 4;
-                else if (dbm > -90) level = 3;
-                else if (dbm > -95) level = 2;
-                else level = 1;
-                Message msg = Message.obtain();
-                msg.what = CHANGE_NETWORK;
-                msg.arg1 = networkSignal[level];
-                changeStatus.sendMessage(msg);
+                if (yys.equals("中国联通")) dbm = signalStrength.getCdmaDbm();
+                else if (yys.equals("中国电信")) dbm = signalStrength.getEvdoDbm();
+                //else if (yys.equals("中国移动")) //中国移动3G不可获取，故在此返回0
+            } else {
+                //2G网络最佳范围>-90dBm 越大越好
+                dbm = -113 + 2 * signalStrength.getGsmSignalStrength();
             }
+            if (dbm > -75) level = 5;
+            else if (dbm > -85) level = 4;
+            else if (dbm > -90) level = 3;
+            else if (dbm > -95) level = 2;
+            else level = 1;
+            Message msg = Message.obtain();
+            msg.what = CHANGE_NETWORK;
+            msg.arg1 = networkSignal[level];
+            changeStatus.sendMessage(msg);
         }
     }
 

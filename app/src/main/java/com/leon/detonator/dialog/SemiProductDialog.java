@@ -18,15 +18,15 @@ import com.leon.detonator.R;
 
 public class SemiProductDialog extends Dialog {
     private final Context mContext;
+    private String code;
+    private boolean autoClose = true;
+    private int style = 0;
+    private int titleId = 0;
+    private int subtitleId = 0;
     private final Handler autoCloseHandler = new Handler(message -> {
         dismiss();
         return false;
     });
-    private int style = 0;
-    private int titleId = 0;
-    private int subtitleId = 0;
-    private String code;
-    private boolean autoClose = true;
 
     public SemiProductDialog(@NonNull Context context) {
         super(context, R.style.SemiProductDialog);
@@ -36,7 +36,7 @@ public class SemiProductDialog extends Dialog {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.layout_dialog);
+        setContentView(R.layout.layout_dialog_semiproduct);
         WindowManager.LayoutParams lp = getWindow().getAttributes();
         ConstraintLayout layout = findViewById(R.id.cl_dialog);
         layout.measure(0, 0);

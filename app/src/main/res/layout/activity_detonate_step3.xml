@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorCommonBackground"
     android:orientation="vertical">
+
     <LinearLayout
         android:id="@+id/fl_charge"
         android:layout_width="match_parent"
@@ -30,6 +32,7 @@
                 style="@style/StyleProgressBarMini"
                 android:layout_width="match_parent"
                 android:layout_height="30dp"
+                android:layout_centerVertical="true"
                 android:layout_marginStart="50dp"
                 android:layout_marginEnd="100dp"
                 android:background="@drawable/shape_progressbar_mini"
@@ -38,8 +41,9 @@
             <TextView
                 android:id="@+id/tv_charge_percentage"
                 android:layout_width="100dp"
-                android:layout_height="30dp"
+                android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
                 android:textAlignment="center"
                 android:textColor="@color/colorRescanText"
                 android:textSize="@dimen/common_text_size" />
@@ -61,15 +65,17 @@
                 android:layout_height="wrap_content"
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="80dp"
-                android:src="@mipmap/ic_slide_bg" />
+                android:src="@mipmap/ic_slide_bg"
+                tools:ignore="ContentDescription" />
 
             <TextView
                 android:id="@+id/tv_hint"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentTop="true"
                 android:layout_centerHorizontal="true"
-                android:layout_marginTop="118dp"
+                android:layout_alignTop="@id/iv_slide_bg"
+                android:layout_alignBottom="@id/iv_slide_bg"
+                android:gravity="center_vertical"
                 android:text="@string/det_slide_hint"
                 android:textColor="@color/colorAccent"
                 android:textSize="23sp" />
@@ -80,7 +86,7 @@
                 android:layout_height="wrap_content"
                 android:layout_below="@id/tv_hint"
                 android:layout_centerHorizontal="true"
-                android:layout_marginTop="100dp"
+                android:layout_marginTop="80dp"
                 android:textColor="@android:color/black"
                 android:textSize="20sp" />
 
@@ -102,7 +108,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
-            <com.leon.detonator.base.SliderImageView
+            <com.leon.detonator.component.SliderImageView
                 android:id="@+id/iv_slider"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

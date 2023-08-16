@@ -5,176 +5,179 @@
     android:layout_height="match_parent"
     android:background="@color/colorCommonBackground">
 
-    <TextView
-        android:id="@+id/txt_code"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="10dp"
-        android:text="@string/enterprise_code"
-        android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
-
-    <TextView
-        android:id="@+id/txt_notnull1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="20dp"
-        android:text="@string/enterprise_not_null"
-        android:textColor="@color/colorNotNull"
-        android:textSize="@dimen/label_text_size" />
-
-    <EditText
-        android:id="@+id/et_code"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_toStartOf="@id/txt_notnull1"
-        android:layout_toEndOf="@id/txt_code"
-        android:hint="@string/enterprise_hint"
-        android:imeOptions="actionDone"
-        android:importantForAutofill="no"
-        android:inputType="text"
-        android:maxLength="50"
-        android:textSize="@dimen/table_text_size" />
-
-    <TextView
-        android:id="@+id/txt_id"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_code"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="10dp"
-        android:text="@string/enterprise_id"
-        android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
-
-    <TextView
-        android:id="@+id/txt_notnull2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_code"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="20dp"
-        android:text="@string/enterprise_not_null"
-        android:textColor="@color/colorNotNull"
-        android:textSize="@dimen/label_text_size" />
-
-    <EditText
-        android:id="@+id/et_id"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_code"
-        android:layout_toStartOf="@id/txt_notnull2"
-        android:layout_toEndOf="@id/txt_id"
-        android:hint="@string/enterprise_hint_id"
-        android:imeOptions="actionDone"
-        android:importantForAutofill="no"
-        android:inputType="numberDecimal"
-        android:maxLength="18"
-        android:textSize="@dimen/table_text_size" />
-
-    <TextView
-        android:id="@+id/txt_commercial"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_id"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="10dp"
-        android:text="@string/enterprise_commercial"
-        android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/label_text_size" />
-
-    <CheckBox
-        android:id="@+id/cb_commercial"
-        style="@style/NormalCheckBoxTheme"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/txt_id"
-        android:layout_marginTop="10dp"
-        android:layout_toEndOf="@id/txt_commercial" />
-
-    <RelativeLayout
-        android:id="@+id/rl_commercial"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
         android:layout_above="@id/ll1"
-        android:layout_below="@id/txt_commercial">
+        android:layout_alignParentTop="true"
+        android:scrollbars="vertical">
 
-        <TextView
-            android:id="@+id/txt_contract"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="10dp"
-            android:text="@string/enterprise_contract_code"
-            android:textColor="@color/colorLabelText"
-            android:textSize="@dimen/label_text_size" />
-
-        <TextView
-            android:id="@+id/txt_notnull3"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="20dp"
-            android:text="@string/enterprise_not_null"
-            android:textColor="@color/colorNotNull"
-            android:textSize="@dimen/label_text_size" />
-
-        <EditText
-            android:id="@+id/et_contract"
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_toStartOf="@id/txt_notnull3"
-            android:layout_toEndOf="@id/txt_contract"
-            android:hint="@string/enterprise_hint"
-            android:imeOptions="actionDone"
-            android:importantForAutofill="no"
-            android:inputType="text"
-            android:maxLength="50"
-            android:textSize="@dimen/table_text_size" />
+            android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/txt_project"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/txt_contract"
-            android:layout_marginStart="20dp"
-            android:layout_marginTop="10dp"
-            android:text="@string/enterprise_project_code"
-            android:textColor="@color/colorLabelText"
-            android:textSize="@dimen/label_text_size" />
+            <TextView
+                android:id="@+id/txt_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="10dp"
+                android:text="@string/enterprise_code"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/label_text_size" />
 
-        <TextView
-            android:id="@+id/txt_notnull4"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/txt_contract"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="20dp"
-            android:text="@string/enterprise_not_null"
-            android:textColor="@color/colorNotNull"
-            android:textSize="@dimen/label_text_size"
-            android:visibility="invisible" />
+            <TextView
+                android:id="@+id/txt_notnull1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="10dp"
+                android:text="@string/enterprise_not_null_flag"
+                android:textColor="@color/colorNotNull"
+                android:textSize="@dimen/label_text_size" />
 
-        <EditText
-            android:id="@+id/et_project"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/txt_contract"
-            android:layout_toStartOf="@id/txt_notnull4"
-            android:layout_toEndOf="@id/txt_project"
-            android:hint="@string/enterprise_hint"
-            android:imeOptions="actionDone"
-            android:importantForAutofill="no"
-            android:inputType="text"
-            android:maxLength="50"
-            android:textSize="@dimen/table_text_size" />
-    </RelativeLayout>
+            <EditText
+                android:id="@+id/et_code"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_toStartOf="@id/txt_notnull1"
+                android:layout_toEndOf="@id/txt_code"
+                android:hint="@string/enterprise_hint"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLength="50"
+                android:textSize="@dimen/table_text_size" />
+
+            <TextView
+                android:id="@+id/txt_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/txt_code"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="10dp"
+                android:text="@string/enterprise_id"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/label_text_size" />
+
+            <TextView
+                android:id="@+id/txt_notnull2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/txt_code"
+                android:layout_alignParentEnd="true"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="10dp"
+                android:text="@string/enterprise_not_null_flag"
+                android:textColor="@color/colorNotNull"
+                android:textSize="@dimen/label_text_size" />
+
+            <EditText
+                android:id="@+id/et_id"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/txt_code"
+                android:layout_toStartOf="@id/txt_notnull2"
+                android:layout_toEndOf="@id/txt_id"
+                android:hint="@string/enterprise_hint_id"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal"
+                android:maxLength="18"
+                android:textSize="@dimen/table_text_size" />
+
+            <CheckBox
+                android:id="@+id/cb_commercial"
+                style="@style/NormalCheckBoxTheme"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/txt_id"
+                android:layout_marginStart="20dp"
+                android:layout_marginTop="10dp"
+                android:text="@string/enterprise_commercial"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/label_text_size" />
+
+            <RelativeLayout
+                android:id="@+id/rl_commercial"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/cb_commercial">
+
+                <TextView
+                    android:id="@+id/txt_contract"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/enterprise_contract_code"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/label_text_size" />
+
+                <TextView
+                    android:id="@+id/txt_notnull3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginEnd="10dp"
+                    android:text="@string/enterprise_not_null_flag"
+                    android:textColor="@color/colorNotNull"
+                    android:textSize="@dimen/label_text_size" />
+
+                <EditText
+                    android:id="@+id/et_contract"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_toStartOf="@id/txt_notnull3"
+                    android:layout_toEndOf="@id/txt_contract"
+                    android:hint="@string/enterprise_hint"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="50"
+                    android:textSize="@dimen/table_text_size" />
+
+                <TextView
+                    android:id="@+id/txt_project"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/txt_contract"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/enterprise_project_code"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/label_text_size" />
+
+                <EditText
+                    android:id="@+id/et_project"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/txt_contract"
+                    android:layout_toStartOf="@id/txt_notnull3"
+                    android:layout_toEndOf="@id/txt_project"
+                    android:hint="@string/enterprise_hint"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="50"
+                    android:textSize="@dimen/table_text_size" />
+            </RelativeLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/rl_commercial"
+                android:layout_alignParentEnd="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="5dp"
+                android:layout_marginEnd="10dp"
+                android:text="@string/enterprise_not_null"
+                android:textColor="@color/colorNotNull"
+                android:textSize="@dimen/label_text_size" />
+        </RelativeLayout>
+    </ScrollView>
 
     <GridLayout
         android:id="@+id/ll1"
@@ -185,7 +188,7 @@
         android:layout_marginBottom="10dp"
         android:orientation="horizontal">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_save"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -197,7 +200,7 @@
             android:textSize="@dimen/button_text_size"
             button:bigButton="true" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_clear"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -209,4 +212,5 @@
             android:textSize="@dimen/button_text_size"
             button:bigButton="true" />
     </GridLayout>
+
 </RelativeLayout>

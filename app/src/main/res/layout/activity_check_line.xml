@@ -1,79 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:button="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorCommonBackground"
-    android:orientation="vertical">
-
-    <LinearLayout
-        android:id="@+id/ll1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:gravity="center_horizontal"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/txt_tube"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/text_tube_num"
-            android:textColor="@android:color/black"
-            android:textSize="@dimen/big_text_size" />
-
-        <TextView
-            android:id="@+id/tv_tube"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:ellipsize="middle"
-            android:singleLine="true"
-            android:textColor="@color/colorPopupTitleText"
-            android:textSize="@dimen/big_text_size" />
-    </LinearLayout>
+    android:background="@color/colorCommonBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:gravity="center_horizontal"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/txt_tube"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/text_shell_code"
+                android:textColor="@android:color/black"
+                android:textSize="@dimen/big_text_size" />
+
+            <TextView
+                android:id="@+id/tv_tube"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:ellipsize="middle"
+                android:singleLine="true"
+                android:textColor="@color/colorPopupTitleText"
+                android:textSize="@dimen/big_text_size" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/txt_delay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/text_current_delay"
+                android:textColor="@android:color/black"
+                android:textSize="@dimen/big_text_size" />
+
+            <TextView
+                android:id="@+id/tv_delay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="50dp"
+                android:textColor="@color/colorPopupTitleText"
+                android:textSize="@dimen/big_text_size" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/txt_delay"
+            android:id="@+id/tv_lock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/text_current_delay"
-            android:textColor="@android:color/black"
-            android:textSize="@dimen/big_text_size" />
-
-        <TextView
-            android:id="@+id/tv_delay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="50dp"
-            android:textColor="@color/colorPopupTitleText"
-            android:textSize="@dimen/big_text_size" />
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"
+            android:text="@string/text_unlock"
+            android:textColor="@android:color/holo_red_dark"
+            android:textSize="@dimen/common_text_size" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/tv_lock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="20dp"
-        android:text="@string/text_unlock"
-        android:textColor="@android:color/holo_red_dark"
-        android:textSize="@dimen/common_text_size" />
 
     <GridLayout
-        android:layout_marginTop="30dp"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="5dp">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_detect"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
@@ -84,7 +89,7 @@
             button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_status"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
@@ -95,4 +100,4 @@
             button:bigButton="true"
             button:keyCode="2" />
     </GridLayout>
-</LinearLayout>
+</RelativeLayout>

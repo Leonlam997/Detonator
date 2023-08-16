@@ -1,303 +1,333 @@
 package com.leon.detonator.activity;
 
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import com.leon.detonator.R;
 import com.leon.detonator.adapter.SchemeAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.base.MyButton;
-import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.bean.SchemeBean;
-import com.leon.detonator.util.ConstantUtils;
-import com.leon.detonator.util.FilePath;
+import com.leon.detonator.component.MyButton;
+import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.util.KeyUtils;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class SchemeActivity extends BaseActivity {
-    private final List<SchemeBean> list = new ArrayList<>();
-    private final List<SchemeBean> allList = new ArrayList<>();
-    private BaseApplication myApp;
+    private List<SchemeBean> list = new ArrayList<>();
     private SchemeAdapter adapter;
-    private Date lastFile;
-    private int lastTouchX;
-    private int clickIndex;
-    private PopupWindow popupMenu;
-    private MyButton btnRegister;
+    private MyButton btnAdd;
+    private MyButton btnDelete;
     private MyButton btnModify;
+    private CheckBox cbSelected;
+    private boolean[] beforeSelect;
+    private boolean selectScheme;
 
-    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scheme);
-        setTitle(R.string.delay_scheme);
-        myApp = (BaseApplication) getApplication();
-        File file = new File(FilePath.FILE_SCHEME_PATH);
-        if (file.exists()) {
-            if (!file.isDirectory() && file.delete() && !file.mkdirs()) {
-                myApp.myToast(this, R.string.message_copy_file_fail);
-                return;
-            }
-        } else if (!file.mkdirs()) {
-            myApp.myToast(this, R.string.message_copy_file_fail);
-            return;
-        }
-        btnRegister = findViewById(R.id.btn_register);
-        btnRegister.setOnClickListener(v -> launchTask(0));
+        selectScheme = getIntent().getBooleanExtra(KeyUtils.KEY_SELECT_SCHEME, false);
+        setTitle(selectScheme ? R.string.select_schedule : R.string.delay_scheme);
+        btnAdd = findViewById(R.id.btn_new_scheme);
+        btnAdd.setOnClickListener(v -> launchTask(0));
+        findViewById(R.id.table_title).setBackgroundColor(getColor(R.color.colorTableTitleBackground));
+        btnDelete = findViewById(R.id.btn_delete);
+        btnDelete.setOnClickListener(v -> launchTask(2));
         btnModify = findViewById(R.id.btn_modify);
         btnModify.setOnClickListener(v -> launchTask(1));
-        findViewById(R.id.btn_new_scheme).setOnClickListener(v -> launchTask(2));
-        myApp.readFromFile(FilePath.FILE_SCHEME_LIST, allList, SchemeBean.class);
-        refreshList(false);
-        initData();
-        adapter = new SchemeAdapter(this, list, pos -> {
-            btnRegister.setEnabled(true);
-            btnModify.setEnabled(list.get(pos).getAmount() > 0);
-            for (SchemeBean bean : allList)
-                if (bean.isTunnel() == myApp.isTunnel()) {
-                    bean.setSelected(bean.equals(list.get(pos)));
-                }
-            refreshList(true);
-        });
-        lastFile = null;
+        list = DbUtil.getSchemeList();
+        if (selectScheme) {
+            beforeSelect = new boolean[list.size()];
+            for (int i = 0; i < list.size(); i++)
+                beforeSelect[i] = list.get(i).isSelected();
+            btnDelete.setVisibility(View.GONE);
+            btnModify.setVisibility(View.GONE);
+            btnAdd.setTextId(R.string.button_confirm);
+            btnAdd.setBigButton(true);
+        } else {
+            boolean b = false;
+            for (SchemeBean bean : list)
+                if (bean.isSelected())
+                    if (b) {
+                        bean.setSelected(false);
+                        DbUtil.updateScheme(bean);
+                    } else
+                        b = true;
+        }
+        adapter = new SchemeAdapter(this, list);
         ListView listView = findViewById(R.id.lv_scheme);
         listView.setAdapter(adapter);
-        for (int i = 0; i < list.size(); i++)
-            if (list.get(i).isSelected()) {
-                lastFile = list.get(i).getCreateTime();
-                listView.smoothScrollToPosition(i);
-                listView.setSelection(i);
-                break;
+        listView.setOnItemClickListener((adapterView, view, i, l) -> {
+            if (!selectScheme && list.get(i).isSelected())
+                launchTask(3);
+            else {
+                if (!selectScheme)
+                    for (SchemeBean bean : list)
+                        if (bean.isSelected()) {
+                            bean.setSelected(false);
+                            DbUtil.updateScheme(bean);
+                        }
+                list.get(i).setSelected(!list.get(i).isSelected());
+                adapter.updateList(list);
+                if (!selectScheme)
+                    DbUtil.updateScheme(list.get(i));
+                checkButton();
             }
-        listView.setOnTouchListener((v, event) -> {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    lastTouchX = (int) event.getX();
-                    break;
-                case MotionEvent.ACTION_UP:
-                    listView.performClick();
-                    break;
-            }
-            return false;
         });
-        listView.setOnItemClickListener((adapterView, view, i, l) -> showPopupWindow(adapterView, view, i));
-        listView.requestFocus();
+        cbSelected = findViewById(R.id.cb_selected);
+        cbSelected.setClickable(true);
+        cbSelected.setVisibility(selectScheme ? View.VISIBLE : View.INVISIBLE);
+        cbSelected.setOnClickListener(v -> {
+            if (list.size() > 0) {
+                for (SchemeBean bean : list)
+                    bean.setSelected(cbSelected.isChecked());
+                checkButton();
+                adapter.updateList(list);
+            } else
+                cbSelected.setChecked(false);
+            btnAdd.setEnabled(!selectScheme || cbSelected.isChecked());
+        });
+        checkButton();
+        findViewById(R.id.btn_new_scheme).requestFocus();
     }
 
-    private void initData() {
-        for (SchemeBean bean : list) {
-            List<DetonatorInfoBean> beans = new ArrayList<>();
-            myApp.readFromFile(bean.fileName(), beans, DetonatorInfoBean.class);
-            if (bean.getAmount() != beans.size())
-                bean.setAmount(beans.size());
-        }
-    }
-
-    private void refreshList(boolean save) {
-        if (save)
-            try {
-                myApp.writeToFile(FilePath.FILE_SCHEME_LIST, allList);
-            } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
-            }
-        list.clear();
-        btnRegister.setEnabled(false);
+    private void checkButton() {
+        btnAdd.setEnabled(!selectScheme);
         btnModify.setEnabled(false);
-        for (SchemeBean bean : allList)
-            if (bean.isTunnel() == myApp.isTunnel()) {
-                list.add(bean);
-                if (bean.isSelected()) {
-                    btnRegister.setEnabled(true);
-                    btnModify.setEnabled(bean.getAmount() > 0);
-                }
-            }
-        if (adapter != null)
-            adapter.updateList(list);
-    }
-
-    private void showPopupWindow(AdapterView<?> adapterView, View view, int position) {
-        String[] menu;
-        menu = new String[]{getString(R.string.menu_select),
-                getString(R.string.menu_modify_name),
-                getString(R.string.menu_delete_scheme)};
-        for (int i = 0; i < menu.length; i++)
-            menu[i] = (i + 1) + "." + menu[i];
-        View popupView = SchemeActivity.this.getLayoutInflater().inflate(R.layout.layout_popupwindow, adapterView, false);
-        popupView.findViewById(R.id.tvTitle).setVisibility(View.GONE);
-        clickIndex = position;
-        ListView lsvMenu = popupView.findViewById(R.id.lvPopupMenu);
-        lsvMenu.setAdapter(new ArrayAdapter<>(SchemeActivity.this, R.layout.layout_popupwindow_menu, menu));
-        lsvMenu.setOnItemClickListener((parent, view1, position1, id) -> launchMenu(position1));
-        lsvMenu.setOnKeyListener((v, keyCode, event) -> {
-            launchMenu(keyCode - KeyEvent.KEYCODE_1);
-            return false;
-        });
-        popupMenu = new PopupWindow(popupView, 150, 38 * menu.length);
-        popupMenu.setAnimationStyle(R.style.popup_window_anim);
-        popupMenu.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        popupMenu.setFocusable(true);
-        popupMenu.setOutsideTouchable(true);
-        popupMenu.update();
-        popupMenu.showAsDropDown(view, lastTouchX > 75 ? lastTouchX - 75 : 0, list.size() == 0 ? -145 : 0);
-    }
-
-    private void launchMenu(int position) {
-        if (popupMenu != null && popupMenu.isShowing())
-            popupMenu.dismiss();
-        switch (position) {
-            case 0:
-                BaseApplication.writeFile(getString(R.string.menu_select) + ":" + list.get(clickIndex));
-                for (SchemeBean schemeBean : allList)
-                    if (schemeBean.isTunnel() == myApp.isTunnel()) {
-                        schemeBean.setSelected(schemeBean.equals(list.get(clickIndex)));
-                    }
-                refreshList(true);
-                break;
-            case 1:
-                modifyName(false);
-                break;
-            case 2:
-                BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
-                        .setTitle(R.string.dialog_title_delete_scheme)
-                        .setMessage(R.string.dialog_confirm_delete_scheme)
-                        .setPositiveButton(R.string.btn_confirm, (dialog1, which1) -> {
-                            BaseApplication.writeFile(getString(R.string.menu_delete_scheme) + ":" + list.get(clickIndex));
-                            allList.remove(list.get(clickIndex));
-                            refreshList(true);
-                        })
-                        .setNegativeButton(R.string.btn_cancel, null)
-                        .show(), true);
-                break;
-        }
-    }
-
-    private void launchTask(int i) {
-        if (i == 2)
-            modifyName(true);
-        else if ((i == 0 && btnRegister.isEnabled()) || (i == 1 && btnModify.isEnabled())) {
-            for (SchemeBean schemeBean : list)
-                if (schemeBean.isSelected()) {
-                    BaseApplication.writeFile(getString(i == 0 ? R.string.button_add_detonator : R.string.menu_modify) + ":" + schemeBean);
-                    if (lastFile == null || !lastFile.equals(schemeBean.getCreateTime())) {
-                        change(schemeBean.fileName());
-                        lastFile = schemeBean.getCreateTime();
-                    }
-                    Intent intent = new Intent();
-                    intent.setClass(SchemeActivity.this, DetonatorListActivity.class);
-                    intent.putExtra(KeyUtils.KEY_CREATE_DELAY_LIST, i == 0 ? ConstantUtils.RESUME_LIST : ConstantUtils.MODIFY_LIST);
-                    startActivity(intent);
+        btnDelete.setEnabled(list.size() > 0);
+        if (selectScheme) {
+            cbSelected.setChecked(list.size() > 0);
+            for (SchemeBean bean : list)
+                if (!bean.isSelected()) {
+                    cbSelected.setChecked(false);
                     break;
                 }
+        }
+        for (SchemeBean bean : list)
+            if (bean.isSelected()) {
+                btnModify.setEnabled(true);
+                btnAdd.setEnabled(true);
+                break;
+            }
+    }
+
+    private void launchTask(int what) {
+        switch (what) {
+            case KeyEvent.KEYCODE_1:
+            case 0:
+                if (selectScheme) {
+                    if (btnAdd.isEnabled()) {
+                        for (int i = 0; i < list.size(); i++)
+                            if (list.get(i).isSelected() != beforeSelect[i])
+                                DbUtil.updateScheme(list.get(i));
+                        setResult(RESULT_OK);
+                        finish();
+                    }
+                } else
+                    modifyName(true);
+                break;
+            case KeyEvent.KEYCODE_2:
+            case 1:
+                if (!selectScheme && btnModify.isEnabled())
+                    modifyName(false);
+                break;
+            case KeyEvent.KEYCODE_3:
+            case 2:
+                if (!selectScheme && btnDelete.isEnabled())
+                    batchDelete();
+                break;
+            case 3:
+                if (!selectScheme)
+                    for (SchemeBean bean : list)
+                        if (bean.isSelected()) {
+                            Intent intent = new Intent(SchemeActivity.this, DetonatorListActivity.class);
+                            intent.putExtra(KeyUtils.KEY_TABLE_ID, bean.getId());
+                            startActivity(intent);
+                            break;
+                        }
         }
     }
 
     private void modifyName(boolean newScheme) {
         runOnUiThread(() -> {
-            final View v = LayoutInflater.from(SchemeActivity.this).inflate(R.layout.layout_edit_dialog, null, false);
+            final View v = LayoutInflater.from(SchemeActivity.this).inflate(R.layout.layout_dialog_edit, null, false);
             final EditText etName = v.findViewById(R.id.et_dialog);
             final TextView tvDelay = v.findViewById(R.id.tv_dialog);
+            int i;
+            for (i = 0; i < list.size(); i++)
+                if (list.get(i).isSelected())
+                    break;
+            tvDelay.setVisibility(View.GONE);
             etName.setHint(R.string.hint_input_name);
             etName.setFilters(new InputFilter[]{new InputFilter.LengthFilter(20)});
             etName.setInputType(InputType.TYPE_CLASS_TEXT);
-            tvDelay.setVisibility(View.GONE);
-            if (!newScheme)
-                etName.setText(list.get(clickIndex).getName());
+            etName.setText(newScheme ? String.format(Locale.getDefault(), getString(R.string.default_scheme_name), list.size() + 1) : list.get(i).getName());
+            etName.setSelection(etName.getText().length());
+            int finalI = i;
             BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
                     .setTitle(newScheme ? R.string.dialog_title_new_scheme : R.string.dialog_title_modify_scheme)
                     .setView(v)
-                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
+                    .setCancelable(false)
+                    .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
                         if (etName.getText() != null && !etName.getText().toString().isEmpty()) {
-                            if (newScheme) {
-                                SchemeBean bean = new SchemeBean();
-                                bean.setName(etName.getText().toString());
-                                bean.setTunnel(myApp.isTunnel());
-                                bean.setSelected(true);
-                                for (SchemeBean schemeBean : allList)
-                                    if (schemeBean.isTunnel() == myApp.isTunnel())
-                                        schemeBean.setSelected(false);
-                                allList.add(bean);
-                                BaseApplication.writeFile(getString(R.string.button_new_scheme) + ":" + bean);
-                                refreshList(true);
-                                launchTask(0);
-                            } else {
-                                BaseApplication.writeFile(getString(R.string.menu_modify_name) + ":" + list.get(clickIndex).toString() + "->" + etName.getText().toString());
-                                int i = allList.indexOf(list.get(clickIndex));
-                                if (i >= 0) {
-                                    allList.get(i).setName(etName.getText().toString());
-                                    refreshList(true);
+                            SchemeBean bean = newScheme ? new SchemeBean() : list.get(finalI);
+                            bean.setName(etName.getText().toString());
+                            for (SchemeBean bean1 : list)
+                                if (bean1.isSelected()) {
+                                    bean1.setSelected(false);
+                                    DbUtil.updateScheme(bean1);
                                 }
+                            if (newScheme) {
+                                bean.setSelected(true);
+                                list.add(bean);
+                                checkButton();
                             }
+                            DbUtil.updateScheme(bean);
+                            adapter.updateList(list);
                         } else
                             myApp.myToast(SchemeActivity.this, R.string.message_name_input_error);
                     })
-                    .setNegativeButton(R.string.btn_cancel, null)
+                    .setNegativeButton(R.string.button_cancel, null)
                     .show(), false);
         });
     }
 
-    private void change(String name) {
-        BaseApplication.copyFile(FilePath.FILE_SCHEME_PATH + "/" + name, myApp.getListFile());
-        myApp.deleteDetectTempFiles();
+    private void batchDelete() {
+        final View modifyView = LayoutInflater.from(SchemeActivity.this).inflate(R.layout.layout_dialog_batch_modify, findViewById(R.id.lv_scheme), false);
+        final EditText etFrom = modifyView.findViewById(R.id.et_from);
+        final EditText etTo = modifyView.findViewById(R.id.et_to);
+        final EditText etDelay = modifyView.findViewById(R.id.et_delay);
+        final CheckBox cbSelectAll = modifyView.findViewById(R.id.cb_selected_all);
+        modifyView.findViewById(R.id.ll_delay).setVisibility(View.GONE);
+        for (int i = 0; i < list.size(); i++)
+            if (list.get(i).isSelected()) {
+                etFrom.setText(String.format(Locale.getDefault(), "%d", i + 1));
+                etFrom.setSelection(etFrom.getText().length());
+                break;
+            }
+        cbSelectAll.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            etFrom.setEnabled(!isChecked);
+            etTo.setEnabled(!isChecked);
+            if (isChecked) {
+                etFrom.setText("1");
+                etTo.setText(String.format(Locale.getDefault(), "%d", list.size()));
+                etFrom.setTextColor(getColor(R.color.colorHintText));
+                etTo.setTextColor(getColor(R.color.colorHintText));
+                etDelay.requestFocus();
+                etDelay.setSelection(etDelay.getText().length());
+            } else {
+                etFrom.setTextColor(getColor(R.color.colorLabelText));
+                etTo.setTextColor(getColor(R.color.colorLabelText));
+                etTo.requestFocus();
+                etTo.setSelection(etTo.getText().length());
+            }
+        });
+        final TextWatcher watcher1 = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if (!charSequence.toString().isEmpty())
+                    try {
+                        int num = Integer.parseInt(charSequence.toString());
+                        if (num <= 0 || num > list.size())
+                            myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                    } catch (Exception e) {
+                        myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                    }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        };
+        etFrom.addTextChangedListener(watcher1);
+        etTo.addTextChangedListener(watcher1);
+        BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
+                .setTitle(R.string.button_batch_delete)
+                .setView(modifyView)
+                .setCancelable(false)
+                .setPositiveButton(R.string.button_confirm, (dialog, which1) -> {
+                    int from;
+                    int to;
+                    try {
+                        if (etTo.getText().toString().isEmpty())
+                            etTo.setText(etFrom.getText());
+                        from = Integer.parseInt(etFrom.getText().toString());
+                        to = Integer.parseInt(etTo.getText().toString());
+                        if (from <= 0 || from > list.size() || to <= 0 || to > list.size()) {
+                            myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                            return;
+                        }
+                    } catch (Exception e) {
+                        myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                        return;
+                    }
+                    int finalFrom = Math.min(from - 1, to - 1);
+                    int finalTo = Math.max(from - 1, to - 1);
+                    BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
+                            .setTitle(R.string.dialog_title_delete_scheme)
+                            .setMessage(R.string.dialog_confirm_delete_scheme)
+                            .setPositiveButton(R.string.button_confirm, (dialog1, which) -> {
+                                List<Long> idList = new ArrayList<>();
+                                for (int i = finalTo; i >= finalFrom; i--) {
+                                    idList.add(list.get(i).getId());
+                                    list.remove(i);
+                                }
+                                if (idList.size() > 0) {
+                                    long[] id = new long[idList.size()];
+                                    for (int i = 0; i < idList.size(); i++)
+                                        id[i] = idList.get(i);
+                                    DbUtil.deleteScheme(id);
+                                }
+                                adapter.updateList(list);
+                                checkButton();
+                            })
+                            .setNegativeButton(R.string.button_cancel, null)
+                            .show(), true);
+                }).
+                setNegativeButton(R.string.button_cancel, null)
+                .show(), false);
     }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        launchTask(keyCode - KeyEvent.KEYCODE_1);
+        launchTask(keyCode);
         return super.onKeyUp(keyCode, event);
     }
 
     @Override
     protected void onResume() {
-        myApp.readFromFile(FilePath.FILE_SCHEME_LIST, allList, SchemeBean.class);
-        refreshList(false);
+        list = DbUtil.getSchemeList();
+        adapter.updateList(list);
         super.onResume();
     }
 
     @Override
     protected void onDestroy() {
-        File oldFile = new File(myApp.getListFile());
-        if (lastFile == null) {
-            if (list.size() > 0) {
-                for (SchemeBean bean : list)
-                    if (bean.isSelected()) {
-                        change(bean.fileName());
-                        break;
-                    }
-            } else if (oldFile.exists() && !oldFile.delete())
-                myApp.myToast(SchemeActivity.this, R.string.message_delete_fail);
-        } else {
-            if (list.size() > 0) {
-                for (SchemeBean bean : list)
-                    if (bean.isSelected()) {
-                        if (!lastFile.equals(bean.getCreateTime()))
-                            change(bean.fileName());
-                        break;
-                    }
-            } else if (oldFile.exists() && !oldFile.delete())
-                myApp.myToast(SchemeActivity.this, R.string.message_delete_fail);
+        if (list.size() == 1 && !list.get(0).isSelected()) {
+            list.get(0).setSelected(true);
+            DbUtil.updateScheme(list.get(0));
         }
         super.onDestroy();
     }

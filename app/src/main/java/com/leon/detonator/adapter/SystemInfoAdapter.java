@@ -7,8 +7,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import com.leon.detonator.bean.SystemInfoBean;
 import com.leon.detonator.R;
+import com.leon.detonator.bean.SystemInfoBean;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,11 +30,7 @@ public class SystemInfoAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        int ret = 0;
-        if (list != null) {
-            ret = list.size();
-        }
-        return ret;
+        return list.size();
     }
 
     @Override
@@ -49,27 +45,18 @@ public class SystemInfoAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-
         SystemInfoBean bean = (SystemInfoBean) this.getItem(position);
-
         SystemInfoAdapter.ViewHolder viewHolder;
-
         if (convertView == null) {
-
             viewHolder = new ViewHolder();
-
-            convertView = inflater.inflate(R.layout.layout_info_list, parent, false);
+            convertView = inflater.inflate(R.layout.layout_item_system_info, parent, false);
             viewHolder.title = convertView.findViewById(R.id.info_title);
             viewHolder.subtitle = convertView.findViewById(R.id.info_subtitle);
-
             convertView.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (SystemInfoAdapter.ViewHolder) convertView.getTag();
-        }
-
         viewHolder.title.setText(bean.getTitle());
         viewHolder.subtitle.setText(bean.getSubtitle());
-
         return convertView;
     }
 

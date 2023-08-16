@@ -12,26 +12,23 @@ import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
 import com.google.android.material.tabs.TabLayout;
-import com.leon.detonator.adapter.DetonatorListAdapter;
-import com.leon.detonator.base.BaseActivity;
-import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.bean.DetonatorInfoBean;
-import com.leon.detonator.fragment.TabFragment;
 import com.leon.detonator.R;
+import com.leon.detonator.base.BaseActivity;
+import com.leon.detonator.component.TabFragment;
 import com.leon.detonator.util.KeyUtils;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ErrorDetonatorListActivity extends BaseActivity {
     private final int[] title = {R.string.tab_title_black_list, R.string.tab_title_used_list, R.string.tab_title_no_authorize_list};
     private List<Fragment> fragments;
-    private List<List<DetonatorInfoBean>> lists;
     private TabLayout tabList;
     private ViewPager pagerList;
-    private BaseApplication myApp;
+    private int[] listSize;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,14 +36,6 @@ public class ErrorDetonatorListActivity extends BaseActivity {
         setContentView(R.layout.activity_error_detonator_list);
 
         setTitle(R.string.error_detonator);
-        myApp = (BaseApplication) getApplication();
-        lists = new ArrayList<>();
-        List<DetonatorInfoBean> list = getIntent().getParcelableArrayListExtra(KeyUtils.KEY_ERROR_BLACK_LIST);
-        lists.add(list);
-        list = getIntent().getParcelableArrayListExtra(KeyUtils.KEY_ERROR_USED_LIST);
-        lists.add(list);
-        list = getIntent().getParcelableArrayListExtra(KeyUtils.KEY_ERROR_NOT_FOUND_LIST);
-        lists.add(list);
         initPager();
     }
 
@@ -54,15 +43,19 @@ public class ErrorDetonatorListActivity extends BaseActivity {
         tabList = findViewById(R.id.tab_title);
         pagerList = findViewById(R.id.view_pager);
         fragments = new ArrayList<>();
-//        List<DetonatorListAdapter> adapterList = new ArrayList<>();
-
+        String[] list = new String[]{
+                KeyUtils.KEY_ERROR_BLACK_LIST,
+                KeyUtils.KEY_ERROR_USED_LIST,
+                KeyUtils.KEY_ERROR_NOT_FOUND_LIST
+        };
+        listSize = new int[title.length];
         for (int i = 0; i < title.length; i++) {
-            tabList.addTab(tabList.newTab());
-            DetonatorListAdapter adapter = new DetonatorListAdapter(this, lists.get(i));
-            adapter.setCanSelect(false);
-            adapter.setTunnel(myApp.isTunnel());
-//            adapterList.add(adapter);
-            fragments.add(new TabFragment(adapter, null));
+            Bundle bundle = new Bundle();
+            listSize[i] = getIntent().getParcelableArrayListExtra(list[i]).size();
+            bundle.putParcelableArrayList(KeyUtils.KEY_LIST, getIntent().getParcelableArrayListExtra(list[i]));
+            TabFragment tabFragment = new TabFragment();
+            tabFragment.setArguments(bundle);
+            fragments.add(tabFragment);
         }
         pagerList.setAdapter(new ListPagerAdapter(getSupportFragmentManager()));
         tabList.setupWithViewPager(pagerList);
@@ -90,9 +83,8 @@ public class ErrorDetonatorListActivity extends BaseActivity {
 
     private void resetTabTitle(boolean init) {
         for (int i = 0; i < title.length; i++) {
-            TextView tv = (TextView) LayoutInflater.from(ErrorDetonatorListActivity.this).inflate(R.layout.layout_tab_view, tabList, false);
-            String text = getString(title[i]) + "(" + lists.get(i).size() + ")";
-            tv.setText(text);
+            TextView tv = (TextView) LayoutInflater.from(ErrorDetonatorListActivity.this).inflate(R.layout.layout_tab_textview, tabList, false);
+            tv.setText(String.format(Locale.getDefault(), "%s(%d)", getString(title[i]), listSize[i]));
             TabLayout.Tab tab = tabList.getTabAt(i);
             if (tab != null) {
                 if (tab.isSelected())

@@ -36,7 +36,6 @@
             android:layout_width="100dp"
             android:layout_height="30dp"
             android:layout_alignParentEnd="true"
-            android:text="0%"
             android:textAlignment="center"
             android:textColor="@color/colorRescanText"
             android:textSize="@dimen/common_text_size" />
@@ -47,10 +46,10 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_marginTop="100dp"
-        android:columnCount="2"
+        android:columnCount="3"
         android:orientation="horizontal">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_update"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -60,10 +59,9 @@
             android:text="@string/button_update"
             android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_version"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -73,7 +71,18 @@
             android:text="@string/button_version"
             android:textColor="@color/colorButtonEnabled"
             android:textSize="@dimen/button_text_size"
-            button:bigButton="true"
             button:keyCode="2" />
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_hint_open"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:keyCode="3" />
     </GridLayout>
 </LinearLayout>

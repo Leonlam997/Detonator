@@ -49,21 +49,17 @@ public class MTModuleListAdapter extends BaseAdapter {
 
     @Override
     public View getView(int i, View view, ViewGroup parent) {
-
         ViewHolder viewHolder;
         if (view == null) {
-
             viewHolder = new ViewHolder();
-
-            view = inflater.inflate(R.layout.layout_mtmodule_list, parent, false);
+            view = inflater.inflate(R.layout.layout_item_mt_module, parent, false);
             viewHolder.tvName = view.findViewById(R.id.text_name);
             viewHolder.tvAddress = view.findViewById(R.id.text_address);
             viewHolder.tvSignal = view.findViewById(R.id.text_signal);
 
             view.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (ViewHolder) view.getTag();
-        }
         int textSize = 23;
         viewHolder.tvName.setText(list.get(i).getName());
         viewHolder.tvName.setTextSize(textSize);
@@ -80,7 +76,6 @@ public class MTModuleListAdapter extends BaseAdapter {
             viewHolder.tvAddress.setTextColor(Color.BLACK);
             viewHolder.tvSignal.setTextColor(Color.BLACK);
         }
-
         return view;
     }
 

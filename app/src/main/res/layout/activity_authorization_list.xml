@@ -1,23 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:button="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorCommonBackground">
+    android:background="@color/colorCommonBackground"
+    android:orientation="vertical">
 
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tab_title"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        app:tabGravity="fill"
-        app:tabIndicatorColor="@color/colorAccent"
-        app:tabIndicatorHeight="2dp"
-        app:tabMode="scrollable" />
-
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/view_pager"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/tab_title" />
+        android:layout_above="@id/gl_btn"
+        android:orientation="vertical">
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorTableLine" />
+
+        <include
+            android:id="@+id/table_title"
+            layout="@layout/layout_item_offline" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorTableLine" />
+
+        <ListView
+            android:id="@+id/lv_offline_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:cacheColorHint="@android:color/transparent"
+            android:divider="@color/colorTableLine"
+            android:dividerHeight="1dp"
+            android:fadingEdge="none"
+            android:footerDividersEnabled="true"
+            android:scrollbars="vertical" />
+    </LinearLayout>
+
+    <GridLayout
+        android:id="@+id/gl_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_gravity="center_vertical"
+        android:layout_marginBottom="8dp"
+        android:columnCount="3"
+        android:orientation="horizontal">
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_add"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_add_list"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="false"
+            button:keyCode="1" />
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_offline_download"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_offline_download"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="false"
+            button:keyCode="2" />
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_delete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_batch_delete"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:bigButton="false"
+            button:keyCode="3" />
+    </GridLayout>
 </RelativeLayout>

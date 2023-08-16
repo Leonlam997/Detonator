@@ -2,8 +2,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_marginStart="5dp"
-    android:layout_marginEnd="5dp"
     android:orientation="vertical">
 
     <View
@@ -13,7 +11,7 @@
 
     <include
         android:id="@+id/table_title"
-        layout="@layout/layout_delay_list" />
+        layout="@layout/layout_item_detonator" />
 
     <View
         android:layout_width="match_parent"
@@ -21,7 +19,7 @@
         android:background="@color/colorTableLine" />
 
     <ListView
-        android:id="@+id/lv_detect_list"
+        android:id="@android:id/list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:cacheColorHint="@android:color/transparent"

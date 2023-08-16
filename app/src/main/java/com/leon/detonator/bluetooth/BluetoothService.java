@@ -1,19 +1,14 @@
 package com.leon.detonator.bluetooth;
 
-import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import androidx.core.app.ActivityCompat;
-
-import com.leon.detonator.R;
 import com.leon.detonator.activity.BluetoothActivity;
 
 import java.io.IOException;

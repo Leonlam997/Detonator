@@ -6,26 +6,25 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.CheckBox;
 import android.widget.TextView;
 
-import com.leon.detonator.bean.DetonatorInfoBean;
 import com.leon.detonator.R;
+import com.leon.detonator.bean.DetonatorBean;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class OfflineListAdapter extends BaseAdapter {
-    private final List<DetonatorInfoBean> list;
+    private final List<DetonatorBean> list;
     private final LayoutInflater inflater;
 
-    public OfflineListAdapter(Context context, List<DetonatorInfoBean> list) {
+    public OfflineListAdapter(Context context, List<DetonatorBean> list) {
         this.list = new ArrayList<>(list);
         inflater = LayoutInflater.from(context);
     }
 
-    public void updateList(List<DetonatorInfoBean> list) {
+    public void updateList(List<DetonatorBean> list) {
         this.list.clear();
         this.list.addAll(list);
         notifyDataSetChanged();
@@ -33,11 +32,7 @@ public class OfflineListAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        int ret = 0;
-        if (list != null) {
-            ret = list.size();
-        }
-        return ret;
+        return list.size();
     }
 
     @Override
@@ -52,43 +47,33 @@ public class OfflineListAdapter extends BaseAdapter {
 
     @Override
     public View getView(int i, View view, ViewGroup parent) {
-        DetonatorInfoBean detonatorInfoBean = (DetonatorInfoBean) this.getItem(i);
+        DetonatorBean detonatorBean = (DetonatorBean) this.getItem(i);
         ViewHolder viewHolder;
         if (view == null) {
             viewHolder = new ViewHolder();
-            view = inflater.inflate(R.layout.layout_offline_list, parent, false);
+            view = inflater.inflate(R.layout.layout_item_offline, parent, false);
             viewHolder.serialNo = view.findViewById(R.id.text_serial_no);
             viewHolder.address = view.findViewById(R.id.text_address);
-            viewHolder.isSelected = view.findViewById(R.id.cb_selected);
+            viewHolder.status = view.findViewById(R.id.text_status);
             view.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (ViewHolder) view.getTag();
-        }
-        viewHolder.isSelected.setChecked(detonatorInfoBean.isSelected());
-        viewHolder.isSelected.setClickable(false);
-        int textSize = 34;
+        int textSize = 30;
         viewHolder.serialNo.setText(String.format(Locale.getDefault(), "%d", i + 1));
         viewHolder.serialNo.setTextSize(textSize);
-        viewHolder.address.setText(detonatorInfoBean.getAddress());
+        viewHolder.address.setText(detonatorBean.getAddress());
         viewHolder.address.setTextSize(textSize);
-        if (list.get(i).isDownloaded()) {
-            if (0 == list.get(i).getRow()) {
-                viewHolder.serialNo.setTextColor(inflater.getContext().getColor(R.color.colorAuthorized));
-                viewHolder.address.setTextColor(inflater.getContext().getColor(R.color.colorAuthorized));
-            } else {
-                viewHolder.serialNo.setTextColor(inflater.getContext().getColor(R.color.colorNotAuthorized));
-                viewHolder.address.setTextColor(inflater.getContext().getColor(R.color.colorNotAuthorized));
-            }
-        } else {
-            viewHolder.serialNo.setTextColor(Color.BLACK);
-            viewHolder.address.setTextColor(Color.BLACK);
-        }
+        viewHolder.status.setText(detonatorBean.isDownloaded() ? (0 == detonatorBean.getRow() ? R.string.detonator_auth : R.string.detonator_error) : R.string.detonator_not_auth);
+        int color = detonatorBean.isDownloaded() ? (0 == detonatorBean.getRow() ? inflater.getContext().getColor(R.color.colorAuthorized) : inflater.getContext().getColor(R.color.colorNotAuthorized)) : Color.BLACK;
+        viewHolder.serialNo.setTextColor(color);
+        viewHolder.address.setTextColor(color);
+        viewHolder.status.setTextColor(color);
         return view;
     }
 
     private static class ViewHolder {
         TextView serialNo;
         TextView address;
-        CheckBox isSelected;
+        TextView status;
     }
 }

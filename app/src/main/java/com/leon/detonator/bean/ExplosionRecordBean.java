@@ -1,34 +1,33 @@
 package com.leon.detonator.bean;
 
-import com.leon.detonator.util.ConstantUtils;
-
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
 
 /**
  * Created by Leon on 2018/1/25.
  */
 
 public class ExplosionRecordBean {
-    private Date explodeDate;
+    private long id;
+    private String name;
+    private Date uploadTime;
+    private Date explodeTime;
     private int amount;
-    private boolean uploaded;
-    private String recordPath;
-    private double lat, lng;
+    private int uploadServer;
+    private double lat;
+    private double lng;
+    private boolean synchronize;
     private boolean selected;
+    private boolean tunnel;
 
     public ExplosionRecordBean() {
     }
 
-    public ExplosionRecordBean(Date date, int count, boolean isUpload, double lat, double lng, String path) {
-        this.explodeDate = date;
-        this.amount = count;
-        this.uploaded = isUpload;
-        this.recordPath = path;
-        this.lat = lat;
-        this.lng = lng;
-        this.selected = false;
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public int getAmount() {
@@ -39,28 +38,20 @@ public class ExplosionRecordBean {
         this.amount = num;
     }
 
-    public Date getExplodeDate() {
-        return this.explodeDate;
+    public Date getExplodeTime() {
+        return this.explodeTime;
     }
 
-    public void setExplodeDate(Date date) {
-        this.explodeDate = date;
+    public void setExplodeTime(Date date) {
+        this.explodeTime = date;
     }
 
-    public boolean isUploaded() {
-        return this.uploaded;
+    public int getUploadServer() {
+        return this.uploadServer;
     }
 
-    public void setUploaded(boolean isUpload) {
-        this.uploaded = isUpload;
-    }
-
-    public String getRecordPath() {
-        return this.recordPath;
-    }
-
-    public void setRecordPath(String path) {
-        this.recordPath = path;
+    public void setUploadServer(int isUpload) {
+        this.uploadServer = isUpload;
     }
 
     public boolean isSelected() {
@@ -87,13 +78,35 @@ public class ExplosionRecordBean {
         this.lng = lng;
     }
 
-    public String toStirng() {
-        SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
-        return formatter.format(this.explodeDate) + "," +
-                this.amount + "," +
-                this.recordPath + "," +
-                this.lat + "," +
-                this.lng + "," +
-                uploaded;
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Date getUploadTime() {
+        return uploadTime;
+    }
+
+    public void setUploadTime(Date uploadTime) {
+        this.uploadTime = uploadTime;
+    }
+
+    public boolean isSynchronize() {
+        return synchronize;
+    }
+
+    public void setSynchronize(boolean synchronize) {
+        this.synchronize = synchronize;
+    }
+
+    public boolean isTunnel() {
+        return tunnel;
+    }
+
+    public void setTunnel(boolean tunnel) {
+        this.tunnel = tunnel;
     }
 }

@@ -16,9 +16,11 @@ import androidx.annotation.NonNull;
 import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.base.MyButton;
 import com.leon.detonator.bean.EnterpriseBean;
+import com.leon.detonator.component.MyButton;
+import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.util.ConstantUtils;
+import com.leon.detonator.util.KeyUtils;
 
 import java.util.regex.Pattern;
 
@@ -29,7 +31,6 @@ public class EnterpriseActivity extends BaseActivity {
     private EditText etProject;
     private CheckBox cbCommercial;
     private EnterpriseBean enterprise;
-    private BaseApplication myApp;
     private MyButton btnClear;
     private MyButton btnSave;
 
@@ -39,9 +40,8 @@ public class EnterpriseActivity extends BaseActivity {
         setContentView(R.layout.activity_enterprise);
 
         setTitle(R.string.settings_enterprise);
-        myApp = (BaseApplication) getApplication();
         cbCommercial = findViewById(R.id.cb_commercial);
-        cbCommercial.setOnClickListener(view -> findViewById(R.id.rl_commercial).setVisibility(((CheckBox) view).isChecked() ? View.VISIBLE : View.INVISIBLE));
+        cbCommercial.setOnClickListener(v -> findViewById(R.id.rl_commercial).setVisibility(cbCommercial.isChecked() ? View.VISIBLE : View.GONE));
         etCode = findViewById(R.id.et_code);
         etId = findViewById(R.id.et_id);
         etContract = findViewById(R.id.et_contract);
@@ -49,7 +49,7 @@ public class EnterpriseActivity extends BaseActivity {
         btnClear = findViewById(R.id.btn_clear);
         btnSave = findViewById(R.id.btn_save);
         initData();
-        findViewById(R.id.rl_commercial).setVisibility(cbCommercial.isChecked() ? View.VISIBLE : View.INVISIBLE);
+        findViewById(R.id.rl_commercial).setVisibility(cbCommercial.isChecked() ? View.VISIBLE : View.GONE);
         TextWatcher textWatcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -121,14 +121,13 @@ public class EnterpriseActivity extends BaseActivity {
                 myApp.myToast(EnterpriseActivity.this, R.string.message_input_contract_code);
                 etContract.requestFocus();
             } else {
-                enterprise = new EnterpriseBean();
                 enterprise.setCode(etCode.getText().toString());
-                enterprise.setId(etId.getText().toString());
+                enterprise.setBlasterId(etId.getText().toString());
                 enterprise.setCommercial(cbCommercial.isChecked());
                 enterprise.setContract(cbCommercial.isChecked() ? etContract.getText().toString() : "");
                 enterprise.setProject(cbCommercial.isChecked() ? etProject.getText().toString() : "");
-                myApp.saveBean(enterprise);
-                myApp.myToast(EnterpriseActivity.this, R.string.message_save_success);
+                DbUtil.updateEnterprise(enterprise);
+                setResult(RESULT_OK);
                 finish();
             }
         });
@@ -143,35 +142,35 @@ public class EnterpriseActivity extends BaseActivity {
 
     @Override
     public void finish() {
-        EnterpriseBean bean = myApp.readEnterprise();
-        if (!etCode.getText().toString().equals(null == bean ? "" : bean.getCode())
-                || !etId.getText().toString().equals(null == bean ? "" : bean.getId())
-                || cbCommercial.isChecked() != (null != bean && bean.isCommercial())
-                || (cbCommercial.isChecked() && !etContract.getText().toString().equals(null == bean ? "" : bean.getContract()))
-                || (cbCommercial.isChecked() && !etProject.getText().toString().equals(null == bean ? "" : bean.getProject()))) {
+        if (!etCode.getText().toString().equals(null == enterprise ? "" : enterprise.getCode())
+                || !etId.getText().toString().equals(null == enterprise ? "" : enterprise.getBlasterId())
+                || cbCommercial.isChecked() != (null != enterprise && enterprise.isCommercial())
+                || (cbCommercial.isChecked() && !etContract.getText().toString().equals(null == enterprise ? "" : enterprise.getContract()))
+                || (cbCommercial.isChecked() && !etProject.getText().toString().equals(null == enterprise ? "" : enterprise.getProject()))) {
             BaseApplication.customDialog(new AlertDialog.Builder(EnterpriseActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_abort_modify)
                     .setMessage(R.string.dialog_exit_modify)
-                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> EnterpriseActivity.super.finish())
-                    .setNegativeButton(R.string.btn_cancel, null)
-                    .setOnKeyListener((dialog, keyCode, event) -> {
-                        if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK) {
-                            dialog.dismiss();
-                        }
-                        return false;
-                    }).show(), true);
+                    .setPositiveButton(R.string.button_save, (dialog, which) -> btnSave.callOnClick())
+                    .setNegativeButton(R.string.button_cancel, (dialog, which) -> EnterpriseActivity.super.finish())
+                    .show(), true);
         } else super.finish();
     }
 
     private void initData() {
-        enterprise = myApp.readEnterprise();
-        if (null != enterprise) {
-            etCode.setText(enterprise.getCode());
-            etId.setText(enterprise.getId());
-            if (enterprise.isCommercial()) {
-                cbCommercial.setChecked(enterprise.isCommercial());
-                etContract.setText(enterprise.getContract());
-                etProject.setText(enterprise.getProject());
+        if (getIntent().getBooleanExtra(KeyUtils.KEY_NEW_INFO, false)) {
+            enterprise = new EnterpriseBean();
+            enterprise.setSelected(true);
+            enterprise.setId(-1);
+        } else {
+            enterprise = DbUtil.getCurrentEnterprise();
+            if (null != enterprise) {
+                etCode.setText(enterprise.getCode());
+                etId.setText(enterprise.getBlasterId());
+                if (enterprise.isCommercial()) {
+                    cbCommercial.setChecked(enterprise.isCommercial());
+                    etContract.setText(enterprise.getContract());
+                    etProject.setText(enterprise.getProject());
+                }
             }
         }
         checkButton();

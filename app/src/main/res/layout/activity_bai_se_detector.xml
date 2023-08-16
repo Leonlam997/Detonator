@@ -6,60 +6,85 @@
     android:layout_height="match_parent"
     android:background="@color/colorCommonBackground">
 
-    <LinearLayout
-        android:id="@+id/ll1"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="20dp">
+        android:layout_height="match_parent"
+        android:layout_above="@id/gl_btn"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="10dp"
+        android:scrollbars="vertical">
 
-        <TextView
-            android:id="@+id/txt_code"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/enterprise_project_code"
-            android:textColor="@color/colorLabelText"
-            android:textSize="@dimen/label_text_size" />
-
-        <EditText
-            android:id="@+id/et_code"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:imeOptions="actionDone"
-            android:importantForAutofill="no"
-            android:inputType="text"
-            android:maxLength="50"
-            android:textSize="@dimen/table_text_size"
-            tools:ignore="LabelFor" />
-    </LinearLayout>
+            android:orientation="vertical">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/ll1"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginEnd="20dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/enterprise_detector_id"
-            android:textColor="@color/colorLabelText"
-            android:textSize="@dimen/label_text_size" />
+                <TextView
+                    android:id="@+id/txt_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/detector_name"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/label_text_size" />
 
-        <EditText
-            android:id="@+id/et_id"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/enterprise_hint_id"
-            android:imeOptions="actionDone"
-            android:importantForAutofill="no"
-            android:inputType="numberDecimal"
-            android:maxLength="18"
-            android:textSize="@dimen/table_text_size" />
-    </LinearLayout>
+                <EditText
+                    android:id="@+id/et_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="50"
+                    android:textSize="@dimen/table_text_size"
+                    tools:ignore="LabelFor" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/enterprise_detector_id"
+                    android:textColor="@color/colorLabelText"
+                    android:textSize="@dimen/label_text_size" />
+
+                <EditText
+                    android:id="@+id/et_id"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/enterprise_hint_id"
+                    android:imeOptions="actionDone"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal"
+                    android:maxLength="18"
+                    android:textSize="@dimen/table_text_size" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_company_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/colorHintText"
+                android:textSize="@dimen/label_text_size" />
+
+            <TextView
+                android:id="@+id/tv_project_code"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/colorHintText"
+                android:textSize="@dimen/label_text_size" />
+        </LinearLayout>
+    </ScrollView>
 
     <GridLayout
         android:id="@+id/gl_btn"
@@ -71,7 +96,7 @@
         android:layout_marginBottom="10dp"
         android:columnCount="2">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_save"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -83,7 +108,7 @@
             android:textSize="@dimen/button_text_size"
             button:bigButton="true" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_clear"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

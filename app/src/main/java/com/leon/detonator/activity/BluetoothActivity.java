@@ -10,7 +10,6 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.view.KeyEvent;
@@ -24,31 +23,27 @@ import android.widget.ListView;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
+import com.leon.detonator.R;
 import com.leon.detonator.adapter.BluetoothListAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.bean.BluetoothListBean;
-import com.leon.detonator.bean.DetonatorInfoBean;
+import com.leon.detonator.bean.BluetoothBean;
+import com.leon.detonator.bean.DetonatorBean;
 import com.leon.detonator.bean.SchemeBean;
-import com.leon.detonator.bluetooth.BluetoothBean;
 import com.leon.detonator.bluetooth.BluetoothService;
 import com.leon.detonator.bluetooth.BluetoothUtil;
 import com.leon.detonator.bluetooth.PairBluetoothListener;
 import com.leon.detonator.bluetooth.SearchBluetoothListener;
+import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.dialog.MyProgressDialog;
-import com.leon.detonator.R;
 import com.leon.detonator.util.CRC16;
-import com.leon.detonator.util.FilePath;
+import com.leon.detonator.util.KeyUtils;
 
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -57,52 +52,227 @@ import java.util.Map;
 
 @SuppressLint("MissingPermission")
 public class BluetoothActivity extends BaseActivity {
-    public final static int STATUS_CONNECTED = 1,
-            STATUS_DATA = 2,
-            STATUS_RECEIVE_FINISH = 3,
-            STATUS_ERROR = 4;
-    private List<BluetoothListBean> list;
+    private List<DetonatorBean> detonatorList;
+    public final static int STATUS_CONNECTED = 1;
+    public final static int STATUS_DATA = 2;
+    public final static int STATUS_ERROR = 3;
+    private final int STATUS_LIST = 4;
+    private List<SchemeBean> schemeList;
+    private List<BluetoothBean> list;
     private BluetoothListAdapter adapter;
-    private BluetoothAdapter BTAdapter;
     private BluetoothUtil bluetoothUtil;
+    private BluetoothAdapter btAdapter;
     private BluetoothService btService;
-    private AlertDialog alertDialog;
-    private BaseApplication myApp;
     private PopupWindow popupMenu;
     private MyProgressDialog pDialog;
-    private boolean searching, sender = false;
-    private int rescanLine, lastTouchX, clickIndex;
     private StringBuilder receiveData;
+    private boolean searching;
+    private boolean sender = false;
+    private int schemeSize;
+    private int rescanLine;
+    private int lastTouchX;
+    private int clickIndex;
+    private int sendIndex;
+
+    private enum BtStatus {
+        ENABLING,
+        ENABLED,
+        DISABLING,
+        DISABLED,
+        SEARCHING,
+        FOUND,
+        FINISHED,
+        RENAME,
+        PAIRING,
+        PAIRED,
+        NOT_PAIR
+    }
+
+    private final Handler myHandler = new Handler(msg -> {
+        final String success = "Success";
+        final String resend = "Resend";
+        final int STATUS_RECEIVE_FINISH = 5;
+        final int STATUS_NEXT_LIST = 6;
+        switch (msg.what) {
+            case STATUS_CONNECTED:
+                myApp.myToast(BluetoothActivity.this, String.format(Locale.getDefault(), getString(R.string.bt_connected_device), msg.obj));
+            case STATUS_NEXT_LIST:
+                if (sender)
+                    sendData();
+                break;
+            case STATUS_DATA:
+                if (msg.arg1 > 0) {
+                    if (sender) {
+                        msg.getTarget().removeMessages(STATUS_ERROR);
+                        String data = new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1));
+                        switch (data) {
+                            case success:
+                                getNextList();
+                                if (detonatorList.size() > 0)
+                                    msg.getTarget().sendEmptyMessageDelayed(STATUS_NEXT_LIST, 500);
+                                else {
+                                    myApp.myToast(BluetoothActivity.this, R.string.message_send_success);
+                                    sender = false;
+                                    if (null != pDialog && pDialog.isShowing())
+                                        pDialog.dismiss();
+                                }
+                                break;
+                            case resend:
+                                if (null != pDialog && pDialog.isShowing())
+                                    sendData();
+                                break;
+                        }
+                    } else {
+                        msg.getTarget().removeMessages(STATUS_RECEIVE_FINISH);
+                        if (searching) {
+                            searching = false;
+                            btAdapter.cancelDiscovery();
+                        }
+                        receiveData.append(new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1)));
+                        msg.getTarget().sendEmptyMessageDelayed(STATUS_RECEIVE_FINISH, 100);
+                    }
+                }
+                break;
+            case STATUS_RECEIVE_FINISH:
+                final String data = receiveData.toString();
+                receiveData = new StringBuilder();
+                if (data.startsWith(CRC16.getTableCRC(data.substring(4).getBytes()))) {
+                    btService.write(success.getBytes());
+                    saveData(data);
+                } else
+                    btService.write(resend.getBytes());
+                break;
+            case STATUS_ERROR:
+                msg.getTarget().removeMessages(STATUS_ERROR);
+                myApp.myToast(BluetoothActivity.this, (String) msg.obj);
+                if (null != pDialog && pDialog.isShowing())
+                    pDialog.dismiss();
+                break;
+            case STATUS_LIST:
+                BtStatus status = BtStatus.values()[msg.arg1];
+                BluetoothBean bean;
+                switch (status) {
+                    case ENABLING://打开蓝牙
+                        initData(false);
+                        bean = list.get(0);
+                        bean.setChangingStatus(true);
+                        bean.setEnabled(true);
+                        list.set(0, bean);
+                        break;
+                    case DISABLING://关闭蓝牙
+                        if (null != btService) {
+                            btService.cancelAllBtThread();
+                            btService = null;
+                        }
+                        initData(false);
+                        bean = list.get(0);
+                        bean.setChangingStatus(true);
+                        bean.setEnabled(false);
+                        list.set(0, bean);
+                        break;
+                    case ENABLED:
+                        btService = new BluetoothService(msg.getTarget(), BluetoothActivity.this);
+                        btService.acceptWait();
+                        searching = true;
+                        initData(true);
+                        startSearch();
+                        break;
+                    case DISABLED:
+                        initData(false);
+                        bean = list.get(0);
+                        bean.setChangingStatus(false);
+                        list.set(0, bean);
+                        break;
+                    case SEARCHING:
+                        if (rescanLine > 0 && list.size() > rescanLine) {
+                            bean = list.get(rescanLine);
+                            bean.setScanning(true);
+                            list.set(rescanLine, bean);
+                        }
+                        break;
+                    case FINISHED:
+                        if (rescanLine > 0 && list.size() > rescanLine) {
+                            bean = list.get(rescanLine);
+                            bean.setScanning(false);
+                            list.set(rescanLine, bean);
+                        }
+                        break;
+                    case RENAME:
+                        bean = list.get(1);
+                        com.leon.detonator.bluetooth.BluetoothBean bt = bean.getBluetooth();
+                        bt.setAddress(btAdapter.getName());
+                        bean.setBluetooth(bt);
+                        list.set(1, bean);
+                        break;
+                    case NOT_PAIR:
+                        myApp.myToast(BluetoothActivity.this, R.string.bt_pair_fail);
+                    case PAIRED:
+                        initData(false);
+                        startSearch();
+                        break;
+                    default:
+                        break;
+                }
+                adapter.updateList(list);
+                break;
+        }
+        return false;
+    });
+
+    private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (RESULT_OK == result.getResultCode()) {
+            sendIndex = -1;
+            schemeList = DbUtil.getCurrentSchemeList();
+            getNextList();
+            if (detonatorList.size() <= 0)
+                myApp.myToast(BluetoothActivity.this, R.string.message_list_not_found);
+            else {
+                if (null != btService) {
+                    BluetoothDevice device = btAdapter.getRemoteDevice(list.get(clickIndex).getBluetooth().getAddress());
+                    btService.connect(device);
+                    sender = true;
+                    pDialog = new MyProgressDialog(BluetoothActivity.this);
+                    pDialog.setInverseBackgroundForced(false);
+                    pDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    pDialog.setCancelable(false);
+                    pDialog.setTitle(R.string.progress_title);
+                    pDialog.setMessage(getString(R.string.progress_connecting));
+                    pDialog.show();
+                    myHandler.sendMessageDelayed(myHandler.obtainMessage(STATUS_ERROR, getString(R.string.bt_connect_timeout)), 10000);
+                }
+            }
+        }
+    });
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth);
-
         setTitle(R.string.settings_bt);
-        myApp = (BaseApplication) getApplication();
-        BTAdapter = BluetoothAdapter.getDefaultAdapter();
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
         bluetoothUtil = new BluetoothUtil();
         searching = false;
         receiveData = new StringBuilder();
+        schemeSize = DbUtil.getSchemeList().size();
+        if (schemeSize == 1)
+            schemeList = DbUtil.getCurrentSchemeList();
         initData(false);
         final ListView lvBT = findViewById(R.id.lv_bt);
-        adapter = new BluetoothListAdapter(this, list);
-        adapter.setOnButtonClickListener(which -> {
+        adapter = new BluetoothListAdapter(this, list, which -> {
             switch (which) {
                 case 0:
                     if (searching) {
                         searching = false;
-                        BTAdapter.cancelDiscovery();
+                        btAdapter.cancelDiscovery();
                     }
-                    BTAdapter.disable();
-                    sendMsg(BtStatus.DISABLING);
+                    btAdapter.disable();
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.DISABLING.ordinal(), 0).sendToTarget();
                     new DetectBluetoothStatus(false).start();
                     break;
                 case 1:
-                    BTAdapter.enable();
-                    sendMsg(BtStatus.ENABLING);
+                    btAdapter.enable();
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.ENABLING.ordinal(), 0).sendToTarget();
                     new DetectBluetoothStatus(true).start();
                     break;
                 case 2:
@@ -111,7 +281,6 @@ public class BluetoothActivity extends BaseActivity {
                     break;
             }
         });
-
         lvBT.setAdapter(adapter);
         lvBT.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
@@ -126,292 +295,88 @@ public class BluetoothActivity extends BaseActivity {
         });
         lvBT.setOnItemClickListener((parent, view, position, id) -> {
             if (position == 1) {
-                final View v = LayoutInflater.from(BluetoothActivity.this).inflate(R.layout.layout_edit_dialog, parent, false);
+                final View v = LayoutInflater.from(BluetoothActivity.this).inflate(R.layout.layout_dialog_edit, parent, false);
                 final EditText etDelay = v.findViewById(R.id.et_dialog);
                 final TextView tvDelay = v.findViewById(R.id.tv_dialog);
                 etDelay.setHint(R.string.hint_input_name);
                 etDelay.setFilters(new InputFilter[]{new InputFilter.LengthFilter(20)});
                 etDelay.setInputType(InputType.TYPE_CLASS_TEXT);
                 tvDelay.setVisibility(View.GONE);
-
                 BaseApplication.customDialog(new AlertDialog.Builder(BluetoothActivity.this, R.style.AlertDialog)
                         .setTitle(R.string.dialog_title_edit_name)
                         .setView(v)
-                        .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
+                        .setCancelable(false)
+                        .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
                             if (!etDelay.getText().toString().isEmpty()) {
-                                BTAdapter.setName(etDelay.getText().toString());
-                                sendMsg(BtStatus.RENAME);
+                                btAdapter.setName(etDelay.getText().toString());
+                                myHandler.obtainMessage(STATUS_LIST, BtStatus.RENAME.ordinal(), 0).sendToTarget();
                             }
                         })
-                        .setNegativeButton(R.string.btn_cancel, null)
+                        .setNegativeButton(R.string.button_cancel, null)
                         .show(), false);
             } else {
                 if (searching) {
                     searching = false;
-                    BTAdapter.cancelDiscovery();
+                    btAdapter.cancelDiscovery();
                 }
                 if (position > rescanLine) {
-                    BluetoothListBean bean = list.get(position);
+                    BluetoothBean bean = list.get(position);
                     bean.setScanning(true);
                     list.set(position, bean);
-                    sendMsg(BtStatus.PAIRING);
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.PAIRING.ordinal(), 0).sendToTarget();
                     pairDevice(bean.getBluetooth().getAddress());
                 }
-                if (position < rescanLine && position > 2) {
+                if (position < rescanLine && position > 2)
                     showPopupWindow(parent, view, position);
-                }
             }
         });
-
-        btService = new BluetoothService(connectHandler, BluetoothActivity.this);
-        if (BTAdapter.isEnabled()) {
+        btService = new BluetoothService(myHandler, BluetoothActivity.this);
+        if (btAdapter.isEnabled()) {
             startSearch();
             btService.acceptWait();
         }
     }
 
-    private Handler connectHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NonNull Message msg) {
-            switch (msg.what) {
-                case STATUS_CONNECTED:
-                    if (sender)
-                        sendData();
-                    myApp.myToast(BluetoothActivity.this,
-                            String.format(Locale.getDefault(), getString(R.string.bt_connected_device), msg.obj));
-                    break;
-                case STATUS_DATA:
-                    if (!sender) {
-                        if (null == connectHandler) {
-                            myApp.myToast(BluetoothActivity.this, R.string.message_receive_data_please_into_bt);
-                            break;
-                        }
-                        if (msg.arg1 > 0) {
-                            connectHandler.removeMessages(STATUS_RECEIVE_FINISH);
-                            if (searching) {
-                                searching = false;
-                                BTAdapter.cancelDiscovery();
-                            }
-                            receiveData.append(new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1)));
-                            connectHandler.sendEmptyMessageDelayed(STATUS_RECEIVE_FINISH, 100);
-                        }
-                    } else {
-                        if (msg.arg1 > 0) {
-                            String data = new String(Arrays.copyOfRange((byte[]) msg.obj, 0, msg.arg1));
-                            switch (data) {
-                                case "Success":
-                                    connectHandler.removeMessages(STATUS_ERROR);
-                                    myApp.myToast(BluetoothActivity.this, R.string.message_send_success);
-                                    sender = false;
-                                    if (null != pDialog && pDialog.isShowing()) {
-                                        pDialog.dismiss();
-                                    }
-                                    btService.cancelAllBtThread();
-                                    btService.acceptWait();
-                                    break;
-                                case "Resend":
-                                    if (null != pDialog && pDialog.isShowing())
-                                        sendData();
-                                    break;
-                            }
-                        }
-                    }
-                    break;
-                case STATUS_RECEIVE_FINISH:
-                    final String data = receiveData.toString();
-                    receiveData = new StringBuilder();
-//                    myApp.myToast(BluetoothActivity.this, data.substring(0, 4) + "," + CRC16.getTableCRC(data.substring(4).getBytes())
-//                            + "," + data.length());
-//                    BaseApplication.writeFile(data);
-
-                    if (!data.startsWith(CRC16.getTableCRC(data.substring(4).getBytes()))) {
-                        btService.write("Resend".getBytes());
-                        //myApp.myToast(BluetoothActivity.this, "数据包错误！");
-                    } else {
-                        btService.write("Success".getBytes());
-                        btService.cancelAllBtThread();
-                        btService.acceptWait();
-                        myApp.myToast(BluetoothActivity.this, R.string.message_receive_success);
-                        List<DetonatorInfoBean> beanList = new ArrayList<>();
-                        myApp.readFromFile(myApp.getListFile(), beanList, DetonatorInfoBean.class);
-                        if (beanList.size() > 0) {
-                            if (null != alertDialog && alertDialog.isShowing())
-                                alertDialog.dismiss();
-                            alertDialog = new AlertDialog.Builder(BluetoothActivity.this, R.style.AlertDialog)
-                                    .setTitle(R.string.progress_title)
-                                    .setMessage(R.string.dialog_cover_list)
-                                    .setCancelable(false)
-                                    .setNegativeButton(R.string.btn_cancel, null)
-                                    .setNeutralButton(R.string.btn_append, (d, which) -> {
-                                        try {
-                                            JSONArray jsonArray = new JSONArray(data.substring(4));
-                                            for (int i = 0; i < jsonArray.length(); i++) {
-                                                DetonatorInfoBean bean = new DetonatorInfoBean();
-                                                bean.fromJSON(jsonArray.getJSONObject(i));
-                                                beanList.add(bean);
-                                            }
-                                            jsonArray = new JSONArray();
-                                            for (DetonatorInfoBean bean : beanList) {
-                                                jsonArray.put(bean.toJSON());
-                                            }
-                                            saveData("0000" + jsonArray);
-                                        } catch (Exception e1) {
-                                            BaseApplication.writeErrorLog(e1);
-                                        }
-                                    })
-                                    .setPositiveButton(R.string.btn_cover, (d, which) -> saveData(data))
-                                    .show();
-                            BaseApplication.customDialog(alertDialog, true);
-                        } else {
-                            saveData(data);
-                        }
-                    }
-                    break;
-                case STATUS_ERROR:
-                    connectHandler.removeMessages(STATUS_ERROR);
-                    myApp.myToast(BluetoothActivity.this, (String) msg.obj);
-                    if (null != pDialog && pDialog.isShowing())
-                        pDialog.dismiss();
-                    btService.cancelAllBtThread();
-                    btService.acceptWait();
-                    break;
-            }
-            return false;
-        }
-    });
-
     private void sendData() {
         try {
-            File file = new File(myApp.getListFile());
-            if (file.exists()) {
-                FileReader fr = new FileReader(file);
-                BufferedReader br = new BufferedReader(fr);
-                String tempString;
-                StringBuilder sb = new StringBuilder();
-                while ((tempString = br.readLine()) != null) {
-                    sb.append(tempString);
-                }
-                br.close();
-                fr.close();
-                sb.insert(0, CRC16.getTableCRC(sb.toString().getBytes()));
-                btService.write(sb.toString().getBytes());
-                connectHandler.removeMessages(STATUS_DATA);
-            }
+            pDialog.setMessage(getString(R.string.bt_progress_sending));
+            StringBuilder sb = new StringBuilder();
+            sb.append(schemeList.get(sendIndex).getName()).append("\n").append(BaseApplication.isTunnel).append("\n");
+            JSONArray jsonArray = new JSONArray();
+            for (DetonatorBean bean : detonatorList)
+                jsonArray.put(bean.toJSON());
+            sb.append(jsonArray);
+            sb.insert(0, CRC16.getTableCRC(sb.toString().getBytes()));
+            btService.write(sb.toString().getBytes());
+            myHandler.removeMessages(STATUS_DATA);
+            myHandler.removeMessages(STATUS_ERROR);
+            myHandler.sendMessageDelayed(myHandler.obtainMessage(STATUS_ERROR, getString(R.string.bt_send_timeout)), (sb.length() / 1024 + 10) * 100);
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
     }
 
-    private final Handler refreshList = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message msg) {
-            BtStatus status = BtStatus.values()[msg.what];
-            BluetoothListBean bean;
-            switch (status) {
-                case ENABLING://打开蓝牙
-                    initData(false);
-                    bean = list.get(0);
-                    bean.setChangingStatus(true);
-                    bean.setEnabled(true);
-                    list.set(0, bean);
-                    break;
-                case DISABLING://关闭蓝牙
-                    if (null != btService) {
-                        btService.cancelAllBtThread();
-                        btService = null;
-                    }
-                    initData(false);
-                    bean = list.get(0);
-                    bean.setChangingStatus(true);
-                    bean.setEnabled(false);
-                    list.set(0, bean);
-                    break;
-                case ENABLED:
-                    btService = new BluetoothService(connectHandler, BluetoothActivity.this);
-                    btService.acceptWait();
-                    searching = true;
-                    initData(true);
-                    startSearch();
-                    break;
-                case DISABLED:
-                    initData(false);
-                    bean = list.get(0);
-                    bean.setChangingStatus(false);
-                    list.set(0, bean);
-                    break;
-                case SEARCHING:
-                    if (rescanLine > 0 && list.size() > rescanLine) {
-                        bean = list.get(rescanLine);
-                        bean.setScanning(true);
-                        list.set(rescanLine, bean);
-                    }
-                    break;
-                case FINISHED:
-                    if (rescanLine > 0 && list.size() > rescanLine) {
-                        bean = list.get(rescanLine);
-                        bean.setScanning(false);
-                        list.set(rescanLine, bean);
-                    }
-                    break;
-                case RENAME:
-                    bean = list.get(1);
-                    BluetoothBean bt = bean.getBluetooth();
-                    bt.setAddress(BTAdapter.getName());
-                    bean.setBluetooth(bt);
-                    list.set(1, bean);
-                    break;
-                case NOT_PAIR:
-                    myApp.myToast(BluetoothActivity.this, R.string.bt_pair_fail);
-                case PAIRED:
-                    initData(false);
-                    startSearch();
-                    break;
-                default:
-                    break;
-            }
-            adapter.updateList(list);
-            return false;
-        }
-    });
-
     private void saveData(String data) {
-        File file = new File(myApp.getListFile());
-        if (file.exists() && !file.delete()) {
-            myApp.myToast(BluetoothActivity.this, R.string.message_delete_fail);
-            return;
-        }
-        try {
-            PrintWriter out = new PrintWriter(file);
-            out.write(data.substring(4));
-            out.flush();
-            out.close();
-            myApp.myToast(BluetoothActivity.this, R.string.message_save_list_success);
-            List<SchemeBean> schemeBeans = new ArrayList<>();
-            myApp.readFromFile(FilePath.FILE_SCHEME_LIST, schemeBeans, SchemeBean.class);
-            List<DetonatorInfoBean> beanList = new ArrayList<>();
-            myApp.readFromFile(myApp.getListFile(), beanList, DetonatorInfoBean.class);
-            boolean notFound = true;
-            for (SchemeBean bean : schemeBeans)
-                if (myApp.isTunnel() == bean.isTunnel() && bean.isSelected()) {
-                    bean.setAmount(beanList.size());
-                    myApp.writeToFile(FilePath.FILE_SCHEME_LIST, schemeBeans);
-                    BaseApplication.copyFile(myApp.getListFile(), FilePath.FILE_SCHEME_PATH + "/" + bean.fileName());
-                    notFound = false;
-                    break;
-                }
-            if (notFound) {
+        String[] scheme = data.substring(4).split("\n");
+        if (scheme.length == 3)
+            try {
                 SchemeBean bean = new SchemeBean();
-                bean.setName(getString(R.string.received_list));
-                bean.setTunnel(myApp.isTunnel());
-                bean.setAmount(beanList.size());
-                schemeBeans.add(bean);
-                myApp.writeToFile(FilePath.FILE_SCHEME_LIST, schemeBeans);
-                BaseApplication.copyFile(myApp.getListFile(), FilePath.FILE_SCHEME_PATH + "/" + bean.fileName());
+                List<DetonatorBean> list = new ArrayList<>();
+                JSONArray jsonArray = new JSONArray(scheme[2]);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    DetonatorBean bean1 = new DetonatorBean();
+                    bean1.fromJSON(jsonArray.getJSONObject(i));
+                    list.add(bean1);
+                }
+                bean.setName(scheme[0]);
+                DbUtil.updateScheme(bean, Boolean.parseBoolean(scheme[1]));
+                for (DetonatorBean bean1 : list)
+                    bean1.setSchemeId(bean.getId());
+                DbUtil.updateDetonatorList(list);
+                myApp.myToast(BluetoothActivity.this, String.format(getString(R.string.message_save_list_success), scheme[0]));
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
             }
-            myApp.deleteDetectTempFiles();
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
     }
 
     private void showPopupWindow(AdapterView<?> parent, View view, int position) {
@@ -420,11 +385,11 @@ public class BluetoothActivity extends BaseActivity {
                 getString(R.string.menu_cancel_pair)};
         for (int i = 0; i < menu.length; i++)
             menu[i] = (i + 1) + "." + menu[i];
-        View popupView = BluetoothActivity.this.getLayoutInflater().inflate(R.layout.layout_popupwindow, parent, false);
+        View popupView = BluetoothActivity.this.getLayoutInflater().inflate(R.layout.layout_popup_window, parent, false);
         popupView.findViewById(R.id.tvTitle).setVisibility(View.GONE);
         clickIndex = position;
         ListView lsvMenu = popupView.findViewById(R.id.lvPopupMenu);
-        lsvMenu.setAdapter(new ArrayAdapter<>(BluetoothActivity.this, R.layout.layout_popupwindow_menu, menu));
+        lsvMenu.setAdapter(new ArrayAdapter<>(BluetoothActivity.this, R.layout.layout_item_popup_window, menu));
         lsvMenu.setOnItemClickListener((parent1, view1, position1, id) -> launchMenu(position1));
         lsvMenu.setOnKeyListener((v, keyCode, event) -> {
             launchMenu(keyCode - KeyEvent.KEYCODE_1);
@@ -442,24 +407,10 @@ public class BluetoothActivity extends BaseActivity {
     private void launchMenu(int position) {
         switch (position) {
             case 0:
-                List<DetonatorInfoBean> beanList = new ArrayList<>();
-                myApp.readFromFile(myApp.getListFile(), beanList, DetonatorInfoBean.class);
-                if (beanList.size() <= 0) {
-                    myApp.myToast(BluetoothActivity.this, R.string.message_list_not_found);
-                } else {
-                    if (null != btService) {
-                        BluetoothDevice device = BTAdapter.getRemoteDevice(list.get(clickIndex).getBluetooth().getAddress());
-                        btService.connect(device);
-                        sender = true;
-                        pDialog = new MyProgressDialog(BluetoothActivity.this);
-                        pDialog.setInverseBackgroundForced(false);
-                        pDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                        pDialog.setCancelable(false);
-                        pDialog.setTitle(R.string.progress_title);
-                        pDialog.setMessage(getString(R.string.progress_connecting));
-                        pDialog.show();
-                        connectHandler.sendMessageDelayed(connectHandler.obtainMessage(STATUS_ERROR, getString(R.string.bt_connect_timeout)), 10000);
-                    }
+                if (schemeSize > 1) {
+                    Intent intent = new Intent(BluetoothActivity.this, SchemeActivity.class);
+                    intent.putExtra(KeyUtils.KEY_SELECT_SCHEME, true);
+                    launcher.launch(intent);
                 }
                 break;
             case 1:
@@ -475,38 +426,42 @@ public class BluetoothActivity extends BaseActivity {
         popupMenu.dismiss();
     }
 
-    private void sendMsg(BtStatus status) {
-        refreshList.sendMessage(refreshList.obtainMessage(status.ordinal()));
+    private void getNextList() {
+        detonatorList = new ArrayList<>();
+        while (++sendIndex < schemeList.size()) {
+            detonatorList = DbUtil.getDetonatorList(schemeList.get(sendIndex).getId());
+            if (detonatorList.size() > 0)
+                break;
+        }
     }
 
     private void initData(boolean discoverable) {
-        if (list == null) {
+        if (list == null)
             list = new ArrayList<>();
-        } else {
+        else
             list.clear();
-        }
-        BluetoothListBean bean = new BluetoothListBean();
-        BluetoothBean bt = new BluetoothBean();
+        BluetoothBean bean = new BluetoothBean();
+        com.leon.detonator.bluetooth.BluetoothBean bt = new com.leon.detonator.bluetooth.BluetoothBean();
         bt.setName(getString(R.string.settings_bt));
         bean.setBluetooth(bt);
-        bean.setEnabled(BTAdapter.isEnabled());
+        bean.setEnabled(btAdapter.isEnabled());
         list.add(bean);
         rescanLine = -1;
-        bean = new BluetoothListBean();
-        bt = new BluetoothBean();
+        bean = new BluetoothBean();
+        bt = new com.leon.detonator.bluetooth.BluetoothBean();
         bt.setName(getString(R.string.bt_device_name));
-        bt.setAddress(BTAdapter.getName());
+        bt.setAddress(btAdapter.getName());
         bean.setBluetooth(bt);
         list.add(bean);
-        if (BTAdapter.isEnabled()) {
-            bean = new BluetoothListBean();
-            bt = new BluetoothBean();
+        if (btAdapter.isEnabled()) {
+            bean = new BluetoothBean();
+            bt = new com.leon.detonator.bluetooth.BluetoothBean();
             bt.setName(getString(R.string.bt_paired_device));
             bean.setBluetooth(bt);
             bean.setRescanLine(true);
             list.add(bean);
-            bean = new BluetoothListBean();
-            bt = new BluetoothBean();
+            bean = new BluetoothBean();
+            bt = new com.leon.detonator.bluetooth.BluetoothBean();
             bt.setName(getString(R.string.bt_available_device));
             bean.setBluetooth(bt);
             bean.setRescanLine(true);
@@ -527,13 +482,13 @@ public class BluetoothActivity extends BaseActivity {
             bluetoothUtil.searchBluetooth(this, new SearchBluetoothListener() {
                 @Override
                 public void startSearch() {
-                    sendMsg(BtStatus.SEARCHING);
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.SEARCHING.ordinal(), 0).sendToTarget();
                     searching = true;
                 }
 
                 @Override
-                public void foundDevice(BluetoothBean bluetooth, boolean newDevice) {
-                    BluetoothListBean bean = new BluetoothListBean();
+                public void foundDevice(com.leon.detonator.bluetooth.BluetoothBean bluetooth, boolean newDevice) {
+                    BluetoothBean bean = new BluetoothBean();
                     bean.setBluetooth(bluetooth);
 
                     if (newDevice) {
@@ -553,13 +508,13 @@ public class BluetoothActivity extends BaseActivity {
                             rescanLine++;
                         }
                     }
-                    sendMsg(BtStatus.FOUND);
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.FOUND.ordinal(), 0).sendToTarget();
                 }
 
                 @Override
-                public void finishSearch(Map<String, List<BluetoothBean>> blueToothMap) {
+                public void finishSearch(Map<String, List<com.leon.detonator.bluetooth.BluetoothBean>> blueToothMap) {
                     searching = false;
-                    sendMsg(BtStatus.FINISHED);
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.FINISHED.ordinal(), 0).sendToTarget();
                 }
             });
         } catch (Exception e) {
@@ -577,12 +532,12 @@ public class BluetoothActivity extends BaseActivity {
 
                 @Override
                 public void pairingSuccess(BluetoothDevice device) {
-                    sendMsg(BtStatus.PAIRED);
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.PAIRED.ordinal(), 0).sendToTarget();
                 }
 
                 @Override
                 public void cancelPair(BluetoothDevice device) {
-                    sendMsg(BtStatus.NOT_PAIR);
+                    myHandler.obtainMessage(STATUS_LIST, BtStatus.NOT_PAIR.ordinal(), 0).sendToTarget();
                 }
             });
         } catch (Exception e) {
@@ -592,43 +547,18 @@ public class BluetoothActivity extends BaseActivity {
 
     @Override
     protected void onDestroy() {
+        myHandler.removeCallbacksAndMessages(null);
         if (null != btService)
             btService.cancelAllBtThread();
-//        unbindService(mServiceConnection);
-//        if (null != mGattUpdateReceiver) {
-//            unregisterReceiver(mGattUpdateReceiver);
-//        }
-//        if (null != leService)
-//            leService.close();
-        if (null != alertDialog)
-            alertDialog.dismiss();
         if (null != popupMenu && popupMenu.isShowing())
             popupMenu.dismiss();
         if (searching)
-            BTAdapter.cancelDiscovery();
+            btAdapter.cancelDiscovery();
         if (null != bluetoothUtil) {
             bluetoothUtil.closeBluetoothService();
             bluetoothUtil = null;
         }
-        if (connectHandler != null) {
-            connectHandler.removeCallbacksAndMessages(null);
-            connectHandler = null;
-        }
         super.onDestroy();
-    }
-
-    private enum BtStatus {
-        ENABLING,
-        ENABLED,
-        DISABLING,
-        DISABLED,
-        SEARCHING,
-        FOUND,
-        FINISHED,
-        RENAME,
-        PAIRING,
-        PAIRED,
-        NOT_PAIR
     }
 
     private class DetectBluetoothStatus extends Thread {
@@ -642,13 +572,11 @@ public class BluetoothActivity extends BaseActivity {
         public void run() {
             super.run();
             while (true) {
-                if (BTAdapter.isEnabled() == enable)
+                if (btAdapter.isEnabled() == enable)
                     break;
             }
-            sendMsg(enable ? BtStatus.ENABLED : BtStatus.DISABLED);
+            myHandler.obtainMessage(STATUS_LIST, enable ? BtStatus.ENABLED.ordinal() : BtStatus.DISABLED.ordinal(), 0).sendToTarget();
             interrupt();
         }
     }
-
-
 }

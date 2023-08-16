@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RadioGroup
+        android:id="@+id/rg_mode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
+        android:layout_gravity="center"
+        android:checkedButton="@id/rb_scan_line"
+        android:background="@drawable/shape_item_background">
+
+        <RadioButton
+            android:id="@+id/rb_scan_line"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginStart="10dp"
+            android:text="@string/button_add_detonator"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_manual_line"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginBottom="5dp"
+            android:text="@string/manual_line"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+    </RadioGroup>
+
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
+        android:layout_marginEnd="5dp"
+        android:layout_marginBottom="5dp"
+        android:checkedButton="@id/rb_insert_up"
+        android:background="@drawable/shape_item_background">
+
+        <RadioButton
+            android:id="@+id/rb_insert_up"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginStart="10dp"
+            android:text="@string/insert_up"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+
+        <RadioButton
+            android:id="@+id/rb_insert_down"
+            android:layout_width="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="5dp"
+            android:text="@string/insert_down"
+            android:textColor="@android:color/black"
+            android:textSize="@dimen/common_text_size" />
+    </RadioGroup>
+
+</LinearLayout>

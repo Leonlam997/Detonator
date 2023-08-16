@@ -4,7 +4,7 @@ import android.os.Handler;
 import android.os.Message;
 
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.bean.DetonatorInfoBean;
+import com.leon.detonator.bean.DetonatorBean;
 import com.leon.detonator.mina.vo.MinaMessageRec;
 
 import org.apache.mina.core.future.ConnectFuture;
@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class MinaClient {
-    private List<DetonatorInfoBean> detonatorList;
+    private List<DetonatorBean> detonatorList;
     private Date explodeTime;
     private String sn;
     private double lng, lat;
@@ -53,7 +53,7 @@ public class MinaClient {
 
             cf.getSession().write(message.toByte());
 
-            for (DetonatorInfoBean b : detonatorList) {
+            for (DetonatorBean b : detonatorList) {
                 message.putLeiguan(b.getAddress(), "O");
             }
             cf.getSession().write(message.toByte());
@@ -77,7 +77,7 @@ public class MinaClient {
     }
 
 
-    public void setDetonatorList(List<DetonatorInfoBean> detonatorList) {
+    public void setDetonatorList(List<DetonatorBean> detonatorList) {
         this.detonatorList = detonatorList;
     }
 

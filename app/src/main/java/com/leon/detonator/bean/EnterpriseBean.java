@@ -1,11 +1,13 @@
 package com.leon.detonator.bean;
 
 public class EnterpriseBean {
+    private long id;
     private String code;
-    private String id;
+    private String blasterId;
     private boolean commercial;
     private String contract;
     private String project;
+    private boolean selected;
 
     public String getCode() {
         return code;
@@ -15,12 +17,12 @@ public class EnterpriseBean {
         this.code = code;
     }
 
-    public String getId() {
-        return id;
+    public String getBlasterId() {
+        return blasterId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setBlasterId(String blasterId) {
+        this.blasterId = blasterId;
     }
 
     public boolean isCommercial() {
@@ -45,5 +47,21 @@ public class EnterpriseBean {
 
     public void setProject(String project) {
         this.project = project;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
     }
 }

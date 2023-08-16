@@ -2,13 +2,11 @@ package com.leon.detonator.adapter;
 
 import static android.content.Context.WIFI_SERVICE;
 
-import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
-import android.os.Message;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,14 +15,11 @@ import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.core.app.ActivityCompat;
-
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.SettingsBean;
-import com.leon.detonator.R;
 
-import org.jetbrains.annotations.NotNull;
-
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -34,36 +29,36 @@ import java.util.List;
 public class SettingsAdapter extends BaseAdapter {
     private final List<SettingsBean> list;
     private final LayoutInflater inflater;
-    private CheckBox cbWifi, cbBT;
-    private final Handler refresh = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NotNull Message message) {
-            switch (message.what) {
-                case 1:
-                    cbWifi.setEnabled(true);
-                    break;
-                case 2:
-                    cbBT.setEnabled(true);
-                    break;
-            }
-            return false;
-        }
-    });
     private WifiManager wifiManager;
     private BluetoothAdapter btAdapter;
+    private CheckBox cbWifi;
+    private CheckBox cbBT;
+    private final Handler refresh = new Handler(message -> {
+        switch (message.what) {
+            case 1:
+                cbWifi.setEnabled(true);
+                break;
+            case 2:
+                cbBT.setEnabled(true);
+                break;
+        }
+        return false;
+    });
 
     public SettingsAdapter(Context context, List<SettingsBean> list) {
-        this.list = list;
+        this.list = new ArrayList<>(list);
         inflater = LayoutInflater.from(context);
+    }
+
+    public void updateList(List<SettingsBean> list) {
+        this.list.clear();
+        this.list.addAll(list);
+        notifyDataSetChanged();
     }
 
     @Override
     public int getCount() {
-        int ret = 0;
-        if (list != null) {
-            ret = list.size();
-        }
-        return ret;
+        return list.size();
     }
 
     @Override
@@ -76,32 +71,28 @@ public class SettingsAdapter extends BaseAdapter {
         return position;
     }
 
+    @SuppressLint("MissingPermission")
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-
         SettingsBean settingsBean = (SettingsBean) this.getItem(position);
-
         SettingsAdapter.ViewHolder viewHolder;
-
         if (convertView == null) {
-
             viewHolder = new ViewHolder();
-
-            convertView = inflater.inflate(R.layout.layout_settings_menu, parent, false);
-            viewHolder.menuIcon = convertView.findViewById(R.id.ivMenuIcon);
-            viewHolder.menuText = convertView.findViewById(R.id.tvMenuName);
-            viewHolder.subMenu = convertView.findViewById(R.id.ivMenuRight);
-            viewHolder.cbMenu = convertView.findViewById(R.id.cbMenu);
-
+            convertView = inflater.inflate(R.layout.layout_item_settings, parent, false);
+            viewHolder.menuIcon = convertView.findViewById(R.id.iv_menu_icon);
+            viewHolder.title = convertView.findViewById(R.id.tv_title);
+            viewHolder.subMenu = convertView.findViewById(R.id.iv_more);
+            viewHolder.cbMenu = convertView.findViewById(R.id.cb_menu);
+            viewHolder.subtitle = convertView.findViewById(R.id.tv_subtitle);
             convertView.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (SettingsAdapter.ViewHolder) convertView.getTag();
-        }
-
         viewHolder.menuIcon.setImageResource(settingsBean.getIcon());
-        viewHolder.menuText.setText(settingsBean.getMenuText());
-        viewHolder.subMenu.setVisibility(settingsBean.isSubMenu() ? View.VISIBLE : View.GONE);
+        viewHolder.title.setText(settingsBean.getTitle());
+        viewHolder.subMenu.setVisibility(settingsBean.isMore() ? View.VISIBLE : View.GONE);
         viewHolder.cbMenu.setVisibility(settingsBean.isCheckBox() ? View.VISIBLE : View.GONE);
+        viewHolder.subtitle.setVisibility(settingsBean.getSubtitle() == null || settingsBean.getSubtitle().isEmpty() ? View.INVISIBLE : View.VISIBLE);
+        viewHolder.subtitle.setText(settingsBean.getSubtitle());
         if (settingsBean.isCheckBox()) {
             if (0 == position) {
                 wifiManager = (WifiManager) inflater.getContext().getApplicationContext().getSystemService(WIFI_SERVICE);
@@ -135,7 +126,8 @@ public class SettingsAdapter extends BaseAdapter {
 
     private static class ViewHolder {
         ImageView menuIcon;
-        TextView menuText;
+        TextView title;
+        TextView subtitle;
         ImageView subMenu;
         CheckBox cbMenu;
     }

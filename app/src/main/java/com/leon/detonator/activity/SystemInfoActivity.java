@@ -7,12 +7,10 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.telephony.TelephonyManager;
 import android.view.KeyEvent;
 import android.widget.ListView;
 
-import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import com.leon.detonator.R;
@@ -20,10 +18,9 @@ import com.leon.detonator.adapter.SystemInfoAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.EnterpriseUserBean;
-import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.bean.SystemInfoBean;
+import com.leon.detonator.serial.DataReceiveListener;
 import com.leon.detonator.serial.SerialCommand;
-import com.leon.detonator.serial.SerialDataReceiveListener;
 import com.leon.detonator.serial.SerialPortUtil;
 import com.leon.detonator.util.ConstantUtils;
 
@@ -32,73 +29,63 @@ import java.util.List;
 import java.util.Locale;
 
 public class SystemInfoActivity extends BaseActivity {
-    private int keyCount = 0;
-    private List<SystemInfoBean> infoBeans;
-    private boolean displaySIM = false;
-    private SystemInfoAdapter infoAdapter;
-    private BaseApplication myApp;
+    private DataReceiveListener myReceiveListener;
     private SerialPortUtil serialPortUtil;
-    private SerialDataReceiveListener myReceiveListener;
-    private final Handler myHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(@NonNull Message msg) {
-            switch (msg.what) {
-                case 1:
-                    serialPortUtil.sendCmd("", SerialCommand.CODE_VERSION, 0);
-                    myHandler.sendEmptyMessageDelayed(2, ConstantUtils.RESEND_CMD_TIMEOUT);
-                    break;
-                case 2:
-                    serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, 0, 0xFF, 0x16);
-                    break;
-            }
-            return false;
+    private List<SystemInfoBean> infoBeans;
+    private SystemInfoAdapter infoAdapter;
+    private boolean displaySIM;
+    private int keyCount;
+    private final Handler myHandler = new Handler(msg -> {
+        switch (msg.what) {
+            case 2:
+                serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, 0, 0xFF, 0x16);
+                break;
+            case DataReceiveListener.HANDLER_RECEIVED_DATA:
+                byte[] received = (byte[]) msg.obj;
+                if (received != null && received.length > 0)
+                    if (received[0] == SerialCommand.INITIAL_FINISHED) {
+                        serialPortUtil.sendCmd("", SerialCommand.CODE_VERSION, 0);
+                        msg.getTarget().sendEmptyMessageDelayed(2, ConstantUtils.RESEND_CMD_TIMEOUT);
+                    } else if (received[0] == SerialCommand.INITIAL_FAIL)
+                        myApp.myToast(SystemInfoActivity.this, R.string.message_open_module_fail);
+                    else if (received.length > SerialCommand.CODE_CHAR_AT + 1 && 0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
+                        if (received[SerialCommand.CODE_CHAR_AT] == SerialCommand.CODE_VERSION) {
+                            SystemInfoBean bean = new SystemInfoBean();
+                            bean.setTitle(getString(R.string.system_info_board_date));
+                            bean.setSubtitle(String.format(Locale.getDefault(), "20%02x-%02x-%02x %02x:%02x",
+                                    received[SerialCommand.CODE_CHAR_AT + 3], received[SerialCommand.CODE_CHAR_AT + 4], received[SerialCommand.CODE_CHAR_AT + 5],
+                                    received[SerialCommand.CODE_CHAR_AT + 6], received[SerialCommand.CODE_CHAR_AT + 7]));
+                            infoBeans.add(bean);
+                            bean = new SystemInfoBean();
+                            bean.setTitle(getString(R.string.system_info_board_version));
+                            bean.setSubtitle(String.format(Locale.getDefault(), "%x.%2x", received[SerialCommand.CODE_CHAR_AT + 8], received[SerialCommand.CODE_CHAR_AT + 9]));
+                            infoBeans.add(bean);
+                            infoAdapter.updateList(infoBeans);
+                        }
+                    }
+                break;
         }
+        return false;
     });
-
-    private final Runnable bufferRunnable = () -> {
-        byte[] received = myReceiveListener.getRcvData();
-        if (received[0] == SerialCommand.INITIAL_FINISHED) {
-            myHandler.sendEmptyMessage(1);
-        } else if (received[0] == SerialCommand.INITIAL_FAIL) {
-            myApp.myToast(SystemInfoActivity.this, R.string.message_open_module_fail);
-        } else if (received.length > SerialCommand.CODE_CHAR_AT + 1 && 0 == received[SerialCommand.CODE_CHAR_AT + 1]) {
-            if (received[SerialCommand.CODE_CHAR_AT] == SerialCommand.CODE_VERSION) {
-                SystemInfoBean bean = new SystemInfoBean();
-                bean.setTitle(getString(R.string.system_info_board_date));
-                bean.setSubtitle(String.format(Locale.getDefault(), "20%02x-%02x-%02x %02x:%02x",
-                        received[SerialCommand.CODE_CHAR_AT + 3], received[SerialCommand.CODE_CHAR_AT + 4], received[SerialCommand.CODE_CHAR_AT + 5],
-                        received[SerialCommand.CODE_CHAR_AT + 6], received[SerialCommand.CODE_CHAR_AT + 7]));
-                infoBeans.add(bean);
-                bean = new SystemInfoBean();
-                bean.setTitle(getString(R.string.system_info_board_version));
-                bean.setSubtitle(String.format(Locale.getDefault(), "%x.%2x", received[SerialCommand.CODE_CHAR_AT + 8], received[SerialCommand.CODE_CHAR_AT + 9]));
-                infoBeans.add(bean);
-                infoAdapter.updateList(infoBeans);
-            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_system_info);
-
         setTitle(R.string.settings_info);
-        myApp = (BaseApplication) getApplication();
         infoBeans = new ArrayList<>();
         SystemInfoBean bean = new SystemInfoBean();
         bean.setTitle(getString(R.string.system_info_login_user));
         List<EnterpriseUserBean.ResultBean.PageListBean> listBeans = myApp.readUserList();
-        LocalSettingBean setting = BaseApplication.readSettings();
         if (listBeans != null)
             for (EnterpriseUserBean.ResultBean.PageListBean b : listBeans)
-                if (b.getUserID() == setting.getUserID()) {
+                if (b.getUserID() == BaseApplication.settings.getUserID()) {
                     bean.setSubtitle(b.getName());
                 }
         infoBeans.add(bean);
         bean = new SystemInfoBean();
         bean.setTitle(getString(R.string.system_info_device_code));
-        bean.setSubtitle(setting.getExploderID());
+        bean.setSubtitle(BaseApplication.settings.getExploderID());
         infoBeans.add(bean);
         bean = new SystemInfoBean();
         bean.setTitle(getString(R.string.system_info_version));
@@ -106,15 +93,13 @@ public class SystemInfoActivity extends BaseActivity {
             PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             bean.setSubtitle(packageInfo.versionName);
             serialPortUtil = SerialPortUtil.getInstance();
-            myReceiveListener = new SerialDataReceiveListener(SystemInfoActivity.this, bufferRunnable);
+            myReceiveListener = DataReceiveListener.getInstance(SystemInfoActivity.this, myHandler);
             myReceiveListener.setSingleConnect(true);
             serialPortUtil.setOnDataReceiveListener(myReceiveListener);
         } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
         infoBeans.add(bean);
-
-        //SystemInfoAdapter adapter = new SystemInfoAdapter(this,infoBeans);
         ListView listView = findViewById(R.id.lv_info);
         infoAdapter = new SystemInfoAdapter(this, infoBeans);
         listView.setAdapter(infoAdapter);
@@ -169,15 +154,8 @@ public class SystemInfoActivity extends BaseActivity {
     @Override
     protected void onDestroy() {
         myHandler.removeCallbacksAndMessages(null);
-        if (myReceiveListener != null) {
-            myReceiveListener.setStartAutoDetect(false);
+        if (myReceiveListener != null)
             myReceiveListener.closeAllHandler();
-            myReceiveListener = null;
-        }
-        if (null != serialPortUtil) {
-            serialPortUtil.closeSerialPort();
-            serialPortUtil = null;
-        }
         super.onDestroy();
     }
 }

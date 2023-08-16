@@ -26,6 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="30dp"
             android:layout_marginStart="50dp"
+            android:layout_centerVertical="true"
             android:layout_marginEnd="100dp"
             android:background="@drawable/shape_progressbar_mini"
             android:max="100" />
@@ -33,9 +34,9 @@
         <TextView
             android:id="@+id/tv_explode_percentage"
             android:layout_width="100dp"
-            android:layout_height="30dp"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
             android:layout_alignParentEnd="true"
-            android:text="0%"
             android:textAlignment="center"
             android:textColor="@color/colorRescanText"
             android:textSize="@dimen/common_text_size" />
@@ -49,7 +50,7 @@
         android:columnCount="2"
         android:orientation="horizontal">
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_upload"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -62,7 +63,7 @@
             button:bigButton="true"
             button:keyCode="1" />
 
-        <com.leon.detonator.base.MyButton
+        <com.leon.detonator.component.MyButton
             android:id="@+id/btn_exit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

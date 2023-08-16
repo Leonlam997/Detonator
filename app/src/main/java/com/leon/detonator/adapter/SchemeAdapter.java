@@ -5,7 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.RadioButton;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import com.leon.detonator.R;
@@ -20,12 +20,10 @@ import java.util.Locale;
 public class SchemeAdapter extends BaseAdapter {
     private final List<SchemeBean> list;
     private final LayoutInflater inflater;
-    private final ICheckedListener listener;
 
-    public SchemeAdapter(Context context, List<SchemeBean> list, ICheckedListener listener) {
+    public SchemeAdapter(Context context, List<SchemeBean> list) {
         this.list = new ArrayList<>(list);
         inflater = LayoutInflater.from(context);
-        this.listener = listener;
     }
 
     public void updateList(List<SchemeBean> list) {
@@ -55,16 +53,15 @@ public class SchemeAdapter extends BaseAdapter {
         ViewHolder viewHolder;
         if (convertView == null) {
             viewHolder = new ViewHolder();
-            convertView = inflater.inflate(R.layout.layout_scheme_list, parent, false);
+            convertView = inflater.inflate(R.layout.layout_item_scheme, parent, false);
             viewHolder.serialNo = convertView.findViewById(R.id.text_serial_no);
             viewHolder.name = convertView.findViewById(R.id.text_name);
             viewHolder.createTime = convertView.findViewById(R.id.text_time);
             viewHolder.amount = convertView.findViewById(R.id.text_amount);
-            viewHolder.isSelected = convertView.findViewById(R.id.rb_selected);
+            viewHolder.isSelected = convertView.findViewById(R.id.cb_selected);
             convertView.setTag(viewHolder);
-        } else {
+        } else
             viewHolder = (ViewHolder) convertView.getTag();
-        }
         SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_PART, Locale.getDefault());
         int textSize = 30;
         viewHolder.serialNo.setText(String.format(Locale.getDefault(), "%d", position + 1));
@@ -77,10 +74,6 @@ public class SchemeAdapter extends BaseAdapter {
         viewHolder.amount.setTextSize(textSize);
         viewHolder.isSelected.setVisibility(View.VISIBLE);
         viewHolder.isSelected.setChecked(bean.isSelected());
-        viewHolder.isSelected.setOnClickListener(v -> {
-            if (listener != null)
-                listener.checked(position);
-        });
         return convertView;
     }
 
@@ -89,6 +82,6 @@ public class SchemeAdapter extends BaseAdapter {
         TextView name;
         TextView createTime;
         TextView amount;
-        RadioButton isSelected;
+        CheckBox isSelected;
     }
 }

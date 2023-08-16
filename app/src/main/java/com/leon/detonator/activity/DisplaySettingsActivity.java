@@ -9,10 +9,9 @@ import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.bean.LocalSettingBean;
-import com.leon.detonator.R;
 
 public class DisplaySettingsActivity extends BaseActivity {
     private static final int mMaxBrightness = 255;
@@ -20,23 +19,19 @@ public class DisplaySettingsActivity extends BaseActivity {
     private final int[] sleepTimeList = {15, 30, 60, 120, 300, 600, 1800};
     private CheckBox cbAuto;
     private SeekBar sbLight;
-    private TextView tvSleepTime, tvFontScale;
+    private TextView tvSleepTime;
+    private TextView tvFontScale;
     private int selectedItem;
-    private LocalSettingBean settingBean;
-    private BaseApplication myApp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_settings);
-
         setTitle(R.string.settings_display);
-        myApp = (BaseApplication) getApplication();
         cbAuto = findViewById(R.id.cbAuto);
         sbLight = findViewById(R.id.sbLight);
         tvSleepTime = findViewById(R.id.tvSleepTime);
         tvFontScale = findViewById(R.id.tvFontScale);
-        settingBean = BaseApplication.readSettings();
         final String[] fontScaleList = {getString(R.string.choice_normal),
                 getString(R.string.choice_big),
                 getString(R.string.choice_large),
@@ -51,11 +46,7 @@ public class DisplaySettingsActivity extends BaseActivity {
                 getString(R.string.choice_30_minutes),
                 getString(R.string.choice_never)
         };
-        if (settingBean.getFontScale() > 0 && settingBean.getFontScale() < fontScaleList.length) {
-            tvFontScale.setText(fontScaleList[settingBean.getFontScale()]);
-        } else {
-            tvFontScale.setText(fontScaleList[0]);
-        }
+        tvFontScale.setText(fontScaleList[BaseApplication.settings.getFontScale() > 0 && BaseApplication.settings.getFontScale() < fontScaleList.length ? BaseApplication.settings.getFontScale() : 0]);
         findViewById(R.id.rlSleepTime).setOnClickListener(v -> {
             int i;
             for (i = 0; i < sleepTimeStringList.length; i++)
@@ -64,14 +55,13 @@ public class DisplaySettingsActivity extends BaseActivity {
             BaseApplication.customDialog(new AlertDialog.Builder(DisplaySettingsActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_select_sleep_time)
                     .setSingleChoiceItems(sleepTimeStringList, i < sleepTimeStringList.length ? i : 1, (dialog, which) -> selectedItem = which)
-                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
+                    .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
                         Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT,
                                 selectedItem < sleepTimeList.length ? sleepTimeList[selectedItem] * 1000 : Integer.MAX_VALUE);
                         runOnUiThread(() -> tvSleepTime.setText(sleepTimeStringList[selectedItem]));
                     })
-                    .setNegativeButton(R.string.btn_cancel, null).show(), false);
+                    .setNegativeButton(R.string.button_cancel, null).show(), false);
         });
-
         findViewById(R.id.rlFontScale).setOnClickListener(v -> {
             int i;
             for (i = 0; i < fontScaleList.length; i++)
@@ -79,25 +69,23 @@ public class DisplaySettingsActivity extends BaseActivity {
                     break;
             BaseApplication.customDialog(new AlertDialog.Builder(DisplaySettingsActivity.this, R.style.AlertDialog)
                     .setTitle(R.string.dialog_title_select_scale)
-                    .setSingleChoiceItems(fontScaleList, settingBean.getFontScale() < fontScaleList.length ? settingBean.getFontScale() : 0, (dialog, which) -> selectedItem = which)
-                    .setPositiveButton(R.string.btn_confirm, (dialog, which) -> {
-                        if (selectedItem != settingBean.getFontScale()) {
-                            settingBean.setFontScale(selectedItem);
-                            myApp.saveBean(settingBean);
+                    .setSingleChoiceItems(fontScaleList, BaseApplication.settings.getFontScale() < fontScaleList.length ? BaseApplication.settings.getFontScale() : 0, (dialog, which) -> selectedItem = which)
+                    .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
+                        if (selectedItem != BaseApplication.settings.getFontScale()) {
+                            BaseApplication.settings.setFontScale(selectedItem);
+                            myApp.saveSettings();
                             runOnUiThread(() -> tvFontScale.setText(fontScaleList[selectedItem]));
                             myApp.initFontScale();
                         }
                     })
-                    .setNegativeButton(R.string.btn_cancel, null).show(), false);
+                    .setNegativeButton(R.string.button_cancel, null).show(), false);
         });
-
         if (!Settings.System.canWrite(this)) {
             Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
             intent.setData(Uri.parse("package:" + getPackageName()));
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
         }
-
         try {
             cbAuto.setChecked(Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC == Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE));
             sbLight.setEnabled(!cbAuto.isChecked());
@@ -120,7 +108,6 @@ public class DisplaySettingsActivity extends BaseActivity {
             Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_BRIGHTNESS_MODE,
                     isChecked ? Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC : Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
         });
-
         sbLight.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -139,6 +126,5 @@ public class DisplaySettingsActivity extends BaseActivity {
 
             }
         });
-
     }
 }

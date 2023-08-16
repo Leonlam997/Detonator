@@ -27,7 +27,7 @@ public class ConstantUtils {
     public final static String DATE_FORMAT_FULL = "yyyy-MM-dd HH:mm:ss";
     public final static String DATE_FORMAT_CHINESE = "yyyy年MM月dd日HH:mm";
     public final static String DATE_FORMAT_SAVE = "yyyy-MM-dd HH:mm:ss.SSS";
-    public final static String DATE_FORMAT_PART = "MM-dd HH:mm:ss";
+    public final static String DATE_FORMAT_PART = "MM-dd HH:mm";
     public final static String INPUT_DETONATOR_ACCEPT = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM0123456789";
     public final static String INPUT_ID_ACCEPT = "0123456789.X";
     public final static String EXPLODE_PSW = "772298";
@@ -39,20 +39,17 @@ public class ConstantUtils {
     public final static String GPS_SYSTEM = "BD09";
     public final static String NULL_ID = "1234567890123";
     public final static int RESUME_LIST = 1;
-    public final static int MODIFY_LIST = 2;
     public final static int HISTORY_LIST = 3;
-    public final static int AUTHORIZED_LIST = 4;
     public final static int REFRESH_STATUS_BAR_PERIOD = 1000;
     public final static int MAX_DELAY_TIME = 16000;
-    public final static int BOOST_TIME = 600;
     public final static int UPLOAD_TIMEOUT = 10000;
     public final static int MAX_VOLUME = 5;
     public final static int INSERT_HOLE = 1;
     public final static int INSERT_INSIDE = 2; //1:孔间插入 2.孔内插入
     public final static int ERROR_RESULT_OPEN_FAIL = 1;
     public final static int ERROR_RESULT_SHORT_CIRCUIT = 2;
-    public final static int RESEND_CMD_TIMEOUT = BaseApplication.isRemote() ? 3000 : 500;
-    public final static int RESEND_STATUS_TIMEOUT = BaseApplication.isRemote() ? 3000 : 500;
+    public final static int RESEND_CMD_TIMEOUT = BaseApplication.isRemote ? 3000 : 500;
+    public final static int RESEND_STATUS_TIMEOUT = BaseApplication.isRemote ? 3000 : 500;
     public final static int RESEND_READ_FIELD_CMD_TIMEOUT = 1000;
     public final static int RESEND_SCAN_UID_TIMEOUT = 1500;
     public final static int COMMAND_DELAY_TIME = 10;
@@ -72,15 +69,10 @@ public class ConstantUtils {
     public final static int SHORT_CIRCUIT_CURRENT = 40000;
     public final static int CURRENT_DETECT_COUNT = 2;
     public final static int CURRENT_PER_DETONATOR = 30;
-    public final static int CURRENT_BREAK_CIRCUIT = 10;
+    public final static int CURRENT_BREAK_CIRCUIT = 6;
     public final static float CURRENT_OVER_PERCENTAGE = 2.5f;
     public final static int FAST_CLICK_DELAY_TIME = 500;
-
-    public enum ListType {
-        ALL,
-        DETECTED,
-        NOT_FOUND,
-        ERROR,
-        END
-    }
+    public final static int INFO_ENTERPRISE = 1;
+    public final static int INFO_PROJECT = 2;
+    public final static int INFO_BLASTER = 3;
 }

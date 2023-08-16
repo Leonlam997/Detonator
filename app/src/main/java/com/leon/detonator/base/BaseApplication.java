@@ -1,6 +1,5 @@
 package com.leon.detonator.base;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -9,7 +8,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.SQLException;
@@ -28,6 +26,7 @@ import android.os.Vibrator;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -35,24 +34,25 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
+import com.baidu.location.LocationClient;
+import com.baidu.mapapi.SDKInitializer;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.leon.detonator.R;
 import com.leon.detonator.activity.UpdateAppActivity;
-import com.leon.detonator.bean.BaiSeCheck;
-import com.leon.detonator.bean.BaiSeUpload;
-import com.leon.detonator.bean.DownloadDetonatorBean;
-import com.leon.detonator.bean.EnterpriseBean;
+import com.leon.detonator.bean.DetonatorBean;
 import com.leon.detonator.bean.EnterpriseProjectBean;
 import com.leon.detonator.bean.EnterpriseUserBean;
 import com.leon.detonator.bean.ExploderBean;
+import com.leon.detonator.bean.ExplosionRecordBean;
 import com.leon.detonator.bean.LocalSettingBean;
 import com.leon.detonator.bean.RegisterExploderBean;
+import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.bean.UpdateVersionBean;
 import com.leon.detonator.bean.UploadListResultBean;
+import com.leon.detonator.database.DbUtil;
+import com.leon.detonator.serial.DataReceiveListener;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.FilePath;
 import com.leon.detonator.util.MD5;
@@ -62,10 +62,8 @@ import com.zhy.http.okhttp.callback.Callback;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
-import org.json.JSONException;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -73,10 +71,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.NetworkInterface;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -93,18 +91,22 @@ import okhttp3.Response;
  * Created by Leon on 2018/1/29.
  */
 
+@SuppressLint("HardwareIds")
 public class BaseApplication extends Application {
-    private static PowerManager.WakeLock wakeLock = null;
     private final Uri APN_LIST_URI = Uri.parse("content://telephony/carriers");
-    private boolean tunnel;
-    private boolean uploading;
-    private boolean getVersion;
-    private final static boolean remote = false;
-    private boolean registerFinished = true;
-    private Context mContext;
+    private static PowerManager.WakeLock wakeLock = null;
+    public static LocalSettingBean settings;
     private Vibrator vibrator;
+    private Context mContext;
     private String token;
     private Toast mToast;
+    public static final int HANDLER_REGISTER_ERROR = 400;
+    public static final int HANDLER_REGISTER_SUCCESS = 401;
+    public final static boolean isRemote = false;
+    public static boolean isTunnel;
+    private boolean registerFinished = true;
+    private boolean getVersion;
+    private int uploadStep;
 
     private final Handler toastHandler = new Handler(new Handler.Callback() {
         @Override
@@ -118,11 +120,10 @@ public class BaseApplication extends Application {
             tv.setTextColor(mContext.getColor(R.color.colorToastText));
             mToast.setGravity(Gravity.CENTER, 0, 80);
             mToast.show();
-            BaseApplication.writeFile((String) msg.obj);
+            writeFile((String) msg.obj);
             return false;
         }
     });
-    private LocalSettingBean settingBean;
 
     public static void writeErrorLog(Exception e) {
         try {
@@ -187,7 +188,7 @@ public class BaseApplication extends Application {
                 }
                 activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
+                writeErrorLog(e);
             }
     }
 
@@ -207,10 +208,6 @@ public class BaseApplication extends Application {
     private static double convertDegreesToRadians(double degrees) {
         return degrees * Math.PI / 180;
     }
-
-//    private static double convertRadiansToDegrees(double radian) {
-//        return radian * 180.0 / Math.PI;
-//    }
 
     public static double distance(double lat1, double lng1, double lat2, double lng2) {
         final double EARTH_RADIUS = 6371.0;//km 地球半径 平均值，千米
@@ -236,16 +233,15 @@ public class BaseApplication extends Application {
             try {
                 return new Gson().fromJson(source, clazz);
             } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
+                writeErrorLog(e);
             }
         }
         return null;
     }
 
-    public static LocalSettingBean readSettings() {
+    private void readSettings() {
         File dataFile = new File(FilePath.FILE_LOCAL_SETTINGS);
-        LocalSettingBean settings = new LocalSettingBean();
-        if (dataFile.exists()) {
+        if (dataFile.exists())
             try {
                 FileReader fr = new FileReader(dataFile);
                 BufferedReader br = new BufferedReader(fr);
@@ -260,11 +256,8 @@ public class BaseApplication extends Application {
             } catch (Exception e1) {
                 e1.printStackTrace();
             }
-        }
-        return settings;
     }
 
-    @SuppressLint("HardwareIds")
     @Override
     public void onCreate() {
         super.onCreate();
@@ -273,32 +266,25 @@ public class BaseApplication extends Application {
             if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir()))
                 myToast(this, R.string.message_create_folder_fail);
             vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
-            settingBean = readSettings();
+            readSettings();
+            if (settings == null)
+                settings = new LocalSettingBean();
             String apnName = "CMIOT";
+            SDKInitializer.setAgreePrivacy(this, true);
+            LocationClient.setAgreePrivacy(true);
             if (!checkApnIsExist(apnName))
                 addApn(apnName);
             initFontScale();
-            if (!getMobileDataState(this))
-                setMobileDataState(this, true);
         } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
+            writeErrorLog(e);
         }
     }
 
-    public void deleteDetectTempFiles() {
-        for (String s : FilePath.FILE_LIST[isTunnel() ? 0 : 1]) {
-            File file = new File(s);
-            if (file.exists() && !file.delete())
-                myToast(this, String.format(Locale.getDefault(), getString(R.string.message_delete_file_fail), file.getName()));
-        }
-    }
-
-    public void writeToFile(String path, List<? extends BaseJSONBean> list) throws JSONException {
-        JSONArray jsonArray = new JSONArray();
-        for (BaseJSONBean bean : list) {
-            jsonArray.put(bean.toJSON());
-        }
+    public void writeToFile(String path, List<? extends BaseJSONBean> list) {
         try {
+            JSONArray jsonArray = new JSONArray();
+            for (BaseJSONBean bean : list)
+                jsonArray.put(bean.toJSON());
             File file = new File(path);
             if (file.exists()) {
                 if (!file.delete()) {
@@ -310,7 +296,7 @@ public class BaseApplication extends Application {
             out.write(jsonArray.toString());
             out.flush();
             out.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             writeErrorLog(e);
         }
     }
@@ -357,110 +343,15 @@ public class BaseApplication extends Application {
         toastHandler.obtainMessage(1, getResources().getString(msg)).sendToTarget();
     }
 
-    public void saveBean(Object bean) {
+    public void saveSettings() {
         try {
             FileWriter fw;
-            if (bean instanceof EnterpriseBean)
-                fw = new FileWriter(FilePath.FILE_ENTERPRISE_INFO);
-            else if (bean instanceof BaiSeUpload)
-                fw = new FileWriter(FilePath.FILE_BAI_SE_DATA);
-            else if (bean instanceof BaiSeCheck)
-                fw = new FileWriter(FilePath.FILE_BAI_SE_CHECK);
-            else if (bean instanceof LocalSettingBean) {
-                settingBean = (LocalSettingBean) bean;
-                fw = new FileWriter(FilePath.FILE_LOCAL_SETTINGS);
-            } else
-                return;
-            fw.append(new Gson().toJson(bean));
+            fw = new FileWriter(FilePath.FILE_LOCAL_SETTINGS);
+            fw.append(new Gson().toJson(settings));
             fw.close();
         } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
+            writeErrorLog(e);
         }
-    }
-
-    public static void copyFile(String src, String des) {
-        File srcFile = new File(src);
-        File desFile = new File(des);
-        if ((!desFile.exists() || desFile.delete()) && srcFile.exists()) {
-            try {
-                BufferedReader br = new BufferedReader(new FileReader(srcFile));
-                String line;
-                BufferedWriter bw = new BufferedWriter(new FileWriter(desFile));
-                while ((line = br.readLine()) != null)
-                    bw.write(line);
-                bw.flush();
-                br.close();
-                bw.close();
-            } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
-            }
-        }
-    }
-
-    public EnterpriseBean readEnterprise() {
-        File dataFile = new File(FilePath.FILE_ENTERPRISE_INFO);
-        EnterpriseBean bean = new EnterpriseBean();
-        if (dataFile.exists()) {
-            try {
-                FileReader fr = new FileReader(dataFile);
-                BufferedReader br = new BufferedReader(fr);
-                String content;
-                StringBuilder temp = new StringBuilder();
-                while ((content = br.readLine()) != null)
-                    temp.append(content);
-                br.close();
-                fr.close();
-                bean = new Gson().fromJson(temp.toString(), EnterpriseBean.class);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-        } else
-            return null;
-        return bean;
-    }
-
-    public BaiSeUpload readBaiSeUpload() {
-        File dataFile = new File(FilePath.FILE_BAI_SE_DATA);
-        BaiSeUpload bean = new BaiSeUpload();
-        if (dataFile.exists()) {
-            try {
-                FileReader fr = new FileReader(dataFile);
-                BufferedReader br = new BufferedReader(fr);
-                String content;
-                StringBuilder temp = new StringBuilder();
-                while ((content = br.readLine()) != null)
-                    temp.append(content);
-                br.close();
-                fr.close();
-                bean = new Gson().fromJson(temp.toString(), BaiSeUpload.class);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-        } else
-            return null;
-        return bean;
-    }
-
-    public BaiSeCheck readBaiSeCheck() {
-        File dataFile = new File(FilePath.FILE_BAI_SE_CHECK);
-        BaiSeCheck bean = new BaiSeCheck();
-        if (dataFile.exists()) {
-            try {
-                FileReader fr = new FileReader(dataFile);
-                BufferedReader br = new BufferedReader(fr);
-                String content;
-                StringBuilder temp = new StringBuilder();
-                while ((content = br.readLine()) != null)
-                    temp.append(content);
-                br.close();
-                fr.close();
-                bean = new Gson().fromJson(temp.toString(), BaiSeCheck.class);
-            } catch (Exception e1) {
-                e1.printStackTrace();
-            }
-        } else
-            return null;
-        return bean;
     }
 
     public List<EnterpriseUserBean.ResultBean.PageListBean> readUserList() {
@@ -511,39 +402,6 @@ public class BaseApplication extends Application {
         return null;
     }
 
-    public DownloadDetonatorBean readDownloadList(boolean online) {
-        DownloadDetonatorBean bean;
-        File dataFile = new File(online ? FilePath.FILE_ONLINE_DOWNLOAD_LIST : FilePath.FILE_OFFLINE_DOWNLOAD_LIST);
-        if (dataFile.exists()) {
-            try {
-                FileReader fr = new FileReader(dataFile);
-                BufferedReader br = new BufferedReader(fr);
-                String content;
-                StringBuilder temp = new StringBuilder();
-                while ((content = br.readLine()) != null) {
-                    temp.append(content);
-                }
-                br.close();
-                fr.close();
-                bean = new Gson().fromJson(temp.toString(), DownloadDetonatorBean.class);
-                return bean;
-            } catch (Exception e) {
-                writeErrorLog(e);
-            }
-        }
-        return null;
-    }
-
-    public void saveDownloadList(DownloadDetonatorBean bean, boolean online) {
-        try {
-            FileWriter fw = new FileWriter(online ? FilePath.FILE_ONLINE_DOWNLOAD_LIST : FilePath.FILE_OFFLINE_DOWNLOAD_LIST);
-            fw.append(new Gson().toJson(bean));
-            fw.close();
-        } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
-        }
-    }
-
     public SoundPool getSoundPool() {
         AudioManager mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         if (mAudioManager != null)
@@ -558,8 +416,8 @@ public class BaseApplication extends Application {
 
     public void playSoundVibrate(SoundPool soundPool, int soundID) {
         if (soundPool != null && soundID > 0) {
-            soundPool.play(soundID, settingBean.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), settingBean.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), 0, 0, 1);
-            if (settingBean.isVibrate() && vibrator != null && vibrator.hasVibrator()) {
+            soundPool.play(soundID, settings.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), settings.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), 0, 0, 1);
+            if (settings.isVibrate() && vibrator != null && vibrator.hasVibrator()) {
                 vibrator.cancel();
                 vibrator.vibrate(500);
             }
@@ -568,19 +426,17 @@ public class BaseApplication extends Application {
 
     public void playSound(SoundPool soundPool, int soundID, int loop) {
         if (soundPool != null && soundID > 0) {
-            soundPool.play(soundID, settingBean.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), settingBean.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), 0, loop, 1);
+            soundPool.play(soundID, settings.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), settings.getVolume() / (ConstantUtils.MAX_VOLUME * 1.0f), 0, loop, 1);
         }
     }
 
     public boolean checkApnIsExist(String ApnName) {
         ContentResolver resolver = getContentResolver();
         Cursor c = resolver.query(APN_LIST_URI, new String[]{"_id", "name", "apn"}, "apn like '%" + ApnName + "%'", null, null);
-        if (c != null && c.moveToNext()) {
-            //int id = c.getShort(c.getColumnIndex("_id")); //获取该apn的id信息
+        if (c != null && c.moveToNext())
             c.close();
-        } else {
+        else
             return false;
-        }
         return true;
     }
 
@@ -588,10 +444,8 @@ public class BaseApplication extends Application {
         TelephonyManager iPhoneManager = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         if (null != iPhoneManager) {
             String NUMERIC = iPhoneManager.getSimOperator();
-            if (NUMERIC == null || NUMERIC.length() < 4) {
-                //myToast(this, "不存在SIM卡");
+            if (NUMERIC == null || NUMERIC.length() < 4)
                 return;
-            }
             ContentResolver resolver = this.getContentResolver();
             ContentValues values = new ContentValues();
             values.put("name", "中爆"); //apn中文描述
@@ -614,10 +468,8 @@ public class BaseApplication extends Application {
                 Uri newRow = resolver.insert(APN_LIST_URI, values);
                 if (newRow != null) {
                     c = resolver.query(newRow, null, null, null, null);
-                    if (c != null) {
-                        //int idindex = c.getColumnIndex("_id");
+                    if (c != null)
                         c.moveToFirst();
-                    }
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -644,7 +496,6 @@ public class BaseApplication extends Application {
         return t.substring(t.length() - 16);
     }
 
-    @SuppressLint("HardwareIds")
     public Map<String, String> makeParams(String token, String method) {
         Map<String, String> params = new HashMap<>();
         TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -664,10 +515,10 @@ public class BaseApplication extends Application {
         return params;
     }
 
-    public void registerExploder() {
+    public void registerExploder(Handler handler) {
         if (registerFinished) {
             registerFinished = false;
-            new RegisterExploder().start();
+            new RegisterExploder(handler).start();
         }
     }
 
@@ -676,22 +527,6 @@ public class BaseApplication extends Application {
             registerFinished = false;
             new GetExploder().start();
         }
-    }
-
-    public boolean isRegisterFinished() {
-        return registerFinished;
-    }
-
-    public boolean isTunnel() {
-        return tunnel;
-    }
-
-    public void setTunnel(boolean tunnel) {
-        this.tunnel = tunnel;
-    }
-
-    public String getListFile() {
-        return tunnel ? FilePath.FILE_TUNNEL_DELAY_LIST : FilePath.FILE_OPEN_AIR_DELAY_LIST;
     }
 
     public void getVersion(Handler handler) {
@@ -714,7 +549,7 @@ public class BaseApplication extends Application {
                             writeErrorLog(e);
                             getVersion = false;
                             if (handler != null)
-                                handler.obtainMessage(UpdateAppActivity.UPDATE_NO_NEW).sendToTarget();
+                                handler.sendEmptyMessage(UpdateAppActivity.UPDATE_NO_NEW);
                         }
 
                         @Override
@@ -724,70 +559,89 @@ public class BaseApplication extends Application {
                                 if (updateVersionBean != null)
                                     handler.obtainMessage(UpdateAppActivity.UPDATE_HAS_NEW, updateVersionBean).sendToTarget();
                                 else
-                                    handler.obtainMessage(UpdateAppActivity.UPDATE_NO_NEW).sendToTarget();
+                                    handler.sendEmptyMessage(UpdateAppActivity.UPDATE_NO_NEW);
                         }
                     })).start();
         }
     }
 
-    @SuppressLint("HardwareIds")
-    public void uploadLog(String fileName) {
-        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        if (null != telephonyManager) {
-            try {
-                String id = "";
-                if (telephonyManager.getDeviceId() != null)
-                    id = telephonyManager.getDeviceId();
-                final File file = new File(fileName);
-                if (file.exists()) {
-                    uploading = true;
-                    BaseApplication.writeFile(getString(R.string.message_upload_log) + ", " + fileName);
-                    OkHttpUtils.post()
-                            .url(ConstantUtils.UPLOAD_LOG_URL)
-                            .addFile("file", file.getName().replace(".log", ".txt"), file)
-                            .addHeader("MAC", getMacAddress())
-                            .addHeader("IMEI", id)
-                            .build().execute(new Callback<UploadListResultBean>() {
+    public void uploadLog(Handler handler) {
+        if (uploadStep != 0)
+            handler.obtainMessage(HANDLER_REGISTER_ERROR, uploadStep, 0).sendToTarget();
+        else {
+            uploadStep = 1;
+            startUpload(handler);
+        }
+    }
 
-                                @Override
-                                public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
-                                    if (response.body() != null) {
-                                        String string = Objects.requireNonNull(response.body()).string();
-                                        return BaseApplication.jsonFromString(string, UploadListResultBean.class);
+    private void startUpload(Handler handler) {
+        new Thread(() -> {
+            TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            if (null != telephonyManager) {
+                try {
+                    String id = "";
+                    if (telephonyManager.getDeviceId() != null)
+                        id = telephonyManager.getDeviceId();
+                    final File file = new File(uploadStep == 1 ? FilePath.FILE_SERIAL_LOG : FilePath.FILE_DEBUG_LOG);
+                    if (file.exists()) {
+                        writeFile(getString(R.string.message_upload_log) + ", " + file.getName());
+                        OkHttpUtils.post()
+                                .url(ConstantUtils.UPLOAD_LOG_URL)
+                                .addFile("file", file.getName().replace(".log", ".txt"), file)
+                                .addHeader("MAC", getMacAddress())
+                                .addHeader("IMEI", id)
+                                .build().execute(new Callback<UploadListResultBean>() {
+
+                                    @Override
+                                    public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
+                                        if (response.body() != null) {
+                                            String string = Objects.requireNonNull(response.body()).string();
+                                            return jsonFromString(string, UploadListResultBean.class);
+                                        }
+                                        return null;
                                     }
-                                    return null;
-                                }
 
-                                @Override
-                                public void onError(Call call, Exception e, int i) {
-                                    uploading = false;
-                                }
+                                    @Override
+                                    public void onError(Call call, Exception e, int i) {
+                                        handler.obtainMessage(HANDLER_REGISTER_ERROR, 3, 0).sendToTarget();
+                                        uploadStep = 0;
+                                    }
 
-                                @Override
-                                public void onResponse(UploadListResultBean uploadListResultBean, int i) {
-                                    uploading = false;
-                                    if (null != uploadListResultBean) {
-                                        if (uploadListResultBean.isStatus()) {
-                                            settingBean.setUploadedLog(true);
-                                            saveBean(settingBean);
-                                        } else {
-                                            myToast(BaseApplication.this, uploadListResultBean.getDescription());
+                                    @Override
+                                    public void onResponse(UploadListResultBean uploadListResultBean, int i) {
+                                        if (null != uploadListResultBean) {
+                                            if (uploadListResultBean.isStatus()) {
+                                                if (uploadStep == 1) {
+                                                    uploadStep = 2;
+                                                    startUpload(handler);
+                                                } else {
+                                                    uploadStep = 0;
+                                                    settings.setUploadedLog(true);
+                                                    saveSettings();
+                                                    handler.obtainMessage(HANDLER_REGISTER_SUCCESS, 1, 0).sendToTarget();
+                                                }
+                                            } else {
+                                                uploadStep = 0;
+                                                handler.obtainMessage(HANDLER_REGISTER_ERROR, uploadListResultBean.getDescription()).sendToTarget();
+                                            }
                                         }
                                     }
-                                }
-                            });
+                                });
+                    }
+                } catch (SecurityException e) {
+                    writeErrorLog(e);
+                    handler.obtainMessage(HANDLER_REGISTER_ERROR, 3, 0).sendToTarget();
+                    uploadStep = 0;
                 }
-            } catch (SecurityException e) {
-                writeErrorLog(e);
             }
-        }
+        }).start();
     }
 
     public void initFontScale() {
         Configuration configuration = getResources().getConfiguration();
         final float[] scale = {1f, 1.15f, 1.3f, 1.45f};
-        if (settingBean.getFontScale() > 0 && settingBean.getFontScale() < scale.length)
-            configuration.fontScale = scale[settingBean.getFontScale()];
+        if (settings.getFontScale() > 0 && settings.getFontScale() < scale.length)
+            configuration.fontScale = scale[settings.getFontScale()];
         else
             configuration.fontScale = scale[0];
         DisplayMetrics metrics = new DisplayMetrics();
@@ -796,47 +650,85 @@ public class BaseApplication extends Application {
         getBaseContext().getResources().updateConfiguration(configuration, metrics);
     }
 
-    public void setMobileDataState(Context context, boolean enabled) {
-        TelephonyManager telephonyService = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-        try {
-            Method setDataEnabled = telephonyService.getClass().getDeclaredMethod("setDataEnabled", boolean.class);
-            setDataEnabled.invoke(telephonyService, enabled);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public static boolean isNetSystemUsable(Context context) {
+        boolean isNetUsable = false;
+        ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+        if (networkInfo != null)
+            isNetUsable = networkInfo.isAvailable();
+        return isNetUsable;
     }
 
-    public boolean getMobileDataState(Context context) {
-        TelephonyManager telephonyService = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+    public static boolean isWifi(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isAvailable() && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI;
+    }
+
+    public static boolean isNetPingUsable() {
+        Runtime runtime = Runtime.getRuntime();
         try {
-            Method getDataEnabled = telephonyService.getClass().getDeclaredMethod("getDataEnabled");
-            Object b = getDataEnabled.invoke(telephonyService);
-            if (null != b) {
-                return (boolean) b;
-            }
+            Process process = runtime.exec("ping -c 3 www.zhongbao360.com");
+            int ret = process.waitFor();
+            return ret == 0;
         } catch (Exception e) {
             e.printStackTrace();
         }
         return false;
     }
 
-    public static boolean isNetSystemUsable(Context context) {
-        boolean isNetUsable = false;
-        if (PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
-            ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-            //NetworkCapabilities networkCapabilities = manager.getNetworkCapabilities(manager.getActiveNetwork());
-//            if (networkCapabilities != null) {
-//                isNetUsable = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
-//            }
-            NetworkInfo networkInfo = manager.getActiveNetworkInfo();
-            if (networkInfo != null)
-                isNetUsable = networkInfo.isAvailable();
-        }
-        return isNetUsable;
+    public void importOldData() {
+        new Handler(msg -> {
+            try {
+                File[] files = new File(FilePath.APP_PATH + "/Records/").listFiles();
+                if (null != files) {
+                    Arrays.sort(files, (f1, f2) -> (int) (f1.lastModified() - f2.lastModified()));
+                    SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
+                    for (File file : files) {
+                        String[] info = file.getName().split("_");
+                        if (5 == info.length) {
+                            SchemeBean schemeBean = new SchemeBean();
+                            schemeBean.setName(getString(R.string.text_import));
+                            DbUtil.updateScheme(schemeBean, info[0].equals("T"));
+                            List<DetonatorBean> temp = new ArrayList<>();
+                            readFromFile(file.getAbsolutePath(), temp, DetonatorBean.class);
+                            for (DetonatorBean bean : temp)
+                                bean.setSchemeId(schemeBean.getId());
+                            DbUtil.updateDetonatorList(temp);
+                            ExplosionRecordBean recordBean = new ExplosionRecordBean();
+                            info[4] = info[4].substring(0, info[4].length() - 4);
+                            recordBean.setId(schemeBean.getId());
+                            recordBean.setExplodeTime(formatter.parse(info[1]));
+                            recordBean.setLat(Double.parseDouble(info[3]));
+                            recordBean.setLng(Double.parseDouble(info[4]));
+                            if (info[2].equals("U")) {
+                                recordBean.setUploadServer(BaseApplication.settings.getServerHost());
+                                recordBean.setUploadTime(new Date(file.lastModified()));
+                            } else
+                                recordBean.setUploadServer(-1);
+                            DbUtil.updateExplosionRecord(recordBean);
+                        }
+                        if (!file.delete())
+                            BaseApplication.writeFile(getString(R.string.message_delete_fail));
+                    }
+                    if (!new File(FilePath.APP_PATH + "/Records").delete())
+                        BaseApplication.writeFile(getString(R.string.message_delete_fail));
+                }
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
+            }
+            return false;
+        }).sendEmptyMessageDelayed(1, 100);
     }
 
     private class RegisterExploder extends Thread {
-        @SuppressLint("HardwareIds")
+        private final Handler handler;
+
+        public RegisterExploder(Handler handler) {
+            this.handler = handler;
+        }
+
+        @SuppressLint("MissingPermission")
         @Override
         public void run() {
             super.run();
@@ -861,8 +753,7 @@ public class BaseApplication extends Application {
                 if (disableWifi)
                     wm.setWifiEnabled(false);
                 //writeFile(getMacAddress());
-                if (PackageManager.PERMISSION_GRANTED == ContextCompat.checkSelfPermission(BaseApplication.this, Manifest.permission.READ_PHONE_STATE)
-                        && null != telephonyManager) {
+                if (null != telephonyManager) {
                     try {
                         if (null != telephonyManager.getSimSerialNumber()) {
                             params.put("iccid", telephonyManager.getSimSerialNumber());
@@ -877,7 +768,6 @@ public class BaseApplication extends Application {
                         writeErrorLog(e);
                     }
                 }
-//                myToast(BaseApplication.this, getMacAddress());
                 params.put("signature", signature(params));
             }
             OkHttpUtils.post()
@@ -896,6 +786,8 @@ public class BaseApplication extends Application {
                         @Override
                         public void onError(Call call, Exception e, int i) {
                             writeErrorLog(e);
+                            if (handler != null)
+                                handler.sendEmptyMessage(HANDLER_REGISTER_ERROR);
                             registerFinished = true;
                         }
 
@@ -904,16 +796,16 @@ public class BaseApplication extends Application {
                         public void onResponse(RegisterExploderBean registerExploderBean, int i) {
                             if (null != registerExploderBean && registerExploderBean.isStatus() && registerExploderBean.getToken().equals(token)) {
                                 if (null != registerExploderBean.getResult()) {
-                                    if (settingBean == null)
-                                        settingBean = new LocalSettingBean();
-                                    settingBean.setRegistered(true);
-                                    settingBean.setIMEI(((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId());
-                                    settingBean.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
+                                    settings.setRegistered(true);
+                                    settings.setIMEI(((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId());
+                                    settings.setExploderID(registerExploderBean.getResult().getExploder().getCodeID());
                                     BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
-                                    saveBean(settingBean);
+                                    saveSettings();
                                 } else
                                     myToast(BaseApplication.this, registerExploderBean.getDescription());
                             }
+                            if (handler != null)
+                                handler.sendEmptyMessage(HANDLER_REGISTER_SUCCESS);
                             registerFinished = true;
                         }
                     });
@@ -932,7 +824,7 @@ public class BaseApplication extends Application {
                 mMessage.setAccessible(true);
                 TextView mMessageView = (TextView) mMessage.get(mAlertController);
                 if (mMessageView != null) {
-                    BaseApplication.writeFile(mMessageView.getText().toString());
+                    writeFile(mMessageView.getText().toString());
                     if (setText) {
                         mMessageView.setTextSize(30);
                         mMessageView.setTextColor(Color.RED);
@@ -940,15 +832,43 @@ public class BaseApplication extends Application {
                     }
                 }
             }
-            if (setText) {
-                WindowManager.LayoutParams layoutParams = dialog.getWindow().getAttributes();
+            WindowManager.LayoutParams layoutParams = dialog.getWindow().getAttributes();
+            if (setText)
                 layoutParams.height = 200;
-                layoutParams.width = 330;
-                dialog.getWindow().setAttributes(layoutParams);
-            }
+            layoutParams.width = 330;
+            dialog.getWindow().setAttributes(layoutParams);
+            dialog.setOnKeyListener((dialog1, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK && dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isShown())
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick();
+                return false;
+            });
         } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
+            writeErrorLog(e);
         }
+    }
+
+    public void shortCircuit(BaseActivity activity, Handler handler) {
+        handler.removeCallbacksAndMessages(null);
+        DataReceiveListener.getInstance(activity, handler).closeAllHandler();
+        SoundPool soundPool = getSoundPool();
+        if (soundPool != null) {
+            int soundAlert = soundPool.load(this, R.raw.alert, 1);
+            if (soundAlert != 0) {
+                playSoundVibrate(soundPool, soundAlert);
+                new Handler(msg -> {
+                    soundPool.unload(soundAlert);
+                    soundPool.release();
+                    return false;
+                }).sendEmptyMessageDelayed(1, 1500);
+            } else
+                soundPool.release();
+        }
+        activity.runOnUiThread(() -> customDialog(new AlertDialog.Builder(activity, R.style.AlertDialog)
+                .setTitle(R.string.dialog_title_warning)
+                .setCancelable(false)
+                .setMessage(R.string.dialog_short_circuit)
+                .setPositiveButton(R.string.button_confirm, (dialog, which) -> activity.finish())
+                .show(), true));
     }
 
     private class GetExploder extends Thread {
@@ -957,10 +877,8 @@ public class BaseApplication extends Application {
             super.run();
             token = makeToken();
             Map<String, String> params = makeParams(token, MethodUtils.METHOD_GET_EXPLODER);
-            if (null != params) {
-//                myToast(BaseApplication.this, getMacAddress());
+            if (null != params)
                 params.put("signature", signature(params));
-            }
             OkHttpUtils.post()
                     .url(ConstantUtils.HOST_URL)
                     .params(params)
@@ -985,21 +903,13 @@ public class BaseApplication extends Application {
                             registerFinished = true;
                             if (null != exploderBean && exploderBean.isStatus() && exploderBean.getToken().equals(token)) {
                                 if (null != exploderBean.getResult()) {
-                                    settingBean.setExploderID(exploderBean.getResult().getCodeID());
-                                    saveBean(settingBean);
+                                    settings.setExploderID(exploderBean.getResult().getCodeID());
+                                    saveSettings();
                                 } else
                                     writeFile(exploderBean.getDescription());
                             }
                         }
                     });
         }
-    }
-
-    public boolean isUploading() {
-        return uploading;
-    }
-
-    public static boolean isRemote() {
-        return remote;
     }
 }
