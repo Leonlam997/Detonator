@@ -88,22 +88,22 @@ public class DetonateStep1Activity extends BaseActivity {
                     break;
                 case 3:
                 case 4:
+                case 5:
                     List<SchemeBean> schemeBeanList = DbUtil.getCurrentSchemeList();
                     for (SchemeBean bean : schemeBeanList)
                         if (bean.getAmount() == 0) {
                             myApp.myToast(DetonateStep1Activity.this, String.format(getString(R.string.message_scheme_empty_list), schemeBeanList.get(0).getName()));
                             return;
                         }
-                    if (requestCode == 5)
+                    if (requestCode == 5 || (0 != BaseApplication.settings.getServerHost() && 3 != BaseApplication.settings.getServerHost()))
                         enterDetect();
-                    else if (0 == BaseApplication.settings.getServerHost() || 3 == BaseApplication.settings.getServerHost()) {
+                    else {
                         list = DbUtil.getCurrentDetonatorList();
                         if (requestCode == 3)
                             checkRegister();
                         else
                             checkList(offlineBean.getResult().getLgs().getLg(), false);
-                    } else
-                        enterDetect();
+                    }
                     break;
             }
     });
