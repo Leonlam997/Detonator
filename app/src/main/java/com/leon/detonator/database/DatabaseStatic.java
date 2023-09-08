@@ -159,6 +159,7 @@ public class DatabaseStatic {
         public final static String LNG_LAT = "lng_lat";
         public final static String ID_CARD = "id_card";
         public final static String PROJECT_CODE = "project_code";
+        public final static String BURST_ORG_CODE = "burst_org_code";
         public final static String APP_VERSION = "app_version";
         public final static String PROJECT = "project";
         public final static String SELECTED = "selected";
@@ -170,9 +171,10 @@ public class DatabaseStatic {
         public final static int COL_LNG_LAT = 5;
         public final static int COL_ID_CARD = 6;
         public final static int COL_PROJECT_CODE = 7;
-        public final static int COL_APP_VERSION = 8;
-        public final static int COL_PROJECT = 9;
-        public final static int COL_SELECTED = 10;
+        public final static int COL_BURST_ORG_CODE = 8;
+        public final static int COL_APP_VERSION = 9;
+        public final static int COL_PROJECT = 10;
+        public final static int COL_SELECTED = 11;
     }
 
     //百色智慧民爆企业信息
@@ -305,6 +307,7 @@ public class DatabaseStatic {
             BaiSeBlaster.LNG_LAT + " varchar(20), " +
             BaiSeBlaster.ID_CARD + " varchar(20), " +
             BaiSeBlaster.PROJECT_CODE + " varchar(50), " +
+            BaiSeBlaster.BURST_ORG_CODE + " varchar(50), " +
             BaiSeBlaster.APP_VERSION + " varchar(10), " +
             BaiSeBlaster.PROJECT + " tinyint(1), " +
             BaiSeBlaster.SELECTED + " tinyint(1))";

@@ -28,7 +28,6 @@ import java.util.List;
 public class SettingsActivity extends BaseActivity {
     private List<SettingsBean> list;
     private SettingsAdapter adapter;
-    private BaseApplication myApp;
     private long lastClickTime;
 
     @Override

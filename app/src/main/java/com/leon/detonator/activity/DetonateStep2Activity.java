@@ -6,11 +6,13 @@ import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -45,7 +47,6 @@ public class DetonateStep2Activity extends BaseActivity {
     private MyButton btnRescan;
     private ViewPager viewPager;
     private CustomProgressDialog pDialog;
-    private BaseApplication myApp;
     private ConstantUtils.ListType rescanWhich;
     private DataReceiveListener myReceiveListener;
     private SoundPool soundPool;
@@ -59,6 +60,7 @@ public class DetonateStep2Activity extends BaseActivity {
     private int countScanZero;
     private int soundSuccess;
     private int soundAlert;
+    private long[] schemeId;
 
     private final Handler myHandler = new Handler(new Handler.Callback() {
         private final int DETECT_SUCCESS = 2;
@@ -129,6 +131,7 @@ public class DetonateStep2Activity extends BaseActivity {
                     btnCharge.setEnabled(false);
                     btnRescan.setEnabled(false);
                     setProgressVisibility(true);
+                    myApp.speakText(R.string.speech_start_detect);
                     myReceiveListener.setStartAutoDetect(false);
                     listIndex = 0;
                     flowStep = rescanWhich == ConstantUtils.ListType.NOT_FOUND ? STEP_READ_FIELD : STEP_LOCK_1;
@@ -236,6 +239,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                         flowStep = STEP_READ_SHELL;
                                     } else {
                                         pDialog.setMax(amount);
+                                        myApp.speakText(R.string.speech_start_download);
                                         pDialog.setMessage(R.string.progress_set_delay);
                                         nextDownloadIndex();
                                         flowStep = STEP_WRITE_FIELD;
@@ -254,6 +258,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                 pDialog.setProgress(0);
                                 pDialog.setMax(amount);
                                 pDialog.setMessage(R.string.progress_set_delay);
+                                myApp.speakText(R.string.speech_start_download);
                                 nextDownloadIndex();
                                 flowStep = STEP_WRITE_FIELD;
                                 msg.getTarget().sendEmptyMessage(DETECT_SEND_COMMAND);
@@ -511,17 +516,49 @@ public class DetonateStep2Activity extends BaseActivity {
         lists = new ArrayList<>();
         rescanWhich = ConstantUtils.ListType.NONE;
         try {
-            lists.add(getIntent().getParcelableArrayListExtra(KeyUtils.KEY_LIST));
-            for (int i = 1; i < ConstantUtils.ListType.NONE.ordinal(); i++)
+            schemeId = DbUtil.getSelectedSchemeId();
+            if (schemeId.length > 1) {
                 lists.add(new ArrayList<>());
-            if (lists.get(ConstantUtils.ListType.ALL.ordinal()).size() <= 0) {
+                for (long i : schemeId) {
+                    List<DetonatorBean> list = DbUtil.getDetonatorList(i);
+                    if (list.size() == 0) {
+                        myApp.myToast(DetonateStep2Activity.this, String.format(getString(R.string.message_scheme_empty_list), DbUtil.getScheme(i).getName()));
+                        nextStep = true;
+                        finish();
+                        return;
+                    } else
+                        for (int k = 0; k < lists.get(0).size(); k++) {
+                            int j = list.indexOf(lists.get(0).get(k));
+                            if (j >= 0) {
+                                int m = 0;
+                                for (int l = k - 1; l >= 0; l--)
+                                    if (lists.get(0).get(l).getSchemeId() != lists.get(0).get(k).getSchemeId()) {
+                                        m = l + 1;
+                                        break;
+                                    }
+                                myApp.myToast(DetonateStep2Activity.this, String.format(Locale.getDefault(),
+                                        getString(R.string.message_detonator_duplicate), lists.get(0).get(k).getAddress(),
+                                        DbUtil.getScheme(lists.get(0).get(k).getSchemeId()).getName(), lists.get(0).get(k).getId() - lists.get(0).get(m).getId() + 1,
+                                        DbUtil.getScheme(list.get(j).getSchemeId()).getName(), j + 1));
+                                nextStep = true;
+                                finish();
+                                return;
+                            }
+                        }
+                    lists.get(0).addAll(list);
+                }
+            } else
+                lists.add(DbUtil.getCurrentDetonatorList());
+            if (lists.get(0).size() <= 0) {
                 myApp.myToast(DetonateStep2Activity.this, R.string.message_list_not_found);
                 nextStep = true;
                 finish();
                 return;
-            } else
-                for (DetonatorBean bean : lists.get(ConstantUtils.ListType.ALL.ordinal()))
-                    bean.setDownloaded(false);
+            }
+            for (DetonatorBean bean : lists.get(ConstantUtils.ListType.ALL.ordinal()))
+                bean.setDownloaded(false);
+            for (int i = 1; i < ConstantUtils.ListType.NONE.ordinal(); i++)
+                lists.add(new ArrayList<>());
             initPager();
             btnCharge.setEnabled(false);
             btnRescan = findViewById(R.id.btn_rescan);
@@ -645,7 +682,8 @@ public class DetonateStep2Activity extends BaseActivity {
     private void enterCharge() {
         if (!serialPortUtil.isSafeSwitchOpened())
             myApp.myToast(DetonateStep2Activity.this, R.string.message_turn_on_safe_switch);
-        else
+        else {
+            myApp.speakText(R.string.dialog_enter_charge);
             BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep2Activity.this, R.style.AlertDialog)
                     .setView(R.layout.layout_dialog_enter_charge)
                     .setPositiveButton(R.string.button_confirm, (dialogInterface, i) -> {
@@ -666,6 +704,7 @@ public class DetonateStep2Activity extends BaseActivity {
                     })
                     .setNegativeButton(R.string.button_cancel, null)
                     .show());
+        }
     }
 
     private int maxDelay() {
@@ -680,22 +719,27 @@ public class DetonateStep2Activity extends BaseActivity {
     }
 
     private void startDetect() {
-        pDialog = new CustomProgressDialog(this);
-        pDialog.setCanceledOnTouchOutside(false);
-        if (viewPager.getCurrentItem() != 2) {
-            BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_online) + ":" + lists.get(ConstantUtils.ListType.ALL.ordinal()).size());
-            for (int i = ConstantUtils.ListType.ALL.ordinal() + 1; i < ConstantUtils.ListType.NONE.ordinal(); i++)
-                lists.get(i).clear();
-            for (DetonatorBean d : lists.get(ConstantUtils.ListType.ALL.ordinal()))
-                d.setDownloaded(false);
-            DbUtil.clearDetonatorDownloadFlag(lists.get(ConstantUtils.ListType.ALL.ordinal()).get(0).getSchemeId());
-            rescanWhich = ConstantUtils.ListType.ALL;
+        if (serialPortUtil.isSafeSwitchOpened()) {
+            myApp.myToast(DetonateStep2Activity.this, R.string.message_turn_off_safe_switch);
         } else {
-            BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_offline) + ":" + lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size());
-            rescanWhich = ConstantUtils.ListType.NOT_FOUND;
+            pDialog = new CustomProgressDialog(this);
+            pDialog.setCanceledOnTouchOutside(false);
+            if (viewPager.getCurrentItem() != 2) {
+                BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_online) + ":" + lists.get(ConstantUtils.ListType.ALL.ordinal()).size());
+                for (int i = ConstantUtils.ListType.ALL.ordinal() + 1; i < ConstantUtils.ListType.NONE.ordinal(); i++)
+                    lists.get(i).clear();
+                for (DetonatorBean d : lists.get(ConstantUtils.ListType.ALL.ordinal()))
+                    d.setDownloaded(false);
+                for (long id : schemeId)
+                    DbUtil.clearDetonatorDownloadFlag(id);
+                rescanWhich = ConstantUtils.ListType.ALL;
+            } else {
+                BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_offline) + ":" + lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size());
+                rescanWhich = ConstantUtils.ListType.NOT_FOUND;
+            }
+            myReceiveListener.setStartAutoDetect(false);
+            myHandler.sendEmptyMessage(DETECT_RESCAN);
         }
-        myReceiveListener.setStartAutoDetect(false);
-        myHandler.sendEmptyMessage(DETECT_RESCAN);
     }
 
     private void initSound() {
@@ -765,8 +809,15 @@ public class DetonateStep2Activity extends BaseActivity {
         public Object instantiateItem(@NonNull ViewGroup container, int position) {
             View view = LayoutInflater.from(container.getContext()).inflate(R.layout.layout_detonator_listview, container, false);
             ListView listView = view.findViewById(R.id.list);
+            view.findViewById(R.id.table_title).setBackgroundColor(getColor(R.color.colorTableTitleBackground));
+            if (BaseApplication.settings.isTunnel()) {
+                view.findViewById(R.id.line_inside).setVisibility(View.GONE);
+                view.findViewById(R.id.text_inside).setVisibility(View.GONE);
+                ((TextView) view.findViewById(R.id.text_row)).setText(R.string.table_section);
+                ((TextView) view.findViewById(R.id.text_hole)).setText(R.string.table_section_inside);
+            }
             listView.setAdapter(new DetonatorListAdapter(container.getContext(), lists.get(position)));
-            container.addView(listView);
+            container.addView(view);
             listView.setOnKeyListener((view1, i, keyEvent) -> {
                 if (keyEvent.getAction() == KeyEvent.ACTION_UP)
                     if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_2) {
@@ -784,7 +835,7 @@ public class DetonateStep2Activity extends BaseActivity {
                     }
                 return false;
             });
-            return listView;
+            return view;
         }
 
         @Override

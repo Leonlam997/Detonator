@@ -31,11 +31,11 @@ import com.leon.detonator.R;
 import com.leon.detonator.adapter.OfflineListAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
-import com.leon.detonator.base.CheckRegister;
 import com.leon.detonator.bean.DetonatorBean;
-import com.leon.detonator.bean.DownloadDetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.bean.LgBean;
+import com.leon.detonator.bean.OfflineDetonatorBean;
+import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.component.MarqueeTextView;
 import com.leon.detonator.component.MyButton;
 import com.leon.detonator.database.DbUtil;
@@ -50,7 +50,6 @@ import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.Callback;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -61,11 +60,10 @@ import okhttp3.Call;
 import okhttp3.Response;
 
 public class AuthorizationListActivity extends BaseActivity {
-    private List<DetonatorBean> detonatorList;
+    private List<SchemeBean> schemeList;
     private List<DetonatorBean> list;
     private AlertDialog enterpriseDialog;
     private EnterpriseBean enterpriseBean;
-    private BaseApplication myApp;
     private SerialPortUtil serialPortUtil;
     private DataReceiveListener myReceiveListener;
     private ListView listView;
@@ -78,11 +76,33 @@ public class AuthorizationListActivity extends BaseActivity {
     private String token;
     private int soundSuccess;
     private int soundFail;
+    private int requestCode;
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode()) {
-            enterpriseBean = DbUtil.getCurrentEnterprise();
-            prepareDownload();
+            if (requestCode == 0) {
+                enterpriseBean = DbUtil.getCurrentEnterprise();
+                prepareDownload();
+            } else
+                importDetonator();
         }
+    });
+
+    private final Handler myHandler = new Handler(message -> {
+        switch (message.what) {
+            case BaseApplication.HANDLER_REGISTER_ERROR:
+                enabledButton(true);
+                break;
+            case BaseApplication.HANDLER_REGISTER_SUCCESS:
+                if (null == enterpriseBean) {
+                    Intent intent = new Intent(AuthorizationListActivity.this, InfoListActivity.class);
+                    intent.putExtra(KeyUtils.KEY_INFO_TYPE, ConstantUtils.INFO_ENTERPRISE);
+                    requestCode = 0;
+                    launcher.launch(intent);
+                } else
+                    prepareDownload();
+                break;
+        }
+        return false;
     });
 
     @Override
@@ -108,19 +128,8 @@ public class AuthorizationListActivity extends BaseActivity {
         btnAdd.setOnClickListener(view -> manualAppend());
         btnDownload.setOnClickListener(view -> {
             if (!BaseApplication.settings.isRegistered()) {
-                myApp.registerExploder();
-                enabledButton(true);
-                new CheckRegister(AuthorizationListActivity.this) {
-                    @Override
-                    public void onError() {
-                        enabledButton(false);
-                    }
-
-                    @Override
-                    public void onSuccess() {
-                        prepareDownload();
-                    }
-                }.start();
+                myApp.registerExploder(myHandler);
+                enabledButton(false);
             } else {
                 prepareDownload();
             }
@@ -246,7 +255,7 @@ public class AuthorizationListActivity extends BaseActivity {
 
     private void initData() {
         enterpriseBean = DbUtil.getCurrentEnterprise();
-        detonatorList = DbUtil.getCurrentDetonatorList();
+        schemeList = DbUtil.getSchemeList();
         list = DbUtil.getAuthDetonatorList();
         adapter = new OfflineListAdapter(AuthorizationListActivity.this, list);
         listView.setAdapter(adapter);
@@ -330,12 +339,12 @@ public class AuthorizationListActivity extends BaseActivity {
                             OkHttpUtils.post()
                                     .url(ConstantUtils.HOST_URL)
                                     .params(params)
-                                    .build().execute(new Callback<DownloadDetonatorBean>() {
+                                    .build().execute(new Callback<OfflineDetonatorBean>() {
                                         @Override
-                                        public DownloadDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
+                                        public OfflineDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
                                             if (response.body() != null) {
                                                 String string = Objects.requireNonNull(response.body()).string();
-                                                return BaseApplication.jsonFromString(string, DownloadDetonatorBean.class);
+                                                return BaseApplication.jsonFromString(string, OfflineDetonatorBean.class);
                                             }
                                             return null;
                                         }
@@ -347,29 +356,29 @@ public class AuthorizationListActivity extends BaseActivity {
                                         }
 
                                         @Override
-                                        public void onResponse(DownloadDetonatorBean downloadDetonatorBean, int i) {
+                                        public void onResponse(OfflineDetonatorBean offlineDetonatorBean, int i) {
                                             enabledButton(true);
-                                            if (null != downloadDetonatorBean) {
-                                                if (downloadDetonatorBean.getToken().equals(token)) {
-                                                    if (downloadDetonatorBean.isStatus()) {
-                                                        if (null != downloadDetonatorBean.getResult()) {
-                                                            if (downloadDetonatorBean.getResult().getCwxx().equals("0")) {
-                                                                List<LgBean> detonators = downloadDetonatorBean.getResult().getLgs().getLg();
+                                            if (null != offlineDetonatorBean) {
+                                                if (offlineDetonatorBean.getToken().equals(token)) {
+                                                    if (offlineDetonatorBean.isStatus()) {
+                                                        if (null != offlineDetonatorBean.getResult()) {
+                                                            if (offlineDetonatorBean.getResult().getCwxx().equals("0")) {
+                                                                List<LgBean> detonators = offlineDetonatorBean.getResult().getLgs().getLg();
                                                                 if (null != detonators) {
-                                                                    DbUtil.updateDownloadDetonator(true, downloadDetonatorBean);
+                                                                    DbUtil.updateDownloadDetonator(true, offlineDetonatorBean);
                                                                     checkList(detonators);
                                                                 }
                                                                 myApp.myToast(AuthorizationListActivity.this, R.string.message_offline_download_success);
                                                             } else {
-                                                                String error = ErrorCode.downloadErrorCode.get(downloadDetonatorBean.getResult().getCwxx());
+                                                                String error = ErrorCode.downloadErrorCode.get(offlineDetonatorBean.getResult().getCwxx());
                                                                 if (null == error) {
-                                                                    error = getString(R.string.message_download_unknown_error) + downloadDetonatorBean.getResult().getCwxx();
+                                                                    error = getString(R.string.message_download_unknown_error) + offlineDetonatorBean.getResult().getCwxx();
                                                                 }
                                                                 myApp.myToast(AuthorizationListActivity.this, error);
                                                             }
                                                         }
                                                     } else
-                                                        myApp.myToast(AuthorizationListActivity.this, downloadDetonatorBean.getDescription());
+                                                        myApp.myToast(AuthorizationListActivity.this, offlineDetonatorBean.getDescription());
                                                 } else
                                                     myApp.myToast(AuthorizationListActivity.this, R.string.message_token_error);
                                             } else
@@ -389,13 +398,15 @@ public class AuthorizationListActivity extends BaseActivity {
 
     private void manualAppend() {
         final View inputCodeView = LayoutInflater.from(AuthorizationListActivity.this).inflate(R.layout.layout_dialog_add_detonator, listView, false);
+        final EditText etBox = inputCodeView.findViewById(R.id.et_box);
         final EditText etAmount = inputCodeView.findViewById(R.id.et_amount);
         final CheckBox cbImport = inputCodeView.findViewById(R.id.cb_import);
         etStart = inputCodeView.findViewById(R.id.et_start);
-        cbImport.setEnabled(detonatorList.size() > 0 && checkImport());
+        cbImport.setEnabled(schemeList.size() > 0);
         cbImport.setOnCheckedChangeListener((compoundButton, b) -> {
             etStart.setEnabled(!b);
             etAmount.setEnabled(!b);
+            etBox.setEnabled(!b);
         });
         etStart.setKeyListener(new NumberKeyListener() {
             @NonNull
@@ -409,12 +420,37 @@ public class AuthorizationListActivity extends BaseActivity {
                 return InputType.TYPE_TEXT_VARIATION_PASSWORD;
             }
         });
-        etAmount.setHint("100");
+        etBox.setHint("1");
+        etAmount.setHint("10");
+        TextWatcher watcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if (!charSequence.toString().isEmpty())
+                    try {
+                        int num = Integer.parseInt(charSequence.toString());
+                        if (num <= 0 || num > ConstantUtils.MAX_AMOUNT_PER_BOX)
+                            myApp.myToast(AuthorizationListActivity.this, R.string.message_amount_in_box_out_of_range);
+                    } catch (Exception e) {
+                        myApp.myToast(AuthorizationListActivity.this, R.string.message_amount_in_box_out_of_range);
+                    }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        };
+        etAmount.addTextChangedListener(watcher);
         etStart.requestFocus();
         final AlertDialog addDialog = new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_manual_input)
                 .setView(inputCodeView)
-                .setPositiveButton(R.string.button_confirm, (dialogInterface, ii) -> confirmInput(cbImport.isChecked(), etAmount.getText().toString()))
+                .setPositiveButton(R.string.button_confirm, (dialogInterface, ii) -> confirmInput(cbImport.isChecked(), etBox.getText().toString(), etAmount.getText().toString()))
                 .setNegativeButton(R.string.button_cancel, null)
                 .setOnDismissListener(dialogInterface -> etStart = null)
                 .setOnKeyListener((dialogInterface, i, keyEvent) -> {
@@ -426,7 +462,7 @@ public class AuthorizationListActivity extends BaseActivity {
                                 serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_CODE, ConstantUtils.SCAN_CODE_TIME);
                                 break;
                             case KeyEvent.KEYCODE_DPAD_CENTER:
-                                confirmInput(cbImport.isChecked(), etAmount.getText().toString());
+                                confirmInput(cbImport.isChecked(), etBox.getText().toString(), etAmount.getText().toString());
                                 break;
                         }
                     return false;
@@ -436,41 +472,34 @@ public class AuthorizationListActivity extends BaseActivity {
         addDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(20);
     }
 
-    private boolean checkImport() {
-        for (DetonatorBean bean : detonatorList)
-            if (!list.contains(bean))
-                return true;
-        return false;
-    }
-
-    private void confirmInput(boolean isImport, String amount) {
+    private void confirmInput(boolean isImport, String box, String amount) {
         if (isImport) {
-            if (detonatorList.size() > 0) {
-                boolean success = false;
-                for (DetonatorBean bean : detonatorList)
-                    if (!list.contains(bean)) {
-                        success = true;
-                        bean.setDownloaded(false);
-                        list.add(bean);
-                    }
-                if (success) {
-                    list.sort(Comparator.comparing(DetonatorBean::getAddress));
-                    myApp.myToast(AuthorizationListActivity.this, R.string.message_restore_success);
-                    adapter.updateList(list);
-                    btnDownload.setEnabled(true);
-                    btnDelete.setEnabled(true);
-                    DbUtil.updateAuthDetonatorList(list);
+            if (schemeList.size() == 1) {
+                if (!schemeList.get(0).isSelected()) {
+                    schemeList.get(0).setSelected(true);
+                    DbUtil.updateScheme(schemeList.get(0));
                 }
+                importDetonator();
+            } else {
+                Intent intent = new Intent(AuthorizationListActivity.this, SchemeActivity.class);
+                intent.putExtra(KeyUtils.KEY_SELECT_SCHEME, true);
+                requestCode = 1;
+                launcher.launch(intent);
             }
         } else if (Pattern.matches(ConstantUtils.SHELL_PATTERN, etStart.getText().toString().toUpperCase())) {
             try {
-                int j = amount.isEmpty() ? 100 : Integer.parseInt(amount);
-                for (int i = 0; i < j; i++) {
-                    DetonatorBean bean = new DetonatorBean(etStart.getText().toString().substring(0, 8).toUpperCase()
-                            + String.format(Locale.getDefault(), "%05d", (Integer.parseInt(etStart.getText().toString().substring(8)) + i) % 100000));
-                    bean.setDownloaded(false);
-                    list.add(bean);
+                int k = box.isEmpty() ? 1 : Integer.parseInt(box);
+                int j = amount.isEmpty() ? 10 : Integer.parseInt(amount);
+                if (j < 0 || j > ConstantUtils.MAX_AMOUNT_PER_BOX) {
+                    myApp.myToast(AuthorizationListActivity.this, R.string.message_amount_in_box_out_of_range);
+                    return;
                 }
+                for (int l = 0; l < k; l++)
+                    for (int i = 0; i < j; i++) {
+                        DetonatorBean bean = new DetonatorBean(String.format(Locale.getDefault(), "%s%05d",etStart.getText().toString().substring(0, 8).toUpperCase(), (Integer.parseInt(etStart.getText().toString().substring(8)) + l * 100L + i) % 100000));
+                        bean.setDownloaded(false);
+                        list.add(bean);
+                    }
                 adapter.updateList(list);
                 DbUtil.updateAuthDetonatorList(list);
                 btnDownload.setEnabled(true);
@@ -480,6 +509,26 @@ public class AuthorizationListActivity extends BaseActivity {
             }
         } else
             myApp.myToast(AuthorizationListActivity.this, R.string.message_detonator_input_error);
+    }
+
+    private void importDetonator() {
+        List<DetonatorBean> detonatorList = DbUtil.getCurrentDetonatorList();
+        if (detonatorList.size() > 0) {
+            boolean added = false;
+            for (DetonatorBean bean : detonatorList)
+                if (!list.contains(bean)) {
+                    bean.setDownloaded(false);
+                    bean.setRow(0);
+                    list.add(bean);
+                    added = true;
+                }
+            if (added) {
+                myApp.myToast(AuthorizationListActivity.this, R.string.message_import_success);
+                adapter.updateList(list);
+                DbUtil.updateAuthDetonatorList(list);
+            }
+        }
+        myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
     }
 
     private void enabledButton(boolean enabled) {

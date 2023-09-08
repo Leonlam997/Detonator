@@ -34,58 +34,59 @@ import java.io.FileWriter;
 import java.util.Locale;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
-    private int keyCount = 0;
-    private BaseApplication myApp;
-    private String[] title;
-    private AlertDialog alertDialog;
-    private long lastClickTime;
     private CheckBox cbChange;
+    private String[] title;
+    private boolean dialogShowing;
+    private long lastClickTime;
+    private int keyCount = 0;
 
     private final Handler myHandler = new Handler(msg -> {
-        if (msg.what == 1) {
-            UpdateVersionBean versionBean = (UpdateVersionBean) msg.obj;
-            if (versionBean.getVersion() != null) {
-                String[] version = versionBean.getVersion().split("\\.");
-                if (version.length == 3) {
-                    try {
-                        int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
-                        version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
-                        if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]) && alertDialog == null) {
-                            alertDialog = new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog).setTitle(R.string.progress_title)
-                                    .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_found_new_version), versionBean.getVersion()))
-                                    .setPositiveButton(R.string.button_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
-                                    .setNegativeButton(R.string.button_cancel, null)
-                                    .setOnDismissListener(dialog -> alertDialog = null).show();
-                            BaseApplication.customDialog(alertDialog);
+        switch (msg.what) {
+            case UpdateAppActivity.UPDATE_HAS_NEW:
+                UpdateVersionBean versionBean = (UpdateVersionBean) msg.obj;
+                if (versionBean.getVersion() != null) {
+                    String[] version = versionBean.getVersion().split("\\.");
+                    if (version.length == 3) {
+                        try {
+                            int code = Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]);
+                            version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName.split("\\.");
+                            if (version.length == 3 && code > Integer.parseInt(version[0]) * 1000 * 1000 + Integer.parseInt(version[1]) * 1000 + Integer.parseInt(version[2]) && !dialogShowing) {
+                                dialogShowing = true;
+                                BaseApplication.customDialog(new AlertDialog.Builder(MainActivity.this, R.style.AlertDialog).setTitle(R.string.progress_title)
+                                        .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_found_new_version), versionBean.getVersion()))
+                                        .setPositiveButton(R.string.button_confirm, (dialog, which) -> startActivity(new Intent(MainActivity.this, UpdateAppActivity.class)))
+                                        .setNegativeButton(R.string.button_cancel, null)
+                                        .setOnDismissListener(dialog -> dialogShowing = false).show());
+                            }
+                        } catch (Exception e) {
+                            BaseApplication.writeErrorLog(e);
                         }
-                    } catch (Exception e) {
-                        BaseApplication.writeErrorLog(e);
                     }
                 }
-            }
-        } else if (msg.what == 2) {
-            File file = new File(FilePath.FILE_SERIAL_LOG);
-            if (file.exists() && file.length() > 4 * 1024 * 1024)
-                trimFile(FilePath.FILE_SERIAL_LOG);
-            file = new File(FilePath.FILE_DEBUG_LOG);
-            if (file.exists() && file.length() > 4 * 1024 * 1024)
-                trimFile(FilePath.FILE_DEBUG_LOG);
-            if (!myApp.isUploading() && BaseApplication.isNetSystemUsable(MainActivity.this)) {
+                break;
+            case 1:
+                final Handler handler = msg.getTarget();
+                handler.removeMessages(1);
                 new Thread(() -> {
-                    if (BaseApplication.settings != null && BaseApplication.settings.isRegistered()) {
-                        if (SynchronizeExplodeRecord.isNotUploading())
+                    File file = new File(FilePath.FILE_SERIAL_LOG);
+                    if (file.exists() && file.length() > 3 * 1024 * 1024)
+                        trimFile(FilePath.FILE_SERIAL_LOG);
+                    file = new File(FilePath.FILE_DEBUG_LOG);
+                    if (file.exists() && file.length() > 3 * 1024 * 1024)
+                        trimFile(FilePath.FILE_DEBUG_LOG);
+                    if (BaseApplication.isNetSystemUsable(MainActivity.this) && BaseApplication.isNetPingUsable()) {
+                        if (!SynchronizeExplodeRecord.uploading)
                             new SynchronizeExplodeRecord(myApp).start();
-                        if (!BaseApplication.settings.isUploadedLog()) {
-                            myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
-                            myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
+                        if (BaseApplication.settings != null) {
+                            if (!BaseApplication.settings.isUploadedLog())
+                                myApp.uploadLog(handler);
+                            if (BaseApplication.settings.isUpdateHint())
+                                myApp.getVersion(handler);
                         }
-                    } else {
-                        myApp.registerExploder();
                     }
+                    handler.sendEmptyMessageDelayed(1, 60 * 1000);
                 }).start();
-                myApp.getVersion(msg.getTarget());
-            }
-            msg.getTarget().sendEmptyMessageDelayed(2, 60 * 1000);
+                break;
         }
         return false;
     });
@@ -148,7 +149,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 BaseApplication.saveSettings();
             }
         }
-        myHandler.sendEmptyMessage(2);
+        myHandler.sendEmptyMessage(1);
     }
 
     private void hideTest() {
@@ -249,6 +250,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     @Override
+    public void finish() {
+    }
+
+    @Override
     protected void onPause() {
         myHandler.removeCallbacksAndMessages(null);
         keyCount = 0;
@@ -260,7 +265,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         BaseApplication.writeFile(getString(BaseApplication.settings.isTunnel() ? R.string.mode_tunnel : R.string.mode_open_air));
         setBarColor(BaseApplication.settings.isTunnel());
         initSettings();
-        myHandler.sendEmptyMessage(2);
+        myHandler.sendEmptyMessage(1);
         super.onResume();
     }
 

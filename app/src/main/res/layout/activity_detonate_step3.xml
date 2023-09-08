@@ -5,6 +5,23 @@
     android:background="@color/colorCommonBackground"
     android:orientation="vertical">
 
+    <FrameLayout
+        android:id="@+id/fl_count"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAlignment="center"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:textColor="@color/colorCountDown"
+            android:textSize="@dimen/count_text_size" />
+    </FrameLayout>
+
     <LinearLayout
         android:id="@+id/fl_charge"
         android:layout_width="match_parent"

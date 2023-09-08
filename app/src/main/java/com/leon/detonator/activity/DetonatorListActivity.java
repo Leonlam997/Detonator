@@ -1,12 +1,14 @@
 package com.leon.detonator.activity;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.Editable;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.NumberKeyListener;
 import android.view.KeyEvent;
@@ -35,6 +37,7 @@ import com.leon.detonator.serial.SerialPortUtil;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.KeyUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -51,7 +54,6 @@ public class DetonatorListActivity extends BaseActivity {
     private SerialPortUtil serialPortUtil;
     private DataReceiveListener myReceiveListener;
     private SoundPool soundPool;
-    private BaseApplication myApp;
     private EditText etStart;
     private final int MODE_SCHEME = 1;
     private final int MODE_HISTORY = 5;
@@ -59,6 +61,7 @@ public class DetonatorListActivity extends BaseActivity {
     private long schemeId;
     private int soundSuccess;
     private int soundFail;
+    private int keyMode;
     private final TextWatcher watcher = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -104,9 +107,14 @@ public class DetonatorListActivity extends BaseActivity {
                             myApp.playSoundVibrate(soundPool, soundSuccess);
                             if (etStart == null) {
                                 int index = list.indexOf(new DetonatorBean(tempAddress));
-                                if (index >= 0 && index < list.size())
-                                    listView.setSelection(index);
-                                else
+                                if (index >= 0 && index < list.size()) {
+                                    listView.smoothScrollToPosition(index);
+                                    listView.postDelayed(()->{
+                                        listView.requestFocusFromTouch();
+                                        listView.setSelection(index);
+                                    },100);
+                                    myApp.myToast(DetonatorListActivity.this, String.format(getString(R.string.message_detonator_found), index + 1));
+                                } else
                                     myApp.myToast(DetonatorListActivity.this, String.format(getString(R.string.message_detonator_not_found), tempAddress));
                             } else
                                 etStart.setText(tempAddress);
@@ -116,6 +124,7 @@ public class DetonatorListActivity extends BaseActivity {
         }
         return false;
     });
+
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode()) {
             list = DbUtil.getDetonatorList(schemeId);
@@ -125,7 +134,6 @@ public class DetonatorListActivity extends BaseActivity {
                 && (ConstantUtils.ERROR_RESULT_SHORT_CIRCUIT == result.getData().getIntExtra(KeyUtils.KEY_ERROR_RESULT, ConstantUtils.ERROR_RESULT_OPEN_FAIL)))
             myApp.shortCircuit(DetonatorListActivity.this, DetonatorListActivity.this.myHandler);
     });
-    private int keyMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +145,13 @@ public class DetonatorListActivity extends BaseActivity {
         schemeId = getIntent().getLongExtra(KeyUtils.KEY_TABLE_ID, -1);
         list = DbUtil.getDetonatorList(schemeId);
         initSound();
+        findViewById(R.id.table_title).setBackgroundColor(getColor(R.color.colorTableTitleBackground));
+        if (BaseApplication.settings.isTunnel()) {
+            findViewById(R.id.line_inside).setVisibility(View.GONE);
+            findViewById(R.id.text_inside).setVisibility(View.GONE);
+            ((TextView) findViewById(R.id.text_row)).setText(R.string.table_section);
+            ((TextView) findViewById(R.id.text_hole)).setText(R.string.table_section_inside);
+        }
         listView = findViewById(R.id.lv_delay_list);
         keyMode = 0;
         adapter = new DetonatorListAdapter(this, list);
@@ -147,10 +162,9 @@ public class DetonatorListActivity extends BaseActivity {
                 findViewById(R.id.rl_scan_view).setVisibility(View.VISIBLE);
                 findViewById(R.id.ll_info).setVisibility(View.GONE);
                 setTitle(titleID, R.string.menu_send_list);
-                setSubtitleClickListener(view -> startActivity(new Intent(DetonatorListActivity.this, SendSchemeActivity.class)));
+                setSubtitleClickListener(view -> sendList());
                 break;
             case ConstantUtils.MODIFY_LIST:
-                adapter.setCanSelect(true);
                 titleID = R.string.check_schedule;
                 findViewById(R.id.rl_scan_view).setVisibility(View.VISIBLE);
                 findViewById(R.id.ll_info).setVisibility(View.GONE);
@@ -206,6 +220,12 @@ public class DetonatorListActivity extends BaseActivity {
                 break;
         }
         listView.requestFocus();
+    }
+
+    private void sendList() {
+        Intent intent = new Intent(DetonatorListActivity.this, SendSchemeActivity.class);
+        intent.putExtra(KeyUtils.KEY_TABLE_ID, schemeId);
+        startActivity(intent);
     }
 
     private void checkButton() {
@@ -681,7 +701,7 @@ public class DetonatorListActivity extends BaseActivity {
         for (DetonatorBean b : list)
             b.setSchemeId(bean.getId());
         DbUtil.updateDetonatorList(list);
-        myApp.myToast(DetonatorListActivity.this, R.string.message_restore_success);
+        myApp.myToast(DetonatorListActivity.this, R.string.message_import_success);
     }
 
     @Override
@@ -718,7 +738,7 @@ public class DetonatorListActivity extends BaseActivity {
                                 listView.setSelection(0);
                             return true;
                         case KeyEvent.KEYCODE_MENU:
-                            startActivity(new Intent(DetonatorListActivity.this, SendSchemeActivity.class));
+                            sendList();
                             return true;
                         case ConstantUtils.KEYCODE_CENTER_SCAN:
                         case ConstantUtils.KEYCODE_LEFT_SCAN:
@@ -744,6 +764,7 @@ public class DetonatorListActivity extends BaseActivity {
     private void manualAppend() {
         final View inputCodeView = LayoutInflater.from(DetonatorListActivity.this).inflate(R.layout.layout_dialog_add_detonator, listView, false);
         etStart = inputCodeView.findViewById(R.id.et_start);
+        final EditText etBox = inputCodeView.findViewById(R.id.et_box);
         final EditText etAmount = inputCodeView.findViewById(R.id.et_amount);
         inputCodeView.findViewById(R.id.cb_import).setVisibility(View.GONE);
         etStart.setKeyListener(new NumberKeyListener() {
@@ -758,22 +779,68 @@ public class DetonatorListActivity extends BaseActivity {
                 return InputType.TYPE_TEXT_VARIATION_PASSWORD;
             }
         });
-        etAmount.setHint("1");
+        etBox.setHint("1");
+        etAmount.setHint("10");
+        TextWatcher watcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if (!charSequence.toString().isEmpty())
+                    try {
+                        int num = Integer.parseInt(charSequence.toString());
+                        if (num <= 0 || num > ConstantUtils.MAX_AMOUNT_PER_BOX)
+                            myApp.myToast(DetonatorListActivity.this, R.string.message_amount_in_box_out_of_range);
+                    } catch (Exception e) {
+                        myApp.myToast(DetonatorListActivity.this, R.string.message_amount_in_box_out_of_range);
+                    }
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        };
         etAmount.addTextChangedListener(watcher);
-        BaseApplication.customDialog(new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
+        AlertDialog dialog = new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_manual_input)
                 .setView(inputCodeView)
                 .setPositiveButton(R.string.button_confirm, (dialogInterface, ii) -> {
                     if (Pattern.matches(ConstantUtils.SHELL_PATTERN, etStart.getText().toString().toUpperCase())) {
                         etStart.setText(etStart.getText().toString().toUpperCase());
-                        for (int j = 0, k = etAmount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(etAmount.getText().toString()); j < k; j++) {
-                            String det = etStart.getText().toString().substring(0, 8) + String.format(Locale.getDefault(), "%05d", (Integer.parseInt(etStart.getText().toString().substring(8) + j)) % 100000);
-                            int i = list.indexOf(new DetonatorBean(det));
-                            if (i >= 0) {
-                                myApp.myToast(DetonatorListActivity.this, det +
-                                        String.format(Locale.getDefault(), getString(R.string.message_detonator_exist), i + 1));
-                                return;
+                        List<String> addressList = new ArrayList<>();
+                        int amount = TextUtils.isEmpty(etAmount.getText()) ? 10 : Integer.parseInt(etAmount.getText().toString());
+                        if (amount < 0 || amount > ConstantUtils.MAX_AMOUNT_PER_BOX) {
+                            myApp.myToast(DetonatorListActivity.this, R.string.message_amount_in_box_out_of_range);
+                            return;
+                        }
+                        int box = TextUtils.isEmpty(etBox.getText()) ? 1 : Integer.parseInt(etBox.getText().toString());
+                        for (int l = 0; l < box; l++)
+                            for (int i = 0; i < amount; i++) {
+                                String det = String.format(Locale.getDefault(), "%s%05d", etStart.getText().toString().substring(0, 8),
+                                        (Integer.parseInt(etStart.getText().toString().substring(8)) + (l * 100L) % 1000 + i) % 100000);
+                                int index = list.indexOf(new DetonatorBean(det));
+                                if (index >= 0) {
+                                    myApp.myToast(DetonatorListActivity.this, det +
+                                            String.format(Locale.getDefault(), getString(R.string.message_current_detonator_exist), det, index + 1));
+                                    return;
+                                }
+                                addressList.add(det);
                             }
+                        String scheme = DbUtil.checkDetonatorListExist(addressList, schemeId);
+                        if (scheme != null) {
+                            try {
+                                myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_current_detonator_exist_other_scheme),
+                                        addressList.get(Integer.parseInt(scheme.substring(1, 5))),
+                                        getString(Integer.parseInt(scheme.substring(0, 1)) == 0 ? R.string.mode_text_open_air : R.string.mode_text_tunnel),
+                                        scheme.substring(5)));
+                            } catch (Exception e) {
+                                BaseApplication.writeErrorLog(e);
+                            }
+                            return;
                         }
                         BaseApplication.writeFile(getString(R.string.dialog_title_manual_input) + ", " + etStart.getText() + ", " + etAmount.getText());
                         int delayTime = 0, hole, inside, row;
@@ -797,11 +864,12 @@ public class DetonatorListActivity extends BaseActivity {
                             hole = 1;
                             inside = 1;
                         }
-                        for (int j = 0, k = etAmount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(etAmount.getText().toString()); j < k; j++)
-                            list.add(new DetonatorBean(schemeId,
-                                    etStart.getText().toString().substring(0, 8).toUpperCase() + String.format(Locale.getDefault(), "%05d", (Integer.parseInt(etStart.getText().toString().substring(8) + j)) % 100000),
-                                    Math.min(delayTime + j * (BaseApplication.settings.isTunnel() ? BaseApplication.settings.getSectionInside() : BaseApplication.settings.getHole()), ConstantUtils.MAX_DELAY_TIME),
-                                    row, (BaseApplication.settings.isTunnel() ? hole : j + hole), (BaseApplication.settings.isTunnel() ? j + inside : inside), false));
+                        for (int l = 0; l < box; l++)
+                            for (int i = 0; i < amount; i++)
+                                list.add(new DetonatorBean(schemeId,
+                                        String.format(Locale.getDefault(), "%s%05d", etStart.getText().toString().substring(0, 8).toUpperCase(), (Integer.parseInt(etStart.getText().toString().substring(8)) + (l * 100L) % 1000 + i) % 100000),
+                                        Math.min(delayTime + (l * amount + i) * (BaseApplication.settings.isTunnel() ? BaseApplication.settings.getSectionInside() : BaseApplication.settings.getHole()), ConstantUtils.MAX_DELAY_TIME),
+                                        row, (BaseApplication.settings.isTunnel() ? hole : (l * amount + i) + hole), (BaseApplication.settings.isTunnel() ? (l * amount + i) + inside : inside), false));
                         DbUtil.updateDetonatorList(list);
                         checkButton();
                         adapter.updateList(list);
@@ -810,7 +878,20 @@ public class DetonatorListActivity extends BaseActivity {
                 })
                 .setOnDismissListener(dialogInterface -> etStart = null)
                 .setNegativeButton(R.string.button_cancel, null)
-                .show());
+                .show();
+        BaseApplication.customDialog(dialog);
+        dialog.setOnKeyListener((dialogInterface, i, keyEvent) -> {
+            if (keyEvent.getAction() == KeyEvent.ACTION_UP)
+                if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_DPAD_CENTER)
+                    dialog.getButton(DialogInterface.BUTTON_POSITIVE).callOnClick();
+                else if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_BACK)
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick();
+                else if (keyEvent.getKeyCode() == ConstantUtils.KEYCODE_CENTER_SCAN || keyEvent.getKeyCode() == ConstantUtils.KEYCODE_LEFT_SCAN || keyEvent.getKeyCode() == ConstantUtils.KEYCODE_RIGHT_SCAN) {
+                    BaseApplication.writeFile(getString(R.string.button_scan));
+                    serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_CODE, ConstantUtils.SCAN_CODE_TIME);
+                }
+            return false;
+        });
     }
 
     private void scanDetonator() {

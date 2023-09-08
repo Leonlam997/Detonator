@@ -25,32 +25,53 @@ import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.KeyUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class SchemeActivity extends BaseActivity {
     private List<SchemeBean> list;
-    private BaseApplication myApp;
     private InfoAdapter<SchemeBean> adapter;
-    private MyButton btnNew;
+    private MyButton btnAdd;
     private MyButton btnDelete;
     private MyButton btnModify;
     private ListView listView;
+    private boolean selectScheme;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scheme);
+        selectScheme = getIntent().getBooleanExtra(KeyUtils.KEY_SELECT_SCHEME, false);
+        setTitle(selectScheme ? R.string.select_schedule : R.string.delay_scheme);
         setTitle(R.string.delay_scheme);
         myApp = (BaseApplication) getApplication();
         btnDelete = findViewById(R.id.btn_delete_scheme);
         btnDelete.setOnClickListener(v -> launchTask(2));
         btnModify = findViewById(R.id.btn_modify_scheme);
         btnModify.setOnClickListener(v -> launchTask(1));
-        btnNew = findViewById(R.id.btn_new_scheme);
-        btnNew.setOnClickListener(v -> launchTask(0));
+        btnAdd = findViewById(R.id.btn_new_scheme);
+        btnAdd.setOnClickListener(v -> launchTask(0));
 
         list = DbUtil.getSchemeList();
+        if (selectScheme) {
+            btnDelete.setVisibility(View.GONE);
+            btnModify.setVisibility(View.GONE);
+            btnAdd.setTextId(R.string.button_confirm);
+        } else {
+            int count = 0;
+            long id = -1;
+            for (SchemeBean bean : list)
+                if (bean.isSelected()) {
+                    if (count++ == 0) {
+                        id = bean.getId();
+                    } else {
+                        bean.setSelected(false);
+                    }
+                }
+            if (count > 1)
+                DbUtil.selectScheme(new long[]{id});
+        }
         adapter = new InfoAdapter<>(this, list);
         listView = findViewById(R.id.lv_scheme);
         listView.setAdapter(adapter);
@@ -63,61 +84,75 @@ public class SchemeActivity extends BaseActivity {
                 break;
             }
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
-            enabledButton(false);
-            list.get(i).setSelected(!list.get(i).isSelected());
-            DbUtil.updateScheme(list.get(i));
-            adapter.updateList(list);
-            listView.setSelection(i);
-            btnModify.setEnabled(singleSelect());
-            enabledButton(true);
-        });
-        listView.setOnItemLongClickListener((adapterView, view, i, l) -> {
-            modifyName(false);
-            return true;
+            if (selectScheme) {
+                list.get(i).setSelected(!list.get(i).isSelected());
+                adapter.updateList(list);
+            } else {
+                if (list.get(i).isSelected()) {
+                    Intent intent = new Intent(SchemeActivity.this, DetonatorListActivity.class);
+                    DbUtil.selectScheme(new long[]{list.get(i).getId()});
+                    intent.putExtra(KeyUtils.KEY_TABLE_ID, list.get(i).getId());
+                    startActivity(intent);
+                } else {
+                    for (SchemeBean bean : list)
+                        if (bean.isSelected())
+                            bean.setSelected(false);
+                    list.get(i).setSelected(true);
+                    adapter.updateList(list);
+                }
+            }
         });
         enabledButton(true);
     }
 
-    private void enabledButton(boolean b) {
-        setProgressVisibility(!b);
-        listView.setEnabled(b);
-        btnNew.setEnabled(b);
-        btnDelete.setEnabled(b && list.size() > 0);
-        btnModify.setEnabled(b && singleSelect());
-    }
-
-    private boolean singleSelect() {
-        boolean b = false;
+    private boolean hasSelected() {
         for (SchemeBean bean : list)
-            if (bean.isSelected()) {
-                if (!b)
-                    b = true;
-                else
-                    return false;
-            }
-        return b;
+            if (bean.isSelected())
+                return true;
+        return false;
     }
 
-    private void launchTask(int i) {
-        switch (i) {
+    private void enabledButton(boolean b) {
+        runOnUiThread(() -> {
+            setProgressVisibility(!b);
+            listView.setEnabled(b);
+            btnAdd.setEnabled(b);
+            btnDelete.setEnabled(b && list.size() > 0);
+            btnModify.setEnabled(b && hasSelected());
+        });
+    }
+
+    private void launchTask(int what) {
+        switch (what) {
             case ConstantUtils.KEYCODE_ADD:
             case 0:
-                modifyName(true);
+                if (selectScheme) {
+                    if (btnAdd.isEnabled()) {
+                        List<Long> ids = new ArrayList<>();
+                        for (SchemeBean bean : list)
+                            if (bean.isSelected())
+                                ids.add(bean.getId());
+                        if (ids.size() > 0) {
+                            long[] id = new long[ids.size()];
+                            for (int i = 0; i < ids.size(); i++)
+                                id[i] = ids.get(i);
+                            DbUtil.selectScheme(id);
+                            setResult(RESULT_OK);
+                        } else
+                            setResult(RESULT_CANCELED);
+                        finish();
+                    }
+                } else
+                    modifyName(true);
                 break;
             case KeyEvent.KEYCODE_TAB:
             case 1:
-                if (btnModify.isEnabled())
-                    for (SchemeBean bean : list)
-                        if (bean.isSelected()) {
-                            Intent intent = new Intent(SchemeActivity.this, DetonatorListActivity.class);
-                            intent.putExtra(KeyUtils.KEY_TABLE_ID, bean.getId());
-                            startActivity(intent);
-                            break;
-                        }
+                if (!selectScheme && btnModify.isEnabled())
+                    modifyName(false);
                 break;
             case ConstantUtils.KEYCODE_SUB:
             case 2:
-                if (btnDelete.isEnabled())
+                if (!selectScheme && btnDelete.isEnabled())
                     runOnUiThread(() -> {
                         enabledButton(false);
                         final View deleteView = LayoutInflater.from(SchemeActivity.this).inflate(R.layout.layout_dialog_batch_modify, listView, false);
@@ -171,6 +206,7 @@ public class SchemeActivity extends BaseActivity {
                         etTo.addTextChangedListener(watcher);
                         BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_batch_delete)
+                                .setCancelable(false)
                                 .setView(deleteView)
                                 .setPositiveButton(R.string.button_confirm, (dialog, which1) -> {
                                     try {
@@ -186,11 +222,14 @@ public class SchemeActivity extends BaseActivity {
                                                 .setTitle(R.string.dialog_title_delete_scheme)
                                                 .setMessage(R.string.dialog_confirm_delete_scheme)
                                                 .setPositiveButton(R.string.button_confirm, (dialog1, which) -> {
+                                                    List<Long> ids = new ArrayList<>();
                                                     for (int j = Math.max(to, from) - 1; j >= Math.min(from, to) - 1; j--) {
                                                         BaseApplication.writeFile(getString(R.string.button_delete) + ":" + list.get(j).getName());
-                                                        DbUtil.deleteScheme(list.get(j).getId());
+                                                        ids.add(list.get(j).getId());
                                                         list.remove(j);
                                                     }
+                                                    if (ids.size() > 0)
+                                                        DbUtil.deleteScheme(ids);
                                                     adapter.updateList(list);
                                                 })
                                                 .setOnDismissListener(dialogInterface -> enabledButton(true))
@@ -200,6 +239,7 @@ public class SchemeActivity extends BaseActivity {
                                         myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
                                     }
                                 })
+                                .setOnDismissListener(dialogInterface -> enabledButton(true))
                                 .setNegativeButton(R.string.button_cancel, null)
                                 .show());
                     });
@@ -229,6 +269,7 @@ public class SchemeActivity extends BaseActivity {
             etName.setSelection(etName.getText().length());
             BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
                     .setTitle(newScheme ? R.string.dialog_title_new_scheme : R.string.dialog_title_modify_scheme)
+                    .setCancelable(false)
                     .setView(v)
                     .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
                         if (etName.getText() != null && !etName.getText().toString().isEmpty()) {
@@ -284,39 +325,46 @@ public class SchemeActivity extends BaseActivity {
                     return true;
                 case KeyEvent.KEYCODE_2:
                     listView.requestFocus();
-                    if (listView.getSelectedItemPosition() > 0)
-                        listView.setSelection(listView.getSelectedItemPosition() - 1);
-                    else if (listView.getSelectedItemPosition() == 0)
-                        listView.setSelection(list.size() - 1);
-                    else
-                        for (int i = 0; i < list.size(); i++)
-                            if (list.get(i).isSelected()) {
-                                listView.setSelection(i);
-                                break;
-                            }
+                    if (!selectScheme) {
+                        if (listView.getSelectedItemPosition() > 0)
+                            listView.setSelection(listView.getSelectedItemPosition() - 1);
+                        else if (listView.getSelectedItemPosition() == 0)
+                            listView.setSelection(list.size() - 1);
+                        else
+                            for (int i = 0; i < list.size(); i++)
+                                if (list.get(i).isSelected()) {
+                                    listView.setSelection(i);
+                                    break;
+                                }
+                    }
                     return true;
                 case KeyEvent.KEYCODE_8:
                     listView.requestFocus();
-                    if (listView.getSelectedItemPosition() < list.size() - 1)
-                        listView.setSelection(listView.getSelectedItemPosition() + 1);
-                    else if (listView.getSelectedItemPosition() == list.size() - 1)
-                        listView.setSelection(0);
-                    else
-                        for (int i = 0; i < list.size(); i++)
-                            if (list.get(i).isSelected()) {
-                                listView.setSelection(i);
-                                break;
-                            }
+                    if (!selectScheme) {
+                        if (listView.getSelectedItemPosition() < list.size() - 1)
+                            listView.setSelection(listView.getSelectedItemPosition() + 1);
+                        else if (listView.getSelectedItemPosition() == list.size() - 1)
+                            listView.setSelection(0);
+                        else
+                            for (int i = 0; i < list.size(); i++)
+                                if (list.get(i).isSelected()) {
+                                    listView.setSelection(i);
+                                    break;
+                                }
+                    }
                     return true;
                 case KeyEvent.KEYCODE_DPAD_CENTER:
                 case KeyEvent.KEYCODE_MENU:
-                    for (SchemeBean bean : list)
-                        if (bean.isSelected()) {
-                            Intent intent = new Intent(SchemeActivity.this, DetonatorListActivity.class);
-                            intent.putExtra(KeyUtils.KEY_TABLE_ID, bean.getId());
-                            startActivity(intent);
-                            break;
-                        }
+                    if (!selectScheme) {
+                        for (SchemeBean bean : list)
+                            if (bean.isSelected()) {
+                                DbUtil.selectScheme(new long[]{bean.getId()});
+                                Intent intent = new Intent(SchemeActivity.this, DetonatorListActivity.class);
+                                intent.putExtra(KeyUtils.KEY_TABLE_ID, bean.getId());
+                                startActivity(intent);
+                                break;
+                            }
+                    }
                     return true;
             }
         return super.dispatchKeyEvent(event);
@@ -327,5 +375,25 @@ public class SchemeActivity extends BaseActivity {
         list = DbUtil.getSchemeList();
         adapter.updateList(list);
         super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (!selectScheme)
+            if (list.size() == 1 && !list.get(0).isSelected()) {
+                list.get(0).setSelected(true);
+                DbUtil.selectScheme(new long[]{list.get(0).getId()});
+            } else {
+                boolean notFound = true;
+                for (SchemeBean bean : list)
+                    if (bean.isSelected()) {
+                        notFound = false;
+                        DbUtil.selectScheme(new long[]{bean.getId()});
+                        break;
+                    }
+                if (notFound)
+                    DbUtil.selectScheme(new long[0]);
+            }
+        super.onDestroy();
     }
 }

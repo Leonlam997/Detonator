@@ -20,8 +20,15 @@
     <string name="table_serial_no">序号</string>
     <string name="table_address">管壳码</string>
     <string name="table_version">版本</string>
+    <string name="table_row">排号</string>
+    <string name="table_hole">孔号</string>
+    <string name="table_inside">内</string>
+    <string name="table_section">段号</string>
+    <string name="table_section_inside">段内</string>
+    <string name="table_delay">延期ms</string>
     <string name="table_size">大小</string>
     <string name="table_download_date">下载日期</string>
+    <string name="select_schedule">选择延期方案</string>
     <string name="default_scheme_name">方案%1$d</string>
     <string name="text_scheme_name">方案名称:</string>
     <string name="text_create_date">创建日期:</string>
@@ -101,6 +108,8 @@
     <string name="progress_explode">正在做起爆前检测工作，请稍候！</string>
     <string name="mode_open_air">F1.露天</string>
     <string name="mode_tunnel">F2.井巷</string>
+    <string name="mode_text_open_air">露天</string>
+    <string name="mode_text_tunnel">井巷</string>
     <string name="semi_product_title">半成品检测</string>
     <string name="select_type">选择雷管类型:</string>
     <string name="code_text">当前管壳码:___________________</string>
@@ -128,6 +137,8 @@
     <string name="detector_name">姓名:</string>
     <string name="offline_start">起始雷管:</string>
     <string name="offline_end">末端雷管:</string>
+    <string name="text_box">盒数:</string>
+    <string name="text_amount_per_box">每盒发数:</string>
     <string name="text_amount">数量:</string>
     <string name="offline_hint">管壳码长度13位</string>
     <string name="start_detonator">起始管壳码:</string>
@@ -212,9 +223,12 @@
     <string name="message_copy_file_fail">文件复制失败！</string>
     <string name="message_input_error">输入格式错误！</string>
     <string name="message_detonator_not_found">列表中未发现%1$s！</string>
+    <string name="message_detonator_found">雷管位于列表序号%1$d！</string>
     <string name="message_list_not_found">未发现延期列表！</string>
-    <string name="message_current_detonator_exist">当前雷管已存在！列表序号:%1$d。</string>
-    <string name="message_detonator_exist">已存在！列表序号:%1$d。</string>
+    <string name="message_detonator_duplicate">发现重复雷管：%1$s！\n方案\"%2$s\"第%3$d发\n方案\"%4$s\"第%5$d发</string>
+    <string name="message_scheme_empty_list">方案\"%1$s\"列表为空！</string>
+    <string name="message_current_detonator_exist">雷管%1$s已存在！列表序号:%2$d。</string>
+    <string name="message_current_detonator_exist_other_scheme">雷管%1$s已存在%2$s方案\"%3$s\"中。</string>
     <string name="message_receive_success">列表接收成功！</string>
     <string name="message_send_success">文件发送成功！</string>
     <string name="message_save_list_success">列表保存成功！</string>
@@ -233,6 +247,7 @@
     <string name="message_not_registered">起爆器未注册！</string>
     <string name="message_registered_fail">起爆器注册失败！</string>
     <string name="message_registered_success">起爆器注册成功！</string>
+    <string name="message_upload_log_fail">日志上传失败！</string>
     <string name="message_upload_success">上传成功！</string>
     <string name="message_upload_fail">爆破记录上传失败！</string>
     <string name="message_not_allow_area">当前定位不在准爆区域内！</string>
@@ -248,6 +263,8 @@
     <string name="message_cannot_delete_not_upload">不能删除未上传的记录！</string>
     <string name="message_no_select_record">没有选中记录！</string>
     <string name="message_file_not_found">文件不存在！</string>
+    <string name="message_amount_in_box_out_of_range">每盒数量不能超过100发！</string>
+    <string name="message_return_trunk_data">扫描到箱码%1$s！</string>
     <string name="message_upload_fail_number">\"%1$s\"上传失败！</string>
     <string name="message_upload_success_number">\"%1$s\"上传成功！</string>
     <string name="message_upload_all_success">数据已经全部上传！</string>
@@ -255,13 +272,14 @@
     <string name="message_charge_success">充电完成！</string>
     <string name="message_explode_success">起爆成功！</string>
     <string name="message_detect_multiple">%1$s发现重码！</string>
-    <string name="message_restore_success">列表导入成功！</string>
-    <string name="message_restore_fail">列表导入失败！</string>
+    <string name="message_import_success">列表导入成功！</string>
+    <string name="message_import_fail">列表导入失败！</string>
     <string name="message_safe_switch_on">安全开关已打开</string>
     <string name="message_safe_switch_off">安全开关已关闭</string>
     <string name="message_back_cover_open">注意：电池盖已打开！</string>
     <string name="message_back_cover_close">电池盖已关闭</string>
     <string name="message_turn_on_safe_switch">请先打开右侧开关！</string>
+    <string name="message_turn_off_safe_switch">请先关闭右侧开关！</string>
     <string name="message_select_device">请先选择设备！</string>
     <string name="message_select_bai_se_project">请先选择企业信息！</string>
     <string name="dialog_title_cancel_upload">取消上传</string>
@@ -334,7 +352,7 @@
     <string name="menu_tunnel_hole_insert">段内插入</string>
     <string name="menu_open_air_hole_insert">孔间插入</string>
     <string name="menu_open_air_inside_insert">孔内插入</string>
-    <string name="import_from_scheme">从当前方案中导入</string>
+    <string name="import_from_scheme">从方案中导入</string>
     <string name="tab_title_all_list">方案列表</string>
     <string name="tab_title_online">在线雷管</string>
     <string name="tab_title_offline">离线雷管</string>
@@ -346,6 +364,8 @@
     <string name="button_exit">退出</string>
     <string name="button_update">下载更新</string>
     <string name="button_version">版本管理</string>
+    <string name="button_hint_open">打开提示</string>
+    <string name="button_hint_close">关闭提示</string>
     <string name="button_start_detect">开始检测</string>
     <string name="button_get_status">获取状态</string>
     <string name="button_enter_charge">进入充电</string>
@@ -416,6 +436,8 @@
     <string name="hint_input_space">请输入间隔</string>
     <string name="button_minus">-</string>
     <string name="button_plus">+</string>
+    <string name="button_exit_explode">退出起爆</string>
+    <string name="button_continue_explode">继续起爆</string>
     <string name="hint_input_detonator">请输入序列号</string>
     <string name="hide_test_title">选择调试功能</string>
     <string name="hide_register">重新注册</string>
@@ -451,4 +473,7 @@
     <string name="RfReset_Err">复位失败!</string>
     <string name="RfCosSend_OK">发送COS成功!</string>
     <string name="RfCosSend_Err">发送COS失败!</string>
+    <string name="speech_start_detect">开始扫描雷管</string>
+    <string name="speech_start_download">开始下载延期</string>
+    <string name="speech_start_charge">开始充电</string>
 </resources>

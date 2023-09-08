@@ -29,7 +29,6 @@ public class VersionManageActivity extends BaseActivity {
     private List<VersionBean> list;
     private CheckBox cbSelected;
     private MyButton btnInstall, btnDelete;
-    private BaseApplication myApp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -1,30 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical">
+
     <CheckBox
         android:id="@+id/cb_import"
         android:layout_width="wrap_content"
+        android:layout_centerHorizontal="true"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
         android:layout_marginTop="5dp"
         android:focusableInTouchMode="false"
         android:text="@string/import_from_scheme"
         android:textSize="@dimen/dialog_edit_text" />
 
     <TextView
+        android:layout_below="@id/cb_import"
+        android:layout_centerHorizontal="true"
         android:id="@+id/tv_start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="10dp"
         android:layout_marginStart="5dp"
+        android:layout_marginTop="10dp"
+        android:labelFor="@id/et_start"
         android:text="@string/start_detonator"
         android:textColor="@color/colorLabelText"
         android:textSize="@dimen/dialog_edit_text" />
 
     <EditText
+        android:layout_below="@id/tv_start"
+        android:layout_centerHorizontal="true"
         android:id="@+id/et_start"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -32,31 +37,79 @@
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"
         android:hint="@string/offline_hint"
+        android:importantForAutofill="no"
         android:inputType="text"
         android:maxLength="13"
         android:textColor="@color/colorLabelText"
         android:textColorHint="@color/colorHintText"
         android:textSize="@dimen/dialog_edit_text" />
 
-    <TextView
-        android:id="@+id/tv_amount"
-        android:layout_width="wrap_content"
+    <GridLayout
+        android:layout_below="@id/et_start"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="10dp"
-        android:text="@string/text_amount"
-        android:textColor="@color/colorLabelText"
-        android:textSize="@dimen/dialog_edit_text" />
+        android:columnCount="2">
 
-    <EditText
-        android:id="@+id/et_amount"
-        android:layout_width="80dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:inputType="number"
-        android:maxLength="3"
-        android:textColor="@color/colorLabelText"
-        android:textColorHint="@color/colorHintText"
-        android:textSize="@dimen/dialog_edit_text"
-        android:importantForAutofill="no" />
-</LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_box"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="10dp"
+                android:labelFor="@id/et_box"
+                android:text="@string/text_box"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/dialog_edit_text" />
+
+            <EditText
+                android:id="@+id/et_box"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="3"
+                android:textColor="@color/colorLabelText"
+                android:textColorHint="@color/colorHintText"
+                android:textSize="@dimen/dialog_edit_text" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_amount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="10dp"
+                android:labelFor="@id/et_amount"
+                android:text="@string/text_amount_per_box"
+                android:textColor="@color/colorLabelText"
+                android:textSize="@dimen/dialog_edit_text" />
+
+            <EditText
+                android:id="@+id/et_amount"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="3"
+                android:textColor="@color/colorLabelText"
+                android:textColorHint="@color/colorHintText"
+                android:textSize="@dimen/dialog_edit_text" />
+
+        </LinearLayout>
+    </GridLayout>
+</RelativeLayout>

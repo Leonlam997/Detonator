@@ -52,7 +52,6 @@ public class SemiProductActivity extends BaseActivity {
     private SoundPool soundPool;
     private String uID;
     private long timeCounter;
-    private BaseApplication myApp;
     private DataReceiveListener myReceiveListener;
     private SemiProductDialog myDialog = null;
 

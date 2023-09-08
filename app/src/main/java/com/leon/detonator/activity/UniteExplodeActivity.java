@@ -65,7 +65,6 @@ public class UniteExplodeActivity extends BaseActivity {
     private boolean stopScan;
     private boolean enterExplode;
     private boolean charging = false;
-    private BaseApplication myApp;
     private final Handler myHandler = new Handler(msg -> {
         int CONNECT_TIMEOUT = 30000;
         switch (msg.what) {

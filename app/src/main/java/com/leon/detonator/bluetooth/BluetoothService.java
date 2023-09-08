@@ -204,7 +204,8 @@ public class BluetoothService {
         }
 
         public void run() {
-            if (DEBUG) Log.e(TAG, "Begin mAcceptThread");
+            if (DEBUG)
+                Log.e(TAG, "Begin mAcceptThread");
             setName("AcceptThread");
             BluetoothSocket socket;
             // 监听端口直到连接上

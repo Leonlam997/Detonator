@@ -48,24 +48,23 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 
 public class UploadExplodeRecord extends Thread {
-    private final List<ExplosionRecordBean> list;
-    private List<DetonatorBean> detonators;
-    private final Handler handler;
-    private final ActivityResultLauncher<Intent> launcher;
     private final BaseApplication myApp;
     private final BaseActivity activity;
-    private MinaClient minaClient;
+    private final ActivityResultLauncher<Intent> launcher;
+    private final List<ExplosionRecordBean> list;
+    private List<DetonatorBean> detonators;
     private EnterpriseBean enterpriseBean;
     private BaiSeInfoBean baiSeInfoBean;
+    private MinaClient minaClient;
     public static Handler myHandler;
+    private final Handler handler;
     private static final int HANDLER_TIMEOUT = 1;
-    public static final int UPLOAD_SUCCESS = 200;
-    public static final int UPLOAD_FAIL = 201;
-    public static final int RESULT_OK = 202;
-    public static final int RESULT_CANCEL = 203;
+    public static final int HANDLER_SUCCESS = 200;
+    public static final int HANDLER_FAIL = 201;
     public static boolean uploading;
     private int uploadIndex;
     private int receiveCount;
+    private boolean cancel;
 
     public UploadExplodeRecord(BaseActivity activity, List<ExplosionRecordBean> list, Handler handler, ActivityResultLauncher<Intent> launcher) {
         this.list = list;
@@ -76,11 +75,13 @@ public class UploadExplodeRecord extends Thread {
         myApp = (BaseApplication) activity.getApplication();
         myHandler = new Handler(handler.getLooper(), msg -> {
             switch (msg.what) {
-                case RESULT_OK:
+                case BaseApplication.HANDLER_REGISTER_SUCCESS:
+                case HANDLER_SUCCESS:
                     prepareUpload();
                     break;
-                case RESULT_CANCEL:
-                    uploadFail();
+                case BaseApplication.HANDLER_REGISTER_ERROR:
+                case HANDLER_FAIL:
+                    uploadFail(false);
                     break;
                 case MinaHandler.MINA_DATA:
                     msg.getTarget().removeMessages(HANDLER_TIMEOUT);
@@ -95,10 +96,8 @@ public class UploadExplodeRecord extends Thread {
                                 uploadBaiSe();
                             else if (BaseApplication.settings.getServerHost() == 3)
                                 uploadDanLing();
-                            else {
+                            else
                                 uploadSuccess();
-                                uploadNextRecord();
-                            }
                         }
                     }
                     break;
@@ -112,11 +111,11 @@ public class UploadExplodeRecord extends Thread {
                     msg.getTarget().removeMessages(HANDLER_TIMEOUT);
                     if (null != msg.obj)
                         BaseApplication.writeFile((String) msg.obj);
-                    uploadFail();
+                    uploadFail(false);
                     break;
                 case HANDLER_TIMEOUT:
                     myApp.myToast(activity, R.string.message_check_network);
-                    uploadFail();
+                    uploadFail(false);
                     break;
             }
             return false;
@@ -128,23 +127,14 @@ public class UploadExplodeRecord extends Thread {
         super.run();
         if (BaseApplication.isNetSystemUsable(activity)) {
             uploading = true;
-            if (!BaseApplication.settings.isRegistered()) {
-                myApp.registerExploder();
-                new CheckRegister(activity) {
-                    @Override
-                    public void onError() {
-                        uploadFail();
-                    }
-
-                    @Override
-                    public void onSuccess() {
-                        prepareUpload();
-                    }
-                }.start();
-            } else
+            if (!BaseApplication.settings.isRegistered())
+                myApp.registerExploder(myHandler);
+            else
                 prepareUpload();
-        } else
+        } else {
             myApp.myToast(activity, R.string.message_check_network);
+            handler.obtainMessage(HANDLER_FAIL, -1).sendToTarget();
+        }
         while (uploading) {
             try {
                 Thread.sleep(50);
@@ -159,7 +149,7 @@ public class UploadExplodeRecord extends Thread {
     private void prepareUpload() {
         if (uploading)
             if (!BaseApplication.settings.isRegistered() || null == BaseApplication.settings.getExploderID() || BaseApplication.settings.getExploderID().isEmpty()) {
-                uploadFail();
+                uploadFail(false);
                 myApp.myToast(activity, R.string.message_not_registered);
             } else
                 switch (BaseApplication.settings.getServerHost()) {
@@ -185,12 +175,12 @@ public class UploadExplodeRecord extends Thread {
                             baiSeDialog();
                         break;
                     default:
-                        BaseApplication.customDialog(new AlertDialog.Builder(activity, R.style.AlertDialog)
+                        activity.runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(activity, R.style.AlertDialog)
                                 .setTitle(R.string.dialog_title_upload)
                                 .setMessage(String.format(Locale.getDefault(), activity.getString(R.string.dialog_confirm_upload), ConstantUtils.UPLOAD_HOST[BaseApplication.settings.getServerHost()][0]))
                                 .setPositiveButton(R.string.button_confirm, (dialog, w) -> uploadNextRecord())
-                                .setNegativeButton(R.string.button_cancel, null)
-                                .show());
+                                .setNegativeButton(R.string.button_cancel, (dialog, w) -> uploadFail(true))
+                                .show()));
                         break;
                 }
     }
@@ -274,7 +264,7 @@ public class UploadExplodeRecord extends Thread {
     private void uploadNextRecord() {
         if (uploading)
             if (++uploadIndex >= list.size()) {
-                handler.obtainMessage(UPLOAD_SUCCESS).sendToTarget();
+                handler.sendEmptyMessage(HANDLER_SUCCESS);
                 uploading = false;
             } else {
                 detonators = DbUtil.getDetonatorList(list.get(uploadIndex).getId());
@@ -323,7 +313,7 @@ public class UploadExplodeRecord extends Thread {
                         public void onError(Call call, Exception e, int i) {
                             if (uploading)
                                 myApp.myToast(activity, R.string.message_check_network);
-                            uploadFail();
+                            uploadFail(false);
                         }
 
                         @Override
@@ -332,26 +322,26 @@ public class UploadExplodeRecord extends Thread {
                                 if (uploadExplodeRecordsBean.getToken().equals(token)) {
                                     if (uploadExplodeRecordsBean.isStatus()) {
                                         if (null != uploadExplodeRecordsBean.getResult()) {
-                                            if (!uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                                if (uploading)
-                                                    handler.obtainMessage(UPLOAD_FAIL, list.get(uploadIndex).getId()).sendToTarget();
-                                            } else
+                                            if (uploadExplodeRecordsBean.getResult().isSuccess()) {
                                                 uploadSuccess();
+                                                return;
+                                            } else if (uploading)
+                                                handler.obtainMessage(HANDLER_FAIL, list.get(uploadIndex).getId()).sendToTarget();
                                         }
                                     } else if (uploading) {
                                         myApp.myToast(activity, uploadExplodeRecordsBean.getDescription());
-                                        handler.obtainMessage(UPLOAD_FAIL, list.get(uploadIndex).getId()).sendToTarget();
+                                        handler.obtainMessage(HANDLER_FAIL, list.get(uploadIndex).getId()).sendToTarget();
                                     }
                                     uploadNextRecord();
                                 } else {
                                     if (uploading)
                                         myApp.myToast(activity, R.string.message_token_error);
-                                    uploadFail();
+                                    uploadFail(false);
                                 }
                             } else {
                                 if (uploading)
                                     myApp.myToast(activity, R.string.message_return_data_error);
-                                uploadFail();
+                                uploadFail(false);
                             }
                         }
                     });
@@ -376,7 +366,7 @@ public class UploadExplodeRecord extends Thread {
                 minaClient.setSn(sn.substring(1, 5) + sn.substring(sn.length() - 4));
                 minaClient.uploadRecord();
             } catch (Exception e) {
-                uploadFail();
+                uploadFail(false);
                 BaseApplication.writeErrorLog(e);
             }
         }).start();
@@ -412,7 +402,7 @@ public class UploadExplodeRecord extends Thread {
                         public void onError(Call call, Exception e, int i) {
                             if (uploading)
                                 myApp.myToast(activity, R.string.message_check_network);
-                            uploadFail();
+                            uploadFail(false);
                         }
 
                         @Override
@@ -425,34 +415,38 @@ public class UploadExplodeRecord extends Thread {
                                         DbUtil.updateBaiSeBlaster(baiSeBlasterBean);
                                     }
                                     uploadSuccess();
-                                    uploadNextRecord();
                                 } else if (baiSeUploadResultBean.getMessage() != null) {
                                     if (uploading)
                                         myApp.myToast(activity, baiSeUploadResultBean.getMessage());
-                                    uploadFail();
+                                    uploadFail(false);
                                 }
                             } else
-                                uploadFail();
+                                uploadFail(false);
                         }
                     });
         } catch (Exception e) {
-            uploadFail();
+            uploadFail(false);
             BaseApplication.writeErrorLog(e);
         }
     }
 
     private void uploadSuccess() {
         if (uploading) {
-            handler.obtainMessage(UPLOAD_SUCCESS, list.get(uploadIndex).getId()).sendToTarget();
+            handler.obtainMessage(HANDLER_SUCCESS, list.get(uploadIndex).getId()).sendToTarget();
             list.get(uploadIndex).setUploadServer(BaseApplication.settings.getServerHost());
             list.get(uploadIndex).setUploadTime(new Date());
+            list.get(uploadIndex).setSynchronize(false);
             DbUtil.updateExplosionRecord(list.get(uploadIndex));
+            uploadNextRecord();
         }
     }
 
-    private void uploadFail() {
+    private void uploadFail(boolean cancel) {
         if (uploading) {
-            handler.obtainMessage(UPLOAD_FAIL).sendToTarget();
+            if (cancel)
+                handler.obtainMessage(HANDLER_FAIL, -1).sendToTarget();
+            else
+                handler.sendEmptyMessage(HANDLER_FAIL);
             uploading = false;
         }
     }

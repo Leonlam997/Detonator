@@ -26,6 +26,7 @@ import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.dialog.MyProgressDialog;
 import com.leon.detonator.util.CRC16;
 import com.leon.detonator.util.ConstantUtils;
+import com.leon.detonator.util.KeyUtils;
 
 import org.json.JSONArray;
 
@@ -39,7 +40,6 @@ public class SendSchemeActivity extends BaseActivity {
     private List<DetonatorBean> detonatorBeanList;
     private List<BluetoothBean> list;
     private BluetoothAdapter BTAdapter;
-    private BaseApplication myApp;
     private BluetoothService btService;
     private BluetoothUtil bluetoothUtil;
     private MyProgressDialog pDialog;
@@ -116,8 +116,13 @@ public class SendSchemeActivity extends BaseActivity {
         setContentView(R.layout.activity_send_scheme);
         myApp = (BaseApplication) getApplication();
         setProgressVisibility(true);
-        currentScheme = DbUtil.getCurrentScheme();
-        if (currentScheme == null) {
+        long id = getIntent().getLongExtra(KeyUtils.KEY_TABLE_ID, -1);
+        if (id == -1) {
+            finish();
+            return;
+        }
+        currentScheme = DbUtil.getScheme(id);
+        if (currentScheme.getId() == -1) {
             finish();
             return;
         }
@@ -190,7 +195,7 @@ public class SendSchemeActivity extends BaseActivity {
         }
     }
 
-    private void selectItem(int pos){
+    private void selectItem(int pos) {
         for (BluetoothBean bean : list)
             bean.setSelected(false);
         list.get(pos).setSelected(true);

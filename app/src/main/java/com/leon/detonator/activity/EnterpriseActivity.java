@@ -31,7 +31,6 @@ public class EnterpriseActivity extends BaseActivity {
     private EditText etProject;
     private CheckBox cbCommercial;
     private EnterpriseBean enterprise;
-    private BaseApplication myApp;
     private MyButton btnClear;
     private MyButton btnSave;
 

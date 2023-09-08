@@ -22,6 +22,8 @@ import java.io.File;
 import java.util.Locale;
 
 public class UpdateAppActivity extends BaseActivity {
+    public static final int UPDATE_HAS_NEW = 100;
+    public static final int UPDATE_NO_NEW = 101;
     private final int UPDATE_PROGRESS = 4;
     private final int UPDATE_DOWNLOADING = 5;
     private final int UPDATE_DOWNLOAD_FAIL = 6;
@@ -30,11 +32,10 @@ public class UpdateAppActivity extends BaseActivity {
     private ProgressBar pbDownload;
     private MyButton btnUpdate;
     private MyButton btnVersion;
+    private MyButton btnHint;
     private UpdateVersionBean versionBean;
-    private BaseApplication myApp;
 
     private final Handler myHandler = new Handler(msg -> {
-        final int UPDATE_HAS_NEW = 1;
         switch (msg.what) {
             case UPDATE_HAS_NEW:
                 versionBean = (UpdateVersionBean) msg.obj;
@@ -59,6 +60,14 @@ public class UpdateAppActivity extends BaseActivity {
                 }
                 setProgressVisibility(false);
                 break;
+            case UPDATE_NO_NEW:
+                try {
+                    tvHints.setText(String.format(Locale.getDefault(), getString(R.string.update_is_new_version), getPackageManager().getPackageInfo(getPackageName(), 0).versionName));
+                } catch (Exception e) {
+                    BaseApplication.writeErrorLog(e);
+                }
+                setProgressVisibility(false);
+                break;
             case UPDATE_DOWNLOADING:
                 btnUpdate.setEnabled(false);
                 setProgressVisibility(true);
@@ -69,9 +78,9 @@ public class UpdateAppActivity extends BaseActivity {
                 tvHints.setText(R.string.update_download_fail);
                 break;
             case UPDATE_PROGRESS:
-                if (msg.arg1 < 100) {
+                if (msg.arg1 < 100)
                     pbDownload.setProgress(msg.arg1);
-                } else {
+                else {
                     btnVersion.setEnabled(true);
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     Uri uri = FileProvider.getUriForFile(UpdateAppActivity.this, getPackageName() + ".provider", new File(String.format(Locale.getDefault(), FilePath.FILE_UPDATE_APK, versionBean.getVersion())));
@@ -101,6 +110,7 @@ public class UpdateAppActivity extends BaseActivity {
         pbDownload = findViewById(R.id.pb_download);
         btnUpdate = findViewById(R.id.btn_update);
         btnVersion = findViewById(R.id.btn_version);
+        btnHint = findViewById(R.id.btn_hint);
         pbDownload.setMax(100);
         tvPercentage.setText("0%");
 
@@ -112,9 +122,13 @@ public class UpdateAppActivity extends BaseActivity {
         btnVersion.setEnabled(files != null && files.length > 0);
         myApp.getVersion(myHandler);
         btnUpdate.setEnabled(false);
+        btnHint.setTextId(BaseApplication.settings.isUpdateHint() ? R.string.button_hint_close : R.string.button_hint_open);
+        btnHint.setOnClickListener(v -> {
+            BaseApplication.settings.setUpdateHint(!BaseApplication.settings.isUpdateHint());
+            btnHint.setTextId(BaseApplication.settings.isUpdateHint() ? R.string.button_hint_close : R.string.button_hint_open);
+        });
         btnUpdate.setOnClickListener(v -> downloadApp());
-
-        findViewById(R.id.btn_version).setOnClickListener(v -> startActivity(new Intent(UpdateAppActivity.this, VersionManageActivity.class)));
+        btnVersion.setOnClickListener(v -> startActivity(new Intent(UpdateAppActivity.this, VersionManageActivity.class)));
     }
 
     private void downloadApp() {
@@ -138,7 +152,10 @@ public class UpdateAppActivity extends BaseActivity {
                     downloadApp();
                 break;
             case KeyEvent.KEYCODE_2:
-                startActivity(new Intent(UpdateAppActivity.this, VersionManageActivity.class));
+                btnVersion.callOnClick();
+                break;
+            case KeyEvent.KEYCODE_3:
+                btnHint.callOnClick();
                 break;
         }
         return super.onKeyUp(keyCode, event);

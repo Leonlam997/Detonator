@@ -32,6 +32,8 @@ public class ConstantUtils {
     public final static String SHELL_PATTERN = "\\d{7}[0-9A-Z]\\d{5}$";
     public final static String UID_PATTERN = "\\d[0-9A-Z]\\d{5}$";
     public final static String ID_PATTERN = "(^\\d{18}$)|(^\\d{17}(\\d|X)$)";
+    public final static String BOX_CODE_PATTERN = "^[a-zA-Z]\\d{2}[0-9A-Z][a-zA-Z]\\d{9}[0-9a-zA-Z]\\d{3}$";
+    public final static String TRUNK_CODE_PATTERN = "^[a-zA-Z]\\d{2}[0-9A-Z][a-zA-Z]\\d{2}[0-9A-Z]\\d{9}$";
     public final static String ENTERPRISE_PROJECT = "Project";
     public final static String ENTERPRISE_CONTRACT = "Contract";
     public final static String GPS_SYSTEM = "BD09";
@@ -50,6 +52,7 @@ public class ConstantUtils {
     public final static int REFRESH_STATUS_BAR_PERIOD = 1000;
     public final static int MAX_DELAY_TIME = 16000;
     public final static int MAX_ROW_NUMBER = 999;
+    public final static int MAX_AMOUNT_PER_BOX = 100;
     public final static int UPLOAD_TIMEOUT = 10000;
     public final static int INSERT_HOLE = 1;
     public final static int INSERT_INSIDE = 2; //1:孔间插入 2.孔内插入

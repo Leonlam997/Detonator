@@ -44,7 +44,7 @@
         android:layout_alignParentBottom="true"
         android:layout_gravity="center_vertical"
         android:layout_marginBottom="2dp"
-        android:columnCount="2"
+        android:columnCount="3"
         android:orientation="horizontal">
 
         <com.leon.detonator.component.MyButton
@@ -66,5 +66,16 @@
             android:text="@string/button_version"
             android:textSize="@dimen/button_text_size"
             button:keyCode="2" />
-    </GridLayout>
+
+        <com.leon.detonator.component.MyButton
+            android:id="@+id/btn_hint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:padding="0dp"
+            android:text="@string/button_hint_open"
+            android:textColor="@color/colorButtonEnabled"
+            android:textSize="@dimen/button_text_size"
+            button:keyCode="3" />    </GridLayout>
 </RelativeLayout>

@@ -14,16 +14,6 @@
         android:focusable="true" />
 
     <TextView
-        android:id="@+id/tv_coordinate1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="21dp"
-        android:layout_marginTop="21dp"
-        android:textColor="@android:color/black"
-        android:textSize="@dimen/common_text_size"
-        tools:ignore="RelativeOverlap" />
-
-    <TextView
         android:id="@+id/tv_coordinate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

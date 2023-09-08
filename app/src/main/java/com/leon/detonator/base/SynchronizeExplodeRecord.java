@@ -22,11 +22,11 @@ import okhttp3.Call;
 import okhttp3.Response;
 
 public class SynchronizeExplodeRecord extends Thread {
-    private static boolean uploading;
+    private List<ExplosionRecordBean> list;
     private final BaseApplication myApp;
+    public static boolean uploading;
     private String token;
     private int index;
-    private List<ExplosionRecordBean> list;
 
     public SynchronizeExplodeRecord(BaseApplication app) {
         myApp = app;
@@ -35,18 +35,15 @@ public class SynchronizeExplodeRecord extends Thread {
     @Override
     public void run() {
         super.run();
-        uploading = true;
-        if (myApp != null) {
-            index = 0;
+        index = 0;
+        try {
             list = DbUtil.getExplosionRecordList();
+            uploading = true;
             uploadNext();
-        }
-        while (uploading) {
-            try {
+            while (uploading)
                 Thread.sleep(50);
-            } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
-            }
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
         }
     }
 
@@ -74,11 +71,15 @@ public class SynchronizeExplodeRecord extends Thread {
                     params.put("BlastTime".toLowerCase(), formatter.format(bean.getExplodeTime()));
                     params.put("BlastLat".toLowerCase(), bean.getLat() + "");
                     params.put("BlastLng".toLowerCase(), bean.getLng() + "");
-                    if (bean.getUploadServer() > 0) {
-                        params.put("zbServerIp".toLowerCase(), ConstantUtils.UPLOAD_HOST[bean.getUploadServer()][0]);
-                        params.put("zbServerPort".toLowerCase(), ConstantUtils.UPLOAD_HOST[bean.getUploadServer()][1]);
+                    if (bean.getUploadServer() > 0 && bean.getUploadServer() < ConstantUtils.UPLOAD_HOST.length) {
+                        String[] server = ConstantUtils.UPLOAD_HOST[bean.getUploadServer()][1].split(":");
+                        if (server.length == 2) {
+                            params.put("zbServerIp".toLowerCase(), server[0]);
+                            params.put("zbServerPort".toLowerCase(), server[1]);
+                        }
                     }
-                    params.put("isZbUploadSuccess".toLowerCase(), (bean.getUploadServer() != -1) + "");
+                    final boolean success = bean.getUploadServer() != -1;
+                    params.put("isZbUploadSuccess".toLowerCase(), success + "");
                     params.put("zbUploadSuccessTime".toLowerCase(), null == bean.getUploadTime() ? "" : formatter.format(bean.getUploadTime()));
                     params.put("detonator", new Gson().toJson(detonatorList));
                     params.put("signature", myApp.signature(params));
@@ -97,6 +98,7 @@ public class SynchronizeExplodeRecord extends Thread {
 
                                 @Override
                                 public void onError(Call call, Exception e, int i) {
+                                    BaseApplication.writeFile("OkHttpUtils onError");
                                     BaseApplication.writeErrorLog(e);
                                     uploading = false;
                                 }
@@ -119,15 +121,13 @@ public class SynchronizeExplodeRecord extends Thread {
                                 }
                             });
                 } catch (Exception e) {
+                    BaseApplication.writeFile("uploadNext");
                     BaseApplication.writeErrorLog(e);
+                    uploading = false;
                 }
                 return;
             }
         }
         uploading = false;
-    }
-
-    public static boolean isNotUploading() {
-        return !uploading;
     }
 }

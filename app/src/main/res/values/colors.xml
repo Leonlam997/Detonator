@@ -48,5 +48,6 @@
     <color name="colorHighlightText">#E10E0E</color>
     <color name="colorToastText">#FFFFFF</color>
     <color name="colorToastBackground">#4d56fe</color>
+    <color name="colorCountDown">#a62124</color>
 
 </resources>

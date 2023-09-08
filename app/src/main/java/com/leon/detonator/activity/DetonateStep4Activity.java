@@ -47,13 +47,12 @@ public class DetonateStep4Activity extends BaseActivity {
     private MyButton btnUpload;
     private MyButton btnExit;
     private ExplosionRecordBean explosionRecord;
-    private BaseApplication myApp;
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (UploadExplodeRecord.uploading)
             if (Activity.RESULT_OK == result.getResultCode())
-                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.RESULT_OK).sendToTarget();
+                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.HANDLER_SUCCESS).sendToTarget();
             else
-                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.RESULT_CANCEL).sendToTarget();
+                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.HANDLER_FAIL).sendToTarget();
     });
 
     private final Handler myHandler = new Handler(msg -> {
@@ -91,11 +90,11 @@ public class DetonateStep4Activity extends BaseActivity {
                 serialPortUtil.sendCmd("", SerialCommand.CODE_EXPLODE, 0, 0);
                 msg.getTarget().sendEmptyMessageDelayed(STEP_PROGRESS, 100);
                 break;
-            case UploadExplodeRecord.UPLOAD_SUCCESS:
+            case UploadExplodeRecord.HANDLER_SUCCESS:
                 myApp.myToast(DetonateStep4Activity.this, R.string.message_upload_success);
                 enabledButton(true);
                 break;
-            case UploadExplodeRecord.UPLOAD_FAIL:
+            case UploadExplodeRecord.HANDLER_FAIL:
                 myApp.myToast(DetonateStep4Activity.this, R.string.message_upload_fail);
                 enabledButton(true);
                 break;

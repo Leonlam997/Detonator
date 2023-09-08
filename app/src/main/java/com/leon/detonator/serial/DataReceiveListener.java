@@ -110,6 +110,7 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
         recordCurrentCount = 0;
         if (!startAutoDetect)
             serialPortUtil.setRecordLog(true);
+        rcvData = new byte[0];
         if (startAutoDetect)
             myHandler.sendEmptyMessage(HANDLE_STATUS);
     }
@@ -161,30 +162,36 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
                                     + Byte.toUnsignedInt(rcvData[SerialCommand.CODE_CHAR_AT + 6]));
                             activity.setCurrent(data);
                             if (startDetectShort) {
-                                if (data > ConstantUtils.SHORT_CIRCUIT_CURRENT)
-                                    handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT}).sendToTarget();
-                                else if (detonatorAmount > 0) {
-                                    if (data > ConstantUtils.CURRENT_PER_DETONATOR * detonatorAmount * ConstantUtils.CURRENT_OVER_PERCENTAGE) {
-                                        if (largeCurrentCount++ > ConstantUtils.CURRENT_DETECT_COUNT)
-                                            handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_LARGE_CURRENT}).sendToTarget();
-                                    } else if (data < ConstantUtils.CURRENT_BREAK_CIRCUIT) {
-                                        if (breakCircuitCount++ > ConstantUtils.CURRENT_DETECT_COUNT)
-                                            handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_BREAK_CIRCUIT}).sendToTarget();
-                                    } else {
-                                        breakCircuitCount = 0;
-                                        largeCurrentCount = 0;
+                                if (data > ConstantUtils.SHORT_CIRCUIT_CURRENT) {
+                                    BaseApplication.writeFile(String.format(Locale.getDefault(), "短路电流:%.2f, 电压:%.2f", data, voltage));
+                                    if (largeCurrentCount++ > ConstantUtils.CURRENT_DETECT_COUNT)
+                                        handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT}).sendToTarget();
+                                } else {
+                                    if (detonatorAmount > 0) {
+//                                    if (data > ConstantUtils.CURRENT_PER_DETONATOR * detonatorAmount * ConstantUtils.CURRENT_OVER_PERCENTAGE) {
+//                                        if (largeCurrentCount++ > ConstantUtils.CURRENT_DETECT_COUNT)
+//                                            handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_LARGE_CURRENT}).sendToTarget();
+//                                    } else
+                                        if (data < ConstantUtils.CURRENT_BREAK_CIRCUIT) {
+                                            if (breakCircuitCount++ > ConstantUtils.CURRENT_DETECT_COUNT)
+                                                handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_BREAK_CIRCUIT}).sendToTarget();
+                                        } else
+                                            breakCircuitCount = 0;
                                     }
+                                    largeCurrentCount = 0;
                                 }
-                                if (recordCurrentCount++ == ConstantUtils.CURRENT_DETECT_COUNT * 2)
+                                if (recordCurrentCount++ == ConstantUtils.CURRENT_DETECT_COUNT)
                                     serialPortUtil.setRecordLog(false);
-                                if (recordCurrentCount <= ConstantUtils.CURRENT_DETECT_COUNT * 2)
+                                if (recordCurrentCount <= ConstantUtils.CURRENT_DETECT_COUNT)
                                     if (detonatorAmount > 0)
-                                        BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f, 带载：%d", data, voltage, detonatorAmount));
+                                        BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f, 数量：%d", data, voltage, detonatorAmount));
                                     else
                                         BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f", data, voltage));
                             } else {
+                                breakCircuitCount = 0;
+                                largeCurrentCount = 0;
                                 if (detonatorAmount > 0)
-                                    BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f, 带载：%d", data, voltage, detonatorAmount));
+                                    BaseApplication.writeFile(String.format(Locale.getDefault(), "充电电流:%.2f, 电压:%.2f, 数量：%d", data, voltage, detonatorAmount));
                                 else
                                     BaseApplication.writeFile(String.format(Locale.getDefault(), "电流:%.2f, 电压:%.2f", data, voltage));
                             }

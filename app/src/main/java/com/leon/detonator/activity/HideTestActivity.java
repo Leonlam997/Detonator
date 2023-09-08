@@ -2,6 +2,7 @@ package com.leon.detonator.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.KeyEvent;
 import android.view.View;
 
@@ -18,8 +19,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HideTestActivity extends BaseActivity implements View.OnClickListener {
-    private BaseApplication myApp;
     private MyButton[] btnFunctions;
+    private final Handler myHandler = new Handler(msg -> {
+        switch (msg.what) {
+            case BaseApplication.HANDLER_REGISTER_ERROR:
+                if (msg.obj == null)
+                    myApp.myToast(HideTestActivity.this, msg.arg1 == 0 ? R.string.message_registered_fail : msg.arg1 == 3 ? R.string.message_upload_log_fail : R.string.progress_upload);
+                else
+                    myApp.myToast(HideTestActivity.this, (String) msg.obj);
+                break;
+            case BaseApplication.HANDLER_REGISTER_SUCCESS:
+                myApp.myToast(HideTestActivity.this, msg.arg1 == 0 ? R.string.message_registered_success : R.string.message_upload_success);
+                break;
+        }
+        return false;
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,21 +86,7 @@ public class HideTestActivity extends BaseActivity implements View.OnClickListen
                             btnFunctions[2].setEnabled(false);
                         });
                         myApp.myToast(HideTestActivity.this, R.string.message_upload_log);
-                        myApp.uploadLog(FilePath.FILE_SERIAL_LOG);
-                        myApp.uploadLog(FilePath.FILE_DEBUG_LOG);
-                        new Thread(() -> {
-                            while (myApp.isUploading()) {
-                                try {
-                                    Thread.sleep(50);
-                                } catch (Exception e) {
-                                    BaseApplication.writeErrorLog(e);
-                                }
-                            }
-                            runOnUiThread(() -> {
-                                setProgressVisibility(false);
-                                btnFunctions[2].setEnabled(true);
-                            });
-                        }).start();
+                        myApp.uploadLog(myHandler);
                     } else
                         myApp.myToast(HideTestActivity.this, R.string.message_check_network);
                 break;
@@ -99,22 +99,8 @@ public class HideTestActivity extends BaseActivity implements View.OnClickListen
                             btnFunctions[3].setEnabled(false);
                         });
                         BaseApplication.saveSettings();
-                        myApp.registerExploder();
+                        myApp.registerExploder(myHandler);
                         myApp.myToast(HideTestActivity.this, R.string.message_register_detonator);
-                        new Thread(() -> {
-                            while (myApp.isRegisterFinished()) {
-                                try {
-                                    Thread.sleep(50);
-                                } catch (Exception e) {
-                                    BaseApplication.writeErrorLog(e);
-                                }
-                            }
-                            runOnUiThread(() -> {
-                                setProgressVisibility(false);
-                                btnFunctions[3].setEnabled(true);
-                                myApp.myToast(HideTestActivity.this, BaseApplication.settings.isRegistered() ? R.string.message_registered_success : R.string.message_registered_fail);
-                            });
-                        }).start();
                     } else
                         myApp.myToast(HideTestActivity.this, R.string.message_check_network);
                 break;
@@ -129,9 +115,9 @@ public class HideTestActivity extends BaseActivity implements View.OnClickListen
                 break;
             case 7:
                 List<DetonatorBean> list = new ArrayList<>();
-                myApp.readFromFile(myApp.getListFile(), list, DetonatorBean.class);
+                myApp.readFromFile(BaseApplication.settings.isTunnel() ? FilePath.FILE_TUNNEL_DELAY_LIST : FilePath.FILE_OPEN_AIR_DELAY_LIST, list, DetonatorBean.class);
                 if (list.size() == 0)
-                    myApp.myToast(HideTestActivity.this, R.string.message_restore_fail);
+                    myApp.myToast(HideTestActivity.this, R.string.message_import_fail);
                 else {
                     SchemeBean bean = new SchemeBean();
                     bean.setName(getString(R.string.button_restore_list));
@@ -139,7 +125,7 @@ public class HideTestActivity extends BaseActivity implements View.OnClickListen
                     for (DetonatorBean b : list)
                         b.setSchemeId(bean.getId());
                     DbUtil.updateDetonatorList(list);
-                    myApp.myToast(HideTestActivity.this, R.string.message_restore_success);
+                    myApp.myToast(HideTestActivity.this, R.string.message_import_success);
                 }
                 break;
         }

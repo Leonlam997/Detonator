@@ -16,9 +16,10 @@ public class LocalSettingBean {
     private int sectionInside;
     private int userID;
     private int serverHost;
+    private boolean tunnel;
     private boolean registered;
     private boolean uploadedLog;
-    private boolean tunnel;
+    private boolean updateHint;
     private float chargeVoltage;
     private float workVoltage;
     private double latitude;
@@ -27,9 +28,6 @@ public class LocalSettingBean {
     private Map<Float, Integer> dacMap;
 
     public LocalSettingBean() {
-        row = 50;
-        hole = 10;
-        section = 50;
         serverHost = 1;
     }
 
@@ -175,6 +173,14 @@ public class LocalSettingBean {
 
     public void setChargeVoltage(float chargeVoltage) {
         this.chargeVoltage = chargeVoltage;
+    }
+
+    public boolean isUpdateHint() {
+        return updateHint;
+    }
+
+    public void setUpdateHint(boolean updateHint) {
+        this.updateHint = updateHint;
     }
 
     public boolean isTunnel() {

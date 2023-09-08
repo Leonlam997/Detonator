@@ -39,7 +39,6 @@ public class WriteSNActivity extends BaseActivity {
     private boolean startReceive;
     private String tempAddress;
     private SoundPool soundPool;
-    private BaseApplication myApp;
 
     private final Handler myHandler = new Handler(msg -> {
         final int HANDLER_SUCCESS = 2;

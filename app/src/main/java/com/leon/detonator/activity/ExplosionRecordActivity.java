@@ -32,7 +32,6 @@ public class ExplosionRecordActivity extends BaseActivity {
     private ExplosionRecordAdapter adapter;
     private List<ExplosionRecordBean> list;
     private List<ExplosionRecordBean> selectedList;
-    private BaseApplication myApp;
     private MyButton btnDelete;
     private MyButton btnUpload;
     private MyButton btnDetail;
@@ -41,14 +40,14 @@ public class ExplosionRecordActivity extends BaseActivity {
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (UploadExplodeRecord.uploading)
             if (Activity.RESULT_OK == result.getResultCode())
-                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.RESULT_OK).sendToTarget();
+                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.HANDLER_SUCCESS).sendToTarget();
             else
-                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.RESULT_CANCEL).sendToTarget();
+                UploadExplodeRecord.myHandler.obtainMessage(UploadExplodeRecord.HANDLER_FAIL).sendToTarget();
     });
 
     private final Handler myHandler = new Handler(msg -> {
         switch (msg.what) {
-            case UploadExplodeRecord.UPLOAD_SUCCESS:
+            case UploadExplodeRecord.HANDLER_SUCCESS:
                 if (msg.obj != null) {
                     for (ExplosionRecordBean bean : list)
                         if (bean.getId() == (long) msg.obj) {
@@ -65,7 +64,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                     enabledButton(true);
                 }
                 break;
-            case UploadExplodeRecord.UPLOAD_FAIL:
+            case UploadExplodeRecord.HANDLER_FAIL:
                 if (msg.obj == null)
                     enabledButton(true);
                 else {
@@ -197,14 +196,17 @@ public class ExplosionRecordActivity extends BaseActivity {
                                 .setMessage(R.string.dialog_confirm_delete_record)
                                 .setPositiveButton(R.string.button_confirm, (dialog1, which1) -> {
                                     Iterator<ExplosionRecordBean> it = list.iterator();
+                                    List<Long> ids = new ArrayList<>();
                                     while (it.hasNext()) {
                                         ExplosionRecordBean b = it.next();
                                         if (b.isSelected()) {
                                             BaseApplication.writeFile(getString(R.string.dialog_title_delete_record) + ", " + b.getName());
-                                            DbUtil.deleteScheme(b.getId());
+                                            ids.add(b.getId());
                                             it.remove();
                                         }
                                     }
+                                    if (ids.size()>0)
+                                        DbUtil.deleteScheme(ids);
                                     adapter.updateList(list);
                                 })
                                 .setNegativeButton(R.string.button_cancel, null)

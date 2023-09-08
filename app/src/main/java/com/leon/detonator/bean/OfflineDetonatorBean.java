@@ -2,7 +2,7 @@ package com.leon.detonator.bean;
 
 import java.util.List;
 
-public class DownloadDetonatorBean extends BaseResultBean {
+public class OfflineDetonatorBean extends BaseResultBean {
     private ResultBean Result;
 
     public ResultBean getResult() {

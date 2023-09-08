@@ -40,14 +40,29 @@ public class InfoListActivity extends BaseActivity {
                 case ConstantUtils.INFO_ENTERPRISE:
                     enterpriseList = DbUtil.getEnterpriseList();
                     enterpriseAdapter.updateList(enterpriseList);
+                    for (EnterpriseBean bean: enterpriseList)
+                        if (bean.isSelected()){
+                            setResult(RESULT_OK);
+                            break;
+                        }
                     break;
                 case ConstantUtils.INFO_PROJECT:
                     projectList = DbUtil.getBaiSeInfoList();
                     projectAdapter.updateList(projectList);
+                    for (BaiSeInfoBean bean: projectList)
+                        if (bean.isSelected()){
+                            setResult(RESULT_OK);
+                            break;
+                        }
                     break;
                 case ConstantUtils.INFO_BLASTER:
                     blasterList = DbUtil.getBaiSeBlasterList();
                     blasterAdapter.updateList(blasterList);
+                    for (BaiSeBlasterBean bean: blasterList)
+                        if (bean.isSelected()){
+                            setResult(RESULT_OK);
+                            break;
+                        }
                     break;
             }
             checkButton();
@@ -142,6 +157,8 @@ public class InfoListActivity extends BaseActivity {
     }
 
     private void modifyItem(int i) {
+        if (i == -1)
+            return;
         switch (infoType) {
             case ConstantUtils.INFO_ENTERPRISE:
                 if (enterpriseList.get(i).isSelected())
@@ -191,6 +208,7 @@ public class InfoListActivity extends BaseActivity {
                             default:
                                 return;
                         }
+                        setResult(RESULT_CANCELED);
                         runOnUiThread(() -> {
                             btnModify.setEnabled(false);
                             btnDelete.setEnabled(false);
@@ -230,6 +248,7 @@ public class InfoListActivity extends BaseActivity {
                 }
                 break;
         }
+        setResult(RESULT_OK);
         listView.setSelection(pos);
         if (!btnModify.isEnabled())
             runOnUiThread(() -> {

@@ -28,12 +28,6 @@ public class SliderImageView extends AppCompatImageView {
         return false;
     });
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        Log.d("ZBEST", "left:" + getLeft() + ", right:" + getRight() + ", top:" + getTop() + ", bottom:" + getBottom());
-        super.onDraw(canvas);
-    }
-
     public SliderImageView(Context context) {
         super(context);
     }

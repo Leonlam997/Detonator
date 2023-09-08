@@ -26,7 +26,6 @@ import com.leon.detonator.util.KeyUtils;
 import java.util.regex.Pattern;
 
 public class BaiSeDataActivity extends BaseActivity {
-    private BaseApplication myApp;
     private BaiSeInfoBean baiSeInfoBean;
     private EditText etName;
     private EditText etId;

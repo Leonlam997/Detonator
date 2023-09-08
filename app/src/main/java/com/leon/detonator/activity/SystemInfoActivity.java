@@ -28,7 +28,6 @@ import java.util.Locale;
 public class SystemInfoActivity extends BaseActivity {
     private List<SystemInfoBean> infoBeans;
     private SystemInfoAdapter infoAdapter;
-    private BaseApplication myApp;
     private SerialPortUtil serialPortUtil;
     private DataReceiveListener myReceiveListener;
     private final Handler myHandler = new Handler(msg -> {

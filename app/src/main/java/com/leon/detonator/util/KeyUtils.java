@@ -24,4 +24,5 @@ public class KeyUtils {
     public final static String KEY_LIST = "List";
     public final static String KEY_INFO_TYPE = "InfoType";
     public final static String KEY_NEW_INFO = "NewType";
+    public final static String KEY_SELECT_SCHEME = "SelectScheme";
 }

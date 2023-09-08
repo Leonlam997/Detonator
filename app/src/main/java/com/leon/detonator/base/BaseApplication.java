@@ -41,6 +41,7 @@ import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 import com.leon.detonator.R;
+import com.leon.detonator.activity.UpdateAppActivity;
 import com.leon.detonator.bean.DetonatorBean;
 import com.leon.detonator.bean.ExploderBean;
 import com.leon.detonator.bean.LocalSettingBean;
@@ -91,8 +92,10 @@ import okhttp3.Response;
  */
 
 public class BaseApplication extends Application {
-    private static PowerManager.WakeLock wakeLock = null;
     public static LocalSettingBean settings;
+    public static final int HANDLER_REGISTER_ERROR = 400;
+    public static final int HANDLER_REGISTER_SUCCESS = 401;
+    private static PowerManager.WakeLock wakeLock = null;
     private TextToSpeech textToSpeech;
     private BluetoothService btService;
     private Context mContext;
@@ -101,9 +104,9 @@ public class BaseApplication extends Application {
     private StringBuilder btData;
     private final static boolean remote = false;
     private boolean registerFinished = true;
-    private boolean uploading;
     private boolean getVersion;
     private boolean btSender;
+    private int uploadStep;
 
     private final Handler myHandler = new Handler(msg -> {
         switch (msg.what) {
@@ -230,8 +233,8 @@ public class BaseApplication extends Application {
                 p.println(df.format(new Date()));
                 p.flush();
                 p.close();
-            } catch (Exception e1) {
-                e1.printStackTrace();
+            } catch (Exception e) {
+                writeErrorLog(e);
             }
     }
 
@@ -260,7 +263,7 @@ public class BaseApplication extends Application {
     }
 
     public static void acquireWakeLock(Activity activity) {
-        if (null == wakeLock) {
+        if (null == wakeLock)
             try {
                 PowerManager pm = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
                 if (null != pm) {
@@ -271,9 +274,8 @@ public class BaseApplication extends Application {
                 }
                 activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
+                writeErrorLog(e);
             }
-        }
     }
 
     public static void releaseWakeLock(Activity activity) {
@@ -321,7 +323,7 @@ public class BaseApplication extends Application {
             try {
                 return new Gson().fromJson(source, clazz);
             } catch (Exception e) {
-                BaseApplication.writeErrorLog(e);
+                writeErrorLog(e);
             }
         }
         return null;
@@ -370,7 +372,7 @@ public class BaseApplication extends Application {
             registerReceiver(new BluetoothBroadcast(), filter);
             textToSpeech = new TextToSpeech(this, null);
         } catch (Exception e) {
-            BaseApplication.writeErrorLog(e);
+            writeErrorLog(e);
         }
     }
 
@@ -519,10 +521,22 @@ public class BaseApplication extends Application {
         return params;
     }
 
-    public void registerExploder() {
+    public static boolean isNetPingUsable() {
+        Runtime runtime = Runtime.getRuntime();
+        try {
+            Process process = runtime.exec("ping -c 3 www.zhongbao360.com");
+            int ret = process.waitFor();
+            return ret == 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void registerExploder(Handler handler) {
         if (registerFinished) {
             registerFinished = false;
-            new RegisterExploder().start();
+            new RegisterExploder(handler).start();
         }
     }
 
@@ -531,14 +545,6 @@ public class BaseApplication extends Application {
             registerFinished = false;
             new GetExploder().start();
         }
-    }
-
-    public boolean isRegisterFinished() {
-        return registerFinished;
-    }
-
-    public String getListFile() {
-        return BaseApplication.readSettings().isTunnel() ? FilePath.FILE_TUNNEL_DELAY_LIST : FilePath.FILE_OPEN_AIR_DELAY_LIST;
     }
 
     public void getVersion(Handler handler) {
@@ -560,70 +566,93 @@ public class BaseApplication extends Application {
                         public void onError(Call call, Exception e, int i) {
                             writeErrorLog(e);
                             getVersion = false;
+                            if (handler != null)
+                                handler.sendEmptyMessage(UpdateAppActivity.UPDATE_NO_NEW);
                         }
 
                         @Override
                         public void onResponse(UpdateVersionBean updateVersionBean, int i) {
                             getVersion = false;
-                            if (updateVersionBean != null && handler != null) {
-                                handler.obtainMessage(1, updateVersionBean).sendToTarget();
-                            }
+                            if (handler != null)
+                                if (updateVersionBean != null)
+                                    handler.obtainMessage(UpdateAppActivity.UPDATE_HAS_NEW, updateVersionBean).sendToTarget();
+                                else
+                                    handler.sendEmptyMessage(UpdateAppActivity.UPDATE_NO_NEW);
                         }
                     })).start();
         }
     }
 
-    @SuppressLint("HardwareIds")
-    public void uploadLog(String fileName) {
-        TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        if (null != telephonyManager) {
-            try {
-                String id = "";
-                if (telephonyManager.getDeviceId() != null)
-                    id = telephonyManager.getDeviceId();
-                final File file = new File(fileName);
-                if (file.exists()) {
-                    uploading = true;
-                    BaseApplication.writeFile(getString(R.string.message_upload_log) + ", " + fileName);
-                    OkHttpUtils.post()
-                            .url(ConstantUtils.UPLOAD_LOG_URL)
-                            .addFile("file", file.getName().replace(".log", ".txt"), file)
-                            .addHeader("MAC", getMacAddress())
-                            .addHeader("IMEI", id)
-                            .build().execute(new Callback<UploadListResultBean>() {
-
-                                @Override
-                                public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
-                                    if (response.body() != null) {
-                                        String string = Objects.requireNonNull(response.body()).string();
-                                        return BaseApplication.jsonFromString(string, UploadListResultBean.class);
-                                    }
-                                    return null;
-                                }
-
-                                @Override
-                                public void onError(Call call, Exception e, int i) {
-                                    writeErrorLog(e);
-                                    uploading = false;
-                                }
-
-                                @Override
-                                public void onResponse(UploadListResultBean uploadListResultBean, int i) {
-                                    uploading = false;
-                                    if (null != uploadListResultBean) {
-                                        if (uploadListResultBean.isStatus()) {
-                                            settings.setUploadedLog(true);
-                                            saveSettings();
-                                        } else
-                                            myToast(BaseApplication.this, uploadListResultBean.getDescription());
-                                    }
-                                }
-                            });
-                }
-            } catch (SecurityException e) {
-                writeErrorLog(e);
-            }
+    public void uploadLog(Handler handler) {
+        if (uploadStep != 0)
+            handler.obtainMessage(HANDLER_REGISTER_ERROR, uploadStep, 0).sendToTarget();
+        else {
+            uploadStep = 1;
+            startUpload(handler);
         }
+    }
+
+    private void startUpload(Handler handler) {
+        new Thread(() -> {
+            TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+            if (null != telephonyManager) {
+                try {
+                    String id = "";
+                    if (telephonyManager.getDeviceId() != null)
+                        id = telephonyManager.getDeviceId();
+                    final File file = new File(uploadStep == 1 ? FilePath.FILE_SERIAL_LOG : FilePath.FILE_DEBUG_LOG);
+                    if (file.exists()) {
+                        writeFile(getString(R.string.message_upload_log) + ", " + file.getName());
+                        OkHttpUtils.post()
+                                .url(ConstantUtils.UPLOAD_LOG_URL)
+                                .addFile("file", file.getName().replace(".log", ".txt"), file)
+                                .addHeader("MAC", getMacAddress())
+                                .addHeader("IMEI", id)
+                                .build().execute(new Callback<UploadListResultBean>() {
+
+                                    @Override
+                                    public UploadListResultBean parseNetworkResponse(Response response, int i) throws Exception {
+                                        if (response.body() != null) {
+                                            String string = Objects.requireNonNull(response.body()).string();
+                                            return jsonFromString(string, UploadListResultBean.class);
+                                        }
+                                        return null;
+                                    }
+
+                                    @Override
+                                    public void onError(Call call, Exception e, int i) {
+                                        handler.obtainMessage(HANDLER_REGISTER_ERROR, 3, 0).sendToTarget();
+                                        uploadStep = 0;
+                                    }
+
+                                    @Override
+                                    public void onResponse(UploadListResultBean uploadListResultBean, int i) {
+                                        if (null != uploadListResultBean) {
+                                            if (uploadListResultBean.isStatus()) {
+                                                if (uploadStep == 1) {
+                                                    uploadStep = 2;
+                                                    startUpload(handler);
+                                                } else {
+                                                    uploadStep = 0;
+                                                    settings.setUploadedLog(true);
+                                                    saveSettings();
+                                                    handler.obtainMessage(HANDLER_REGISTER_SUCCESS, 1, 0).sendToTarget();
+                                                }
+                                            } else {
+                                                uploadStep = 0;
+                                                handler.obtainMessage(HANDLER_REGISTER_ERROR, uploadListResultBean.getDescription()).sendToTarget();
+                                            }
+                                        }
+                                    }
+                                });
+                    }
+                } catch (SecurityException e) {
+                    writeErrorLog(e);
+                    handler.obtainMessage(HANDLER_REGISTER_ERROR, 3, 0).sendToTarget();
+                    uploadStep = 0;
+                }
+            }
+        }).start();
     }
 
     public static boolean isNetSystemUsable(Context context) {
@@ -654,7 +683,13 @@ public class BaseApplication extends Application {
     }
 
     private class RegisterExploder extends Thread {
-        @SuppressLint("HardwareIds")
+        private final Handler handler;
+
+        public RegisterExploder(Handler handler) {
+            this.handler = handler;
+        }
+
+        @SuppressLint({"MissingPermission", "HardwareIds"})
         @Override
         public void run() {
             super.run();
@@ -678,8 +713,7 @@ public class BaseApplication extends Application {
                 params.put("mac", getMacAddress());
                 if (disableWifi)
                     wm.setWifiEnabled(false);
-                if (PackageManager.PERMISSION_GRANTED == ContextCompat.checkSelfPermission(BaseApplication.this, Manifest.permission.READ_PHONE_STATE)
-                        && null != telephonyManager) {
+                if (null != telephonyManager) {
                     try {
                         if (null != telephonyManager.getSimSerialNumber()) {
                             params.put("iccid", telephonyManager.getSimSerialNumber());
@@ -712,6 +746,8 @@ public class BaseApplication extends Application {
                         @Override
                         public void onError(Call call, Exception e, int i) {
                             writeErrorLog(e);
+                            if (handler != null)
+                                handler.sendEmptyMessage(HANDLER_REGISTER_ERROR);
                             registerFinished = true;
                         }
 
@@ -785,12 +821,14 @@ public class BaseApplication extends Application {
         textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null);
     }
 
-    public void setBtSender(boolean btSender) {
-        this.btSender = btSender;
+    public void speakText(@StringRes int msg) {
+        if (textToSpeech.isSpeaking())
+            textToSpeech.stop();
+        textToSpeech.speak(getString(msg), TextToSpeech.QUEUE_ADD, null, null);
     }
 
-    public boolean isUploading() {
-        return uploading;
+    public void setBtSender(boolean btSender) {
+        this.btSender = btSender;
     }
 
     public static boolean isRemote() {

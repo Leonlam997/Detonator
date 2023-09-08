@@ -42,6 +42,7 @@ import java.util.Locale;
  */
 
 public abstract class BaseActivity extends AppCompatActivity {
+    public BaseApplication myApp;
     private static boolean isWifiConnected = false;
     private final int CHANGE_VOLTAGE = 1;
     private final int CHANGE_CURRENT = 2;

@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class CheckLineActivity extends BaseActivity {
-    private BaseApplication myApp;
     private SerialPortUtil serialPortUtil;
     private DataReceiveListener myReceiveListener;
     private SoundPool soundPool;
