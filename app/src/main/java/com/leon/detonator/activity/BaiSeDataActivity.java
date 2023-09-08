@@ -62,7 +62,7 @@ public class BaiSeDataActivity extends BaseActivity {
         findViewById(R.id.tv_project).setOnClickListener(view -> cbProject.setChecked(true));
         findViewById(R.id.tv_contract).setOnClickListener(view -> cbProject.setChecked(false));
         if (!getIntent().getBooleanExtra(KeyUtils.KEY_NEW_INFO, false))
-            baiSeInfoBean = DbUtil.getCurrentBaiSeInfo(BaiSeDataActivity.this);
+            baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
         if (baiSeInfoBean != null) {
             etName.setText(baiSeInfoBean.getBursterName());
             etId.setText(baiSeInfoBean.getIdCard());
@@ -138,14 +138,14 @@ public class BaiSeDataActivity extends BaseActivity {
                     baiSeInfoBean.setProjectCode(etProjectCode.getText().toString());
                     baiSeInfoBean.setProjectName(etProjectName.getText().toString());
                     baiSeInfoBean.setSelected(true);
-                    DbUtil.updateBaiSeInfo(BaiSeDataActivity.this, baiSeInfoBean);
-                    BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(BaiSeDataActivity.this);
+                    DbUtil.updateBaiSeInfo(baiSeInfoBean);
+                    BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
                     if (baiSeBlasterBean != null) {
                         baiSeBlasterBean.setChecked(false);
                         baiSeBlasterBean.setName(etName.getText().toString());
                         baiSeBlasterBean.getData().setUserIdCard(etId.getText().toString());
                         baiSeBlasterBean.getData().setProjectCode(etProjectCode.getText().toString());
-                        DbUtil.updateBaiSeBlaster(BaiSeDataActivity.this, baiSeBlasterBean);
+                        DbUtil.updateBaiSeBlaster(baiSeBlasterBean);
                     }
                     setResult(RESULT_OK);
                     finish();

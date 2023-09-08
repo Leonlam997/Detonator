@@ -92,7 +92,7 @@ public class CheckLineActivity extends BaseActivity {
                 BaseApplication.writeFile(tvTube.getText().toString());
                 break;
             case DETECT_DELAY:
-                tvDelayTime.setText(String.format(Locale.getDefault(), "%dms", delayTime));
+                tvDelayTime.setText(String.format(Locale.getDefault(), getString(R.string.delay_time), delayTime));
                 BaseApplication.writeFile(tvDelayTime.getText().toString());
                 break;
             case DETECT_NEXT_STEP:

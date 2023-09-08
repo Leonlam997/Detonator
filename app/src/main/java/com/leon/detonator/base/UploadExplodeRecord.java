@@ -165,7 +165,7 @@ public class UploadExplodeRecord extends Thread {
                 switch (BaseApplication.settings.getServerHost()) {
                     case 0:
                     case 3:
-                        enterpriseBean = DbUtil.getCurrentEnterprise(activity);
+                        enterpriseBean = DbUtil.getCurrentEnterprise();
                         if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
                             myApp.myToast(activity, R.string.message_select_enterprise);
                             Intent intent = new Intent(activity, InfoListActivity.class);
@@ -175,7 +175,7 @@ public class UploadExplodeRecord extends Thread {
                             enterpriseDialog();
                         break;
                     case 2:
-                        baiSeInfoBean = DbUtil.getCurrentBaiSeInfo(activity);
+                        baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
                         if (null == baiSeInfoBean || baiSeInfoBean.getBurstOrgCode().isEmpty()) {
                             myApp.myToast(activity, R.string.message_select_enterprise);
                             Intent intent = new Intent(activity, InfoListActivity.class);
@@ -277,7 +277,7 @@ public class UploadExplodeRecord extends Thread {
                 handler.obtainMessage(UPLOAD_SUCCESS).sendToTarget();
                 uploading = false;
             } else {
-                detonators = DbUtil.getDetonatorList(activity, list.get(uploadIndex).getId());
+                detonators = DbUtil.getDetonatorList(list.get(uploadIndex).getId());
                 if (BaseApplication.settings.getServerHost() == 0)
                     uploadDanLing();
                 else
@@ -390,7 +390,7 @@ public class UploadExplodeRecord extends Thread {
             baiSeInfoBean.setDeviceNO(BaseApplication.settings.getExploderID());
             baiSeInfoBean.setBurstTime(df.format(list.get(uploadIndex).getExplodeTime()));
             baiSeInfoBean.setDetonatorCount(list.get(uploadIndex).getAmount());
-            DbUtil.updateBaiSeInfo(activity, baiSeInfoBean);
+            DbUtil.updateBaiSeInfo(baiSeInfoBean);
             BaseApplication.writeFile(activity.getString(R.string.button_upload) + ", " + ConstantUtils.UPLOAD_HOST[2][0] + ", " + list.get(uploadIndex).getName());
             BaseApplication.writeFile(new Gson().toJson(baiSeInfoBean));
             OkHttpUtils.postString().addHeader("access-token", ConstantUtils.ACCESS_TOKEN)
@@ -419,10 +419,10 @@ public class UploadExplodeRecord extends Thread {
                         public void onResponse(BaiSeUploadResultBean baiSeUploadResultBean, int i) {
                             if (baiSeUploadResultBean != null) {
                                 if (baiSeUploadResultBean.isSuccess()) {
-                                    BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(activity);
+                                    BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
                                     if (baiSeBlasterBean != null) {
                                         baiSeBlasterBean.setChecked(false);
-                                        DbUtil.updateBaiSeBlaster(activity, baiSeBlasterBean);
+                                        DbUtil.updateBaiSeBlaster(baiSeBlasterBean);
                                     }
                                     uploadSuccess();
                                     uploadNextRecord();
@@ -446,7 +446,7 @@ public class UploadExplodeRecord extends Thread {
             handler.obtainMessage(UPLOAD_SUCCESS, list.get(uploadIndex).getId()).sendToTarget();
             list.get(uploadIndex).setUploadServer(BaseApplication.settings.getServerHost());
             list.get(uploadIndex).setUploadTime(new Date());
-            DbUtil.updateExplosionRecord(activity, list.get(uploadIndex));
+            DbUtil.updateExplosionRecord(list.get(uploadIndex));
         }
     }
 

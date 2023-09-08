@@ -86,20 +86,20 @@ public class DetonateStep1Activity extends BaseActivity {
         if (RESULT_OK == result.getResultCode())
             switch (requestCode) {
                 case 0:
-                    enterpriseBean = DbUtil.getCurrentEnterprise(DetonateStep1Activity.this);
+                    enterpriseBean = DbUtil.getCurrentEnterprise();
                     break;
                 case 1:
-                    baiSeInfoBean = DbUtil.getCurrentBaiSeInfo(DetonateStep1Activity.this);
+                    baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
                     break;
                 case 2:
-                    baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(DetonateStep1Activity.this);
+                    baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
                     break;
                 case 3:
-                    enterpriseBean = DbUtil.getCurrentEnterprise(DetonateStep1Activity.this);
+                    enterpriseBean = DbUtil.getCurrentEnterprise();
                     onlineDownload();
                     break;
                 case 4:
-                    baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(DetonateStep1Activity.this);
+                    baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
                     baiSeBlasterCheck();
                     break;
             }
@@ -185,20 +185,20 @@ public class DetonateStep1Activity extends BaseActivity {
             setTitle(R.string.check_locate);
 
         myApp = (BaseApplication) getApplication();
-        list = DbUtil.getCurrentDetonatorList(DetonateStep1Activity.this);
+        list = DbUtil.getCurrentDetonatorList();
         btnOffline = findViewById(R.id.btn_offline_auth);
         btnOnline = findViewById(R.id.btn_online_auth);
         if (0 == BaseApplication.settings.getServerHost() || 2 == BaseApplication.settings.getServerHost() || 3 == BaseApplication.settings.getServerHost()) {
             findViewById(R.id.btn_offline_auth).setVisibility(View.VISIBLE);
             if (2 == BaseApplication.settings.getServerHost()) {
-                baiSeInfoBean = DbUtil.getCurrentBaiSeInfo(DetonateStep1Activity.this);
-                baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(DetonateStep1Activity.this);
+                baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
+                baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
                 btnOnline.setTextId(R.string.button_online_detect);
                 btnOffline.setTextId(R.string.button_auth);
             } else {
                 btnOnline.setTextId(R.string.button_online_auth);
-                enterpriseBean = DbUtil.getCurrentEnterprise(DetonateStep1Activity.this);
-                offlineBean = DbUtil.getDownloadDetonator(DetonateStep1Activity.this, true);
+                enterpriseBean = DbUtil.getCurrentEnterprise();
+                offlineBean = DbUtil.getOfflineDownloadDetonator();
             }
         } else {
             btnOffline.setVisibility(View.GONE);
@@ -371,7 +371,7 @@ public class DetonateStep1Activity extends BaseActivity {
                                                         if (onlineBean.getResult().getCwxx().equals("0")) {
                                                             List<LgBean> detonators = onlineBean.getResult().getLgs().getLg();
                                                             if (null != detonators) {
-                                                                DbUtil.addDownloadDetonator(DetonateStep1Activity.this, false, onlineBean);
+                                                                DbUtil.updateDownloadDetonator(false, onlineBean);
                                                                 checkList(detonators, true);
                                                             }
                                                         } else {
@@ -451,7 +451,7 @@ public class DetonateStep1Activity extends BaseActivity {
                                                 if (baiSeCheckResultBean.isSuccess() && baiSeCheckResultBean.getData().isIsPass()) {
                                                     myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_success);
                                                     baiSeBlasterBean.setChecked(true);
-                                                    DbUtil.updateBaiSeBlaster(DetonateStep1Activity.this, baiSeBlasterBean);
+                                                    DbUtil.updateBaiSeBlaster(baiSeBlasterBean);
                                                 } else if (baiSeCheckResultBean.getData() != null) {
                                                     if (baiSeCheckResultBean.getData().getMsg() != null)
                                                         myApp.myToast(DetonateStep1Activity.this, baiSeCheckResultBean.getData().getMsg());

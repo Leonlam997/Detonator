@@ -50,6 +50,7 @@ import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.Callback;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -79,7 +80,7 @@ public class AuthorizationListActivity extends BaseActivity {
     private int soundFail;
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode()) {
-            enterpriseBean = DbUtil.getCurrentEnterprise(AuthorizationListActivity.this);
+            enterpriseBean = DbUtil.getCurrentEnterprise();
             prepareDownload();
         }
     });
@@ -225,7 +226,7 @@ public class AuthorizationListActivity extends BaseActivity {
                                         .setPositiveButton(R.string.button_confirm, (dialog1, which) -> {
                                             list.removeIf(DetonatorBean::isSelected);
                                             adapter.updateList(list);
-                                            DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
+                                            DbUtil.updateAuthDetonatorList(list);
                                         })
                                         .setNegativeButton(R.string.button_cancel, null)
                                         .setOnKeyListener((dialog1, keyCode, event) -> {
@@ -244,9 +245,9 @@ public class AuthorizationListActivity extends BaseActivity {
     }
 
     private void initData() {
-        enterpriseBean = DbUtil.getCurrentEnterprise(AuthorizationListActivity.this);
-        detonatorList = DbUtil.getCurrentDetonatorList(AuthorizationListActivity.this);
-        list = DbUtil.getAuthDetonatorList(AuthorizationListActivity.this);
+        enterpriseBean = DbUtil.getCurrentEnterprise();
+        detonatorList = DbUtil.getCurrentDetonatorList();
+        list = DbUtil.getAuthDetonatorList();
         adapter = new OfflineListAdapter(AuthorizationListActivity.this, list);
         listView.setAdapter(adapter);
     }
@@ -355,7 +356,7 @@ public class AuthorizationListActivity extends BaseActivity {
                                                             if (downloadDetonatorBean.getResult().getCwxx().equals("0")) {
                                                                 List<LgBean> detonators = downloadDetonatorBean.getResult().getLgs().getLg();
                                                                 if (null != detonators) {
-                                                                    DbUtil.addDownloadDetonator(AuthorizationListActivity.this, true, downloadDetonatorBean);
+                                                                    DbUtil.updateDownloadDetonator(true, downloadDetonatorBean);
                                                                     checkList(detonators);
                                                                 }
                                                                 myApp.myToast(AuthorizationListActivity.this, R.string.message_offline_download_success);
@@ -391,7 +392,7 @@ public class AuthorizationListActivity extends BaseActivity {
         final EditText etAmount = inputCodeView.findViewById(R.id.et_amount);
         final CheckBox cbImport = inputCodeView.findViewById(R.id.cb_import);
         etStart = inputCodeView.findViewById(R.id.et_start);
-        cbImport.setEnabled(detonatorList.size() > 0);
+        cbImport.setEnabled(detonatorList.size() > 0 && checkImport());
         cbImport.setOnCheckedChangeListener((compoundButton, b) -> {
             etStart.setEnabled(!b);
             etAmount.setEnabled(!b);
@@ -409,6 +410,7 @@ public class AuthorizationListActivity extends BaseActivity {
             }
         });
         etAmount.setHint("100");
+        etStart.requestFocus();
         final AlertDialog addDialog = new AlertDialog.Builder(AuthorizationListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_manual_input)
                 .setView(inputCodeView)
@@ -421,7 +423,7 @@ public class AuthorizationListActivity extends BaseActivity {
                             case ConstantUtils.KEYCODE_CENTER_SCAN:
                             case ConstantUtils.KEYCODE_RIGHT_SCAN:
                             case ConstantUtils.KEYCODE_LEFT_SCAN:
-                                scanCode();
+                                serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_CODE, ConstantUtils.SCAN_CODE_TIME);
                                 break;
                             case KeyEvent.KEYCODE_DPAD_CENTER:
                                 confirmInput(cbImport.isChecked(), etAmount.getText().toString());
@@ -432,6 +434,13 @@ public class AuthorizationListActivity extends BaseActivity {
                 .show();
         addDialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextSize(20);
         addDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(20);
+    }
+
+    private boolean checkImport() {
+        for (DetonatorBean bean : detonatorList)
+            if (!list.contains(bean))
+                return true;
+        return false;
     }
 
     private void confirmInput(boolean isImport, String amount) {
@@ -445,33 +454,32 @@ public class AuthorizationListActivity extends BaseActivity {
                         list.add(bean);
                     }
                 if (success) {
+                    list.sort(Comparator.comparing(DetonatorBean::getAddress));
                     myApp.myToast(AuthorizationListActivity.this, R.string.message_restore_success);
                     adapter.updateList(list);
                     btnDownload.setEnabled(true);
-                    DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
+                    btnDelete.setEnabled(true);
+                    DbUtil.updateAuthDetonatorList(list);
                 }
             }
         } else if (Pattern.matches(ConstantUtils.SHELL_PATTERN, etStart.getText().toString().toUpperCase())) {
             try {
                 int j = amount.isEmpty() ? 100 : Integer.parseInt(amount);
                 for (int i = 0; i < j; i++) {
-                    DetonatorBean bean = new DetonatorBean(etStart.getText().toString().substring(0, 8)
-                            + String.format(Locale.getDefault(), "%05d", Integer.parseInt(etStart.getText().toString().substring(8)) + i));
+                    DetonatorBean bean = new DetonatorBean(etStart.getText().toString().substring(0, 8).toUpperCase()
+                            + String.format(Locale.getDefault(), "%05d", (Integer.parseInt(etStart.getText().toString().substring(8)) + i) % 100000));
                     bean.setDownloaded(false);
                     list.add(bean);
                 }
                 adapter.updateList(list);
-                DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
+                DbUtil.updateAuthDetonatorList(list);
                 btnDownload.setEnabled(true);
+                btnDelete.setEnabled(true);
             } catch (Exception e) {
                 myApp.myToast(AuthorizationListActivity.this, R.string.message_amount_input_error);
             }
         } else
             myApp.myToast(AuthorizationListActivity.this, R.string.message_detonator_input_error);
-    }
-
-    public void scanCode() {
-        serialPortUtil.sendCmd("", SerialCommand.CODE_SCAN_CODE, ConstantUtils.SCAN_CODE_TIME);
     }
 
     private void enabledButton(boolean enabled) {
@@ -493,7 +501,7 @@ public class AuthorizationListActivity extends BaseActivity {
             }
         }
         adapter.updateList(list);
-        DbUtil.updateAuthDetonatorList(AuthorizationListActivity.this, list);
+        DbUtil.updateAuthDetonatorList(list);
     }
 
     @Override

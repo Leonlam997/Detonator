@@ -89,7 +89,6 @@ public class SettingsActivity extends BaseActivity {
                                             if ((file.getName().endsWith("lst") || file.getName().endsWith("log")) && !file.delete())
                                                 myApp.myToast(SettingsActivity.this, R.string.message_delete_fail);
                                         }
-                                    DbUtil.cleanDatabase(SettingsActivity.this);
                                     myApp.myToast(SettingsActivity.this, R.string.message_delete_success);
                                 } catch (Exception e) {
                                     BaseApplication.writeErrorLog(e);
@@ -173,10 +172,10 @@ public class SettingsActivity extends BaseActivity {
                             list.get(i).setMore(i != list.size() - 2);
                         }
                     }
-                    BaiSeInfoBean baiSeInfoBean = DbUtil.getCurrentBaiSeInfo(SettingsActivity.this);
+                    BaiSeInfoBean baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
                     list.get(2).setSubtitle(baiSeInfoBean == null ? "" : String.format("%s %s", getString(R.string.enterprise_name), baiSeInfoBean.getBurstOrgName()));
-                    BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(SettingsActivity.this);
-                    list.get(3).setSubtitle(baiSeBlasterBean == null ? "" : String.format("%s%s", getString(R.string.detector_name), baiSeBlasterBean.getData().getProjectCode()));
+                    BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
+                    list.get(3).setSubtitle(baiSeBlasterBean == null ? "" : String.format("%s %s", getString(R.string.detector_name), baiSeBlasterBean.getData().getProjectCode()));
                     break;
                 case 0:
                 case 3:
@@ -191,7 +190,7 @@ public class SettingsActivity extends BaseActivity {
                             list.get(i).setMore(i != list.size() - 2);
                         }
                     }
-                    EnterpriseBean enterpriseBean = DbUtil.getCurrentEnterprise(SettingsActivity.this);
+                    EnterpriseBean enterpriseBean = DbUtil.getCurrentEnterprise();
                     list.get(2).setSubtitle(enterpriseBean == null ? "" : String.format("%s %s", getString(R.string.enterprise_code), enterpriseBean.getCode()));
                     if (list.size() == 7) {
                         list.remove(3);

@@ -130,7 +130,7 @@ public class EnterpriseActivity extends BaseActivity {
                 enterprise.setCommercial(cbCommercial.isChecked());
                 enterprise.setContract(cbCommercial.isChecked() ? etContract.getText().toString() : "");
                 enterprise.setProject(cbCommercial.isChecked() ? etProject.getText().toString() : "");
-                DbUtil.updateEnterprise(EnterpriseActivity.this, enterprise);
+                DbUtil.updateEnterprise(enterprise);
                 setResult(RESULT_OK);
                 finish();
             }
@@ -177,7 +177,7 @@ public class EnterpriseActivity extends BaseActivity {
 
     private void initData() {
         if (!getIntent().getBooleanExtra(KeyUtils.KEY_NEW_INFO, false))
-            enterprise = DbUtil.getCurrentEnterprise(EnterpriseActivity.this);
+            enterprise = DbUtil.getCurrentEnterprise();
         else {
             enterprise = new EnterpriseBean();
             enterprise.setId(-1);

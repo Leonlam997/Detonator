@@ -135,10 +135,10 @@ public class HideTestActivity extends BaseActivity implements View.OnClickListen
                 else {
                     SchemeBean bean = new SchemeBean();
                     bean.setName(getString(R.string.button_restore_list));
-                    DbUtil.updateScheme(HideTestActivity.this, bean);
+                    DbUtil.updateScheme(bean);
                     for (DetonatorBean b : list)
                         b.setSchemeId(bean.getId());
-                    DbUtil.updateDetonatorList(HideTestActivity.this, list);
+                    DbUtil.updateDetonatorList(list);
                     myApp.myToast(HideTestActivity.this, R.string.message_restore_success);
                 }
                 break;

@@ -139,10 +139,11 @@
     <string name="detonator_amount">%1$d条</string>
     <string name="detonator_auth">已授权</string>
     <string name="detonator_not_auth">未授权</string>
-    <string name="detonator_auth_status">授权</string>
+    <string name="detonator_auth_status">状态</string>
     <string name="detonator_error">错误</string>
     <string name="detonator_error_info">错误信息</string>
     <string name="no_delay_time">-- ms</string>
+    <string name="delay_time">%1$dms</string>
     <string name="map_position_init">经度:— 纬度:—</string>
     <string name="map_position">经度:%1$.4f 纬度:%2$.4f</string>
     <string name="map_locate_success">(定位成功)</string>

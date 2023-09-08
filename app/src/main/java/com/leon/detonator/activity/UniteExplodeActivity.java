@@ -267,7 +267,7 @@ public class UniteExplodeActivity extends BaseActivity {
 
         initManager();
         BaseApplication.acquireWakeLock(this);
-        List<DetonatorBean> list = DbUtil.getCurrentDetonatorList(UniteExplodeActivity.this);
+        List<DetonatorBean> list = DbUtil.getCurrentDetonatorList();
         amount = list.size();
         mtMac = BaseApplication.settings.getMtMac();
         exploderID = BaseApplication.settings.getExploderID();

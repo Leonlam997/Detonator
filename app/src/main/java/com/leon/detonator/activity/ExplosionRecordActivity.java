@@ -86,7 +86,7 @@ public class ExplosionRecordActivity extends BaseActivity {
         setContentView(R.layout.activity_explode_record);
         setTitle(R.string.detonate_rec);
         myApp = (BaseApplication) getApplication();
-        list = DbUtil.getExplosionRecordList(ExplosionRecordActivity.this);
+        list = DbUtil.getExplosionRecordList();
         if (list.size() > 0)
             list.removeIf(bean -> BaseApplication.settings.isTunnel() != bean.isTunnel());
 
@@ -201,7 +201,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                                         ExplosionRecordBean b = it.next();
                                         if (b.isSelected()) {
                                             BaseApplication.writeFile(getString(R.string.dialog_title_delete_record) + ", " + b.getName());
-                                            DbUtil.deleteScheme(ExplosionRecordActivity.this, b.getId());
+                                            DbUtil.deleteScheme(b.getId());
                                             it.remove();
                                         }
                                     }

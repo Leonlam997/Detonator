@@ -3,11 +3,14 @@ package com.leon.detonator.activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputFilter;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -47,11 +50,12 @@ public class SchemeActivity extends BaseActivity {
         btnNew = findViewById(R.id.btn_new_scheme);
         btnNew.setOnClickListener(v -> launchTask(0));
 
-        list = DbUtil.getSchemeList(SchemeActivity.this);
+        list = DbUtil.getSchemeList();
         adapter = new InfoAdapter<>(this, list);
         listView = findViewById(R.id.lv_scheme);
         listView.setAdapter(adapter);
         listView.requestFocus();
+        btnDelete.setEnabled(list.size() > 0);
         for (int i = 0; i < list.size(); i++)
             if (list.get(i).isSelected()) {
                 listView.smoothScrollToPosition(i);
@@ -59,47 +63,39 @@ public class SchemeActivity extends BaseActivity {
                 break;
             }
         listView.setOnItemClickListener((adapterView, view, i, l) -> {
-            if (list.get(i).isSelected()) {
-                Intent intent = new Intent(SchemeActivity.this, DetonatorListActivity.class);
-                intent.putExtra(KeyUtils.KEY_TABLE_ID, list.get(i).getId());
-                startActivity(intent);
-            } else
-                selectScheme(i);
+            enabledButton(false);
+            list.get(i).setSelected(!list.get(i).isSelected());
+            DbUtil.updateScheme(list.get(i));
+            adapter.updateList(list);
+            listView.setSelection(i);
+            btnModify.setEnabled(singleSelect());
+            enabledButton(true);
+        });
+        listView.setOnItemLongClickListener((adapterView, view, i, l) -> {
+            modifyName(false);
+            return true;
         });
         enabledButton(true);
     }
 
     private void enabledButton(boolean b) {
         setProgressVisibility(!b);
-        if (!b) {
-            listView.setEnabled(false);
-            btnNew.setEnabled(false);
-        } else {
-            listView.setEnabled(true);
-            listView.requestFocus();
-            btnNew.setEnabled(true);
-            for (int i = 0; i < list.size(); i++)
-                if (list.get(i).isSelected()) {
-                    listView.smoothScrollToPosition(i);
-                    listView.setSelection(i);
-                    btnDelete.setEnabled(true);
-                    btnModify.setEnabled(true);
-                    return;
-                }
-        }
-        btnDelete.setEnabled(false);
-        btnModify.setEnabled(false);
+        listView.setEnabled(b);
+        btnNew.setEnabled(b);
+        btnDelete.setEnabled(b && list.size() > 0);
+        btnModify.setEnabled(b && singleSelect());
     }
 
-    private void selectScheme(int i) {
+    private boolean singleSelect() {
+        boolean b = false;
         for (SchemeBean bean : list)
-            bean.setSelected(false);
-        list.get(i).setSelected(true);
-        DbUtil.updateScheme(SchemeActivity.this, list.get(i));
-        adapter.updateList(list);
-        listView.setSelection(i);
-        btnDelete.setEnabled(true);
-        btnModify.setEnabled(true);
+            if (bean.isSelected()) {
+                if (!b)
+                    b = true;
+                else
+                    return false;
+            }
+        return b;
     }
 
     private void launchTask(int i) {
@@ -111,35 +107,102 @@ public class SchemeActivity extends BaseActivity {
             case KeyEvent.KEYCODE_TAB:
             case 1:
                 if (btnModify.isEnabled())
-                    modifyName(false);
+                    for (SchemeBean bean : list)
+                        if (bean.isSelected()) {
+                            Intent intent = new Intent(SchemeActivity.this, DetonatorListActivity.class);
+                            intent.putExtra(KeyUtils.KEY_TABLE_ID, bean.getId());
+                            startActivity(intent);
+                            break;
+                        }
                 break;
             case ConstantUtils.KEYCODE_SUB:
             case 2:
-                if (btnDelete.isEnabled()) {
-                    enabledButton(false);
-                    runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
-                            .setTitle(R.string.dialog_title_delete_scheme)
-                            .setMessage(R.string.dialog_confirm_delete_scheme)
-                            .setPositiveButton(R.string.button_confirm, (dialog1, which1) -> {
-                                for (SchemeBean bean : list)
-                                    if (bean.isSelected()) {
-                                        BaseApplication.writeFile(getString(R.string.button_delete) + ":" + bean);
-                                        DbUtil.deleteScheme(SchemeActivity.this, bean.getId());
-                                        list.remove(bean);
-                                        runOnUiThread(() -> {
-                                            btnDelete.setEnabled(false);
-                                            btnModify.setEnabled(false);
-                                        });
-                                        listView.smoothScrollByOffset(-1);
-                                        listView.setSelected(false);
-                                        adapter.updateList(list);
-                                        break;
+                if (btnDelete.isEnabled())
+                    runOnUiThread(() -> {
+                        enabledButton(false);
+                        final View deleteView = LayoutInflater.from(SchemeActivity.this).inflate(R.layout.layout_dialog_batch_modify, listView, false);
+                        final EditText etFrom = deleteView.findViewById(R.id.et_from);
+                        final EditText etTo = deleteView.findViewById(R.id.et_to);
+                        final CheckBox cbSelectAll = deleteView.findViewById(R.id.cb_selected_all);
+                        deleteView.findViewById(R.id.ll_delay).setVisibility(View.GONE);
+                        deleteView.findViewById(R.id.ll_row).setVisibility(View.GONE);
+                        deleteView.findViewById(R.id.ll_hole).setVisibility(View.GONE);
+                        deleteView.findViewById(R.id.ll_inside).setVisibility(View.GONE);
+                        etFrom.requestFocus();
+                        cbSelectAll.setOnCheckedChangeListener((compoundButton, b) -> {
+                            etFrom.setEnabled(!b);
+                            etTo.setEnabled(!b);
+                            if (b) {
+                                etFrom.setText("1");
+                                etTo.setText(String.format(Locale.getDefault(), "%d", list.size()));
+                                etFrom.setTextColor(getColor(R.color.colorDisabledText));
+                                etTo.setTextColor(getColor(R.color.colorDisabledText));
+                            } else {
+                                etTo.requestFocus();
+                                etTo.setSelection(etTo.getText().length());
+                                etFrom.setTextColor(getColor(R.color.colorLabelText));
+                                etTo.setTextColor(getColor(R.color.colorLabelText));
+                            }
+                        });
+                        final TextWatcher watcher = new TextWatcher() {
+                            @Override
+                            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+                            }
+
+                            @Override
+                            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                                if (!charSequence.toString().isEmpty())
+                                    try {
+                                        int num = Integer.parseInt(charSequence.toString());
+                                        if (num <= 0 || num > list.size())
+                                            myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                                    } catch (Exception e) {
+                                        myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
                                     }
-                            })
-                            .setOnDismissListener(dialogInterface -> enabledButton(true))
-                            .setNegativeButton(R.string.button_cancel, null)
-                            .show()));
-                }
+                            }
+
+                            @Override
+                            public void afterTextChanged(Editable editable) {
+
+                            }
+                        };
+                        etFrom.addTextChangedListener(watcher);
+                        etTo.addTextChangedListener(watcher);
+                        BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
+                                .setTitle(R.string.dialog_title_batch_delete)
+                                .setView(deleteView)
+                                .setPositiveButton(R.string.button_confirm, (dialog, which1) -> {
+                                    try {
+                                        if (etTo.getText().toString().isEmpty())
+                                            etTo.setText(etFrom.getText());
+                                        int from = Integer.parseInt(etFrom.getText().toString());
+                                        int to = Integer.parseInt(etTo.getText().toString());
+                                        if (from <= 0 || from > list.size() || to <= 0 || to > list.size()) {
+                                            myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                                            return;
+                                        }
+                                        runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(SchemeActivity.this, R.style.AlertDialog)
+                                                .setTitle(R.string.dialog_title_delete_scheme)
+                                                .setMessage(R.string.dialog_confirm_delete_scheme)
+                                                .setPositiveButton(R.string.button_confirm, (dialog1, which) -> {
+                                                    for (int j = Math.max(to, from) - 1; j >= Math.min(from, to) - 1; j--) {
+                                                        BaseApplication.writeFile(getString(R.string.button_delete) + ":" + list.get(j).getName());
+                                                        DbUtil.deleteScheme(list.get(j).getId());
+                                                        list.remove(j);
+                                                    }
+                                                    adapter.updateList(list);
+                                                })
+                                                .setOnDismissListener(dialogInterface -> enabledButton(true))
+                                                .setNegativeButton(R.string.button_cancel, null)
+                                                .show()));
+                                    } catch (Exception e) {
+                                        myApp.myToast(SchemeActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
+                                    }
+                                })
+                                .setNegativeButton(R.string.button_cancel, null)
+                                .show());
+                    });
                 break;
         }
     }
@@ -156,7 +219,7 @@ public class SchemeActivity extends BaseActivity {
             etName.requestFocus();
             tvDelay.setVisibility(View.GONE);
             if (newScheme)
-                etName.setText(String.format(Locale.getDefault(), getString(R.string.default_scheme_name), list.size()));
+                etName.setText(String.format(Locale.getDefault(), getString(R.string.default_scheme_name), list.size() + 1));
             else
                 for (int i = 0; i < list.size(); i++)
                     if (list.get(i).isSelected()) {
@@ -176,7 +239,7 @@ public class SchemeActivity extends BaseActivity {
                                 bean.setId(-1);
                                 btnDelete.setEnabled(true);
                                 btnModify.setEnabled(true);
-                                DbUtil.updateScheme(SchemeActivity.this, bean);
+                                DbUtil.updateScheme(bean);
                                 for (SchemeBean b : list)
                                     b.setSelected(false);
                                 list.add(bean);
@@ -188,7 +251,7 @@ public class SchemeActivity extends BaseActivity {
                                 for (SchemeBean bean : list)
                                     if (bean.isSelected()) {
                                         bean.setName(etName.getText().toString());
-                                        DbUtil.updateScheme(SchemeActivity.this, bean);
+                                        DbUtil.updateScheme(bean);
                                         adapter.updateList(list);
                                         break;
                                     }
@@ -222,9 +285,9 @@ public class SchemeActivity extends BaseActivity {
                 case KeyEvent.KEYCODE_2:
                     listView.requestFocus();
                     if (listView.getSelectedItemPosition() > 0)
-                        selectScheme(listView.getSelectedItemPosition() - 1);
+                        listView.setSelection(listView.getSelectedItemPosition() - 1);
                     else if (listView.getSelectedItemPosition() == 0)
-                        selectScheme(list.size() - 1);
+                        listView.setSelection(list.size() - 1);
                     else
                         for (int i = 0; i < list.size(); i++)
                             if (list.get(i).isSelected()) {
@@ -235,9 +298,9 @@ public class SchemeActivity extends BaseActivity {
                 case KeyEvent.KEYCODE_8:
                     listView.requestFocus();
                     if (listView.getSelectedItemPosition() < list.size() - 1)
-                        selectScheme(listView.getSelectedItemPosition() + 1);
+                        listView.setSelection(listView.getSelectedItemPosition() + 1);
                     else if (listView.getSelectedItemPosition() == list.size() - 1)
-                        selectScheme(0);
+                        listView.setSelection(0);
                     else
                         for (int i = 0; i < list.size(); i++)
                             if (list.get(i).isSelected()) {
@@ -261,7 +324,7 @@ public class SchemeActivity extends BaseActivity {
 
     @Override
     protected void onResume() {
-        list = DbUtil.getSchemeList(SchemeActivity.this);
+        list = DbUtil.getSchemeList();
         adapter.updateList(list);
         super.onResume();
     }

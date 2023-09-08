@@ -43,8 +43,6 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 public class DetonatorListActivity extends BaseActivity {
-    private final int MODE_SCHEME = 1;
-    private final int MODE_HISTORY = 5;
     private List<DetonatorBean> list;
     private MyButton btnModify;
     private MyButton btnDelete;
@@ -52,14 +50,38 @@ public class DetonatorListActivity extends BaseActivity {
     private DetonatorListAdapter adapter;
     private SerialPortUtil serialPortUtil;
     private DataReceiveListener myReceiveListener;
-    private SchemeBean schemeBean;
     private SoundPool soundPool;
     private BaseApplication myApp;
     private EditText etStart;
+    private final int MODE_SCHEME = 1;
+    private final int MODE_HISTORY = 5;
     private long lastKeyDownTime;
     private long schemeId;
     private int soundSuccess;
     private int soundFail;
+    private final TextWatcher watcher = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+        }
+
+        @Override
+        public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            if (!charSequence.toString().isEmpty())
+                try {
+                    int num = Integer.parseInt(charSequence.toString());
+                    if (num <= 0 || num > ConstantUtils.MAX_ROW_NUMBER)
+                        myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_detonator_input_out_of_range), ConstantUtils.MAX_ROW_NUMBER));
+                } catch (Exception e) {
+                    myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_detonator_input_out_of_range), ConstantUtils.MAX_ROW_NUMBER));
+                }
+        }
+
+        @Override
+        public void afterTextChanged(Editable editable) {
+
+        }
+    };
     private final Handler myHandler = new Handler(msg -> {
         int HANDLER_SCAN_CODE = 1;
         if (msg.what == HANDLER_SCAN_CODE) {
@@ -96,7 +118,7 @@ public class DetonatorListActivity extends BaseActivity {
     });
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode()) {
-            list = DbUtil.getDetonatorList(DetonatorListActivity.this, schemeId);
+            list = DbUtil.getDetonatorList(schemeId);
             checkButton();
             adapter.updateList(list);
         } else if (RESULT_CANCELED == result.getResultCode() && null != result.getData()
@@ -113,11 +135,7 @@ public class DetonatorListActivity extends BaseActivity {
         myApp = (BaseApplication) getApplication();
         int title = getIntent().getIntExtra(KeyUtils.KEY_DETONATOR_LIST, ConstantUtils.RESUME_LIST);
         schemeId = getIntent().getLongExtra(KeyUtils.KEY_TABLE_ID, -1);
-        list = DbUtil.getDetonatorList(DetonatorListActivity.this, schemeId);
-        if (schemeId != -1)
-            schemeBean = DbUtil.getScheme(DetonatorListActivity.this, schemeId);
-        else
-            schemeBean = new SchemeBean();
+        list = DbUtil.getDetonatorList(schemeId);
         initSound();
         listView = findViewById(R.id.lv_delay_list);
         keyMode = 0;
@@ -236,29 +254,6 @@ public class DetonatorListActivity extends BaseActivity {
 
                 }
             });
-            TextWatcher watcher = new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
-                }
-
-                @Override
-                public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                    if (!charSequence.toString().isEmpty())
-                        try {
-                            int num = Integer.parseInt(charSequence.toString());
-                            if (num <= 0 || num > ConstantUtils.MAX_ROW_NUMBER)
-                                myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_detonator_input_out_of_range), ConstantUtils.MAX_ROW_NUMBER));
-                        } catch (Exception e) {
-                            myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_detonator_input_out_of_range), ConstantUtils.MAX_ROW_NUMBER));
-                        }
-                }
-
-                @Override
-                public void afterTextChanged(Editable editable) {
-
-                }
-            };
             etRow.addTextChangedListener(watcher);
             etHole.addTextChangedListener(watcher);
             etInside.addTextChangedListener(watcher);
@@ -297,9 +292,9 @@ public class DetonatorListActivity extends BaseActivity {
                                     list.get(i).setHole(hole);
                                     list.get(i).setInside(inside);
                                     Collections.sort(list);
-                                    DbUtil.updateDetonatorList(DetonatorListActivity.this, list);
+                                    DbUtil.updateDetonatorList(list);
                                 } else
-                                    DbUtil.updateDetonator(DetonatorListActivity.this, list.get(i));
+                                    DbUtil.updateDetonator(list.get(i));
                                 adapter.updateList(list);
                             }
                         } catch (Exception e) {
@@ -339,9 +334,7 @@ public class DetonatorListActivity extends BaseActivity {
                     tvHole.setText(R.string.text_section_num);
                     tvInside.setText(R.string.text_section_inside_num);
                 }
-                cbRowIncrease.setOnCheckedChangeListener((compoundButton, b) -> {
-                    tvRow.setText(b ? R.string.text_start_row_num : R.string.text_row_num);
-                });
+                cbRowIncrease.setOnCheckedChangeListener((compoundButton, b) -> tvRow.setText(b ? R.string.text_start_row_num : R.string.text_row_num));
                 cbHoleIncrease.setOnCheckedChangeListener((compoundButton, b) -> {
                     if (BaseApplication.settings.isTunnel())
                         tvHole.setText(b ? R.string.text_start_section_num : R.string.text_section_num);
@@ -354,9 +347,7 @@ public class DetonatorListActivity extends BaseActivity {
                     else
                         tvInside.setText(b ? R.string.text_start_inside_num : R.string.text_inside_num);
                 });
-                cbDelayIncrease.setOnCheckedChangeListener((compoundButton, b) -> {
-                    tvDelay.setText(b ? R.string.edit_interval : R.string.text_delay);
-                });
+                cbDelayIncrease.setOnCheckedChangeListener((compoundButton, b) -> tvDelay.setText(b ? R.string.edit_interval : R.string.text_delay));
                 cbDelay.setOnCheckedChangeListener((compoundButton, b) -> {
                     etDelay.setEnabled(b);
                     cbDelayIncrease.setEnabled(b);
@@ -387,29 +378,6 @@ public class DetonatorListActivity extends BaseActivity {
                 cbHoleIncrease.setEnabled(false);
                 etInside.setEnabled(false);
                 cbInsideIncrease.setEnabled(false);
-                TextWatcher watcher = new TextWatcher() {
-                    @Override
-                    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
-                    }
-
-                    @Override
-                    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                        if (!charSequence.toString().isEmpty())
-                            try {
-                                int num = Integer.parseInt(charSequence.toString());
-                                if (num <= 0 || num > ConstantUtils.MAX_ROW_NUMBER)
-                                    myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_detonator_input_out_of_range), ConstantUtils.MAX_ROW_NUMBER));
-                            } catch (Exception e) {
-                                myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_detonator_input_out_of_range), ConstantUtils.MAX_ROW_NUMBER));
-                            }
-                    }
-
-                    @Override
-                    public void afterTextChanged(Editable editable) {
-
-                    }
-                };
                 etRow.addTextChangedListener(watcher);
                 etHole.addTextChangedListener(watcher);
                 etInside.addTextChangedListener(watcher);
@@ -454,7 +422,7 @@ public class DetonatorListActivity extends BaseActivity {
 
                     }
                 });
-                TextWatcher watcher1 = new TextWatcher() {
+                final TextWatcher watcher1 = new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
@@ -548,7 +516,7 @@ public class DetonatorListActivity extends BaseActivity {
                                             for (int i = from - 1; i >= to - 1; i--)
                                                 list.get(i).setInside(inside + from - 1 - i);
                                     else
-                                        for (int i = from - 1; i < to; i++)
+                                        for (int i = Math.min(from, to) - 1; i < Math.max(from, to); i++)
                                             list.get(i).setInside(inside);
                                 }
                                 if (cbDelay.isChecked())
@@ -560,7 +528,7 @@ public class DetonatorListActivity extends BaseActivity {
                                             for (int i = from - 2; i >= to - 1; i--)
                                                 list.get(i).setDelayTime(list.get(from - 1).getDelayTime() + delay * (from - 1 - i));
                                     else
-                                        for (int i = from - 1; i < to; i++)
+                                        for (int i = Math.min(from, to) - 1; i < Math.max(from, to); i++)
                                             list.get(i).setDelayTime(delay);
                                 if (cbRow.isChecked())
                                     if (cbRowIncrease.isChecked() && to != from)
@@ -571,7 +539,7 @@ public class DetonatorListActivity extends BaseActivity {
                                             for (int i = from - 1; i >= to - 1; i--)
                                                 list.get(i).setRow(row + from - 1 - i);
                                     else
-                                        for (int i = from - 1; i < to; i++)
+                                        for (int i = Math.min(from, to) - 1; i < Math.max(from, to); i++)
                                             list.get(i).setRow(row);
                                 if (cbHole.isChecked())
                                     if (cbHoleIncrease.isChecked() && to != from)
@@ -582,13 +550,13 @@ public class DetonatorListActivity extends BaseActivity {
                                             for (int i = from - 1; i >= to - 1; i--)
                                                 list.get(i).setHole(hole + from - 1 - i);
                                     else
-                                        for (int i = from - 1; i < to; i++)
+                                        for (int i = Math.min(to - 1, from - 1); i < Math.max(from, to); i++)
                                             list.get(i).setHole(hole);
                                 if (cbRow.isChecked() || cbHole.isChecked() || cbInside.isChecked())
                                     Collections.sort(list);
                                 if (cbDelay.isChecked() || cbRow.isChecked() || cbHole.isChecked() || cbInside.isChecked()) {
                                     adapter.updateList(list);
-                                    DbUtil.updateDetonatorList(DetonatorListActivity.this, list);
+                                    DbUtil.updateDetonatorList(list);
                                 }
                             } catch (Exception e) {
                                 myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_detonator_input_out_of_range), ConstantUtils.MAX_ROW_NUMBER));
@@ -626,7 +594,7 @@ public class DetonatorListActivity extends BaseActivity {
                         etTo.setTextColor(getColor(R.color.colorLabelText));
                     }
                 });
-                TextWatcher watcher = new TextWatcher() {
+                final TextWatcher watcher = new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
@@ -660,9 +628,14 @@ public class DetonatorListActivity extends BaseActivity {
                                     etTo.setText(etFrom.getText());
                                 int from = Integer.parseInt(etFrom.getText().toString());
                                 int to = Integer.parseInt(etTo.getText().toString());
-                                if (from <= 0 || from > list.size() || to <= 0 || to > list.size() || to < from) {
+                                if (from <= 0 || from > list.size() || to <= 0 || to > list.size()) {
                                     myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
                                     return;
+                                }
+                                if (to < from) {
+                                    int i = to;
+                                    to = from;
+                                    from = i;
                                 }
                                 for (int i = 0; i < list.size(); i++)
                                     list.get(i).setSelected(i >= from - 1 && i < to);
@@ -671,17 +644,15 @@ public class DetonatorListActivity extends BaseActivity {
                                         .setMessage(R.string.dialog_confirm_delete_detonator)
                                         .setPositiveButton(R.string.button_confirm, (dialog1, which) -> {
                                             list.removeIf(DetonatorBean::isSelected);
-                                            DbUtil.updateScheme(DetonatorListActivity.this, schemeBean);
                                             if (list.size() == 0)
-                                                DbUtil.deleteDetonatorTable(DetonatorListActivity.this, schemeBean.getId());
+                                                DbUtil.deleteDetonatorTable(schemeId);
                                             else
-                                                DbUtil.updateDetonatorList(DetonatorListActivity.this, list);
+                                                DbUtil.updateDetonatorList(list);
                                             adapter.updateList(list);
                                             checkButton();
                                         })
                                         .setNegativeButton(R.string.button_cancel, null)
                                         .show()));
-
                             } catch (Exception e) {
                                 myApp.myToast(DetonatorListActivity.this, String.format(Locale.getDefault(), getString(R.string.message_number_out_of_range), list.size()));
                             }
@@ -703,13 +674,13 @@ public class DetonatorListActivity extends BaseActivity {
     }
 
     private void restoreList() {
-        SchemeBean bean = DbUtil.getScheme(DetonatorListActivity.this, schemeId);
+        SchemeBean bean = DbUtil.getScheme(schemeId);
         bean.setCreateTime(new Date());
         bean.setId(-1);
-        DbUtil.updateScheme(DetonatorListActivity.this, bean);
+        DbUtil.updateScheme(bean);
         for (DetonatorBean b : list)
             b.setSchemeId(bean.getId());
-        DbUtil.updateDetonatorList(DetonatorListActivity.this, list);
+        DbUtil.updateDetonatorList(list);
         myApp.myToast(DetonatorListActivity.this, R.string.message_restore_success);
     }
 
@@ -788,6 +759,7 @@ public class DetonatorListActivity extends BaseActivity {
             }
         });
         etAmount.setHint("1");
+        etAmount.addTextChangedListener(watcher);
         BaseApplication.customDialog(new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_manual_input)
                 .setView(inputCodeView)
@@ -795,7 +767,7 @@ public class DetonatorListActivity extends BaseActivity {
                     if (Pattern.matches(ConstantUtils.SHELL_PATTERN, etStart.getText().toString().toUpperCase())) {
                         etStart.setText(etStart.getText().toString().toUpperCase());
                         for (int j = 0, k = etAmount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(etAmount.getText().toString()); j < k; j++) {
-                            String det = etStart.getText().toString().substring(0, 8) + String.format(Locale.getDefault(), "%05d", (Long.parseLong(etStart.getText().toString().substring(8)) + j));
+                            String det = etStart.getText().toString().substring(0, 8) + String.format(Locale.getDefault(), "%05d", (Integer.parseInt(etStart.getText().toString().substring(8) + j)) % 100000);
                             int i = list.indexOf(new DetonatorBean(det));
                             if (i >= 0) {
                                 myApp.myToast(DetonatorListActivity.this, det +
@@ -826,11 +798,11 @@ public class DetonatorListActivity extends BaseActivity {
                             inside = 1;
                         }
                         for (int j = 0, k = etAmount.getText().toString().trim().length() < 1 ? 1 : Integer.parseInt(etAmount.getText().toString()); j < k; j++)
-                            list.add(new DetonatorBean(schemeId, (etStart.getText().toString().substring(0, 8).toUpperCase() + String.format(Locale.getDefault(), "%05d", (Long.parseLong(etStart.getText().toString().substring(8)) + j))),
+                            list.add(new DetonatorBean(schemeId,
+                                    etStart.getText().toString().substring(0, 8).toUpperCase() + String.format(Locale.getDefault(), "%05d", (Integer.parseInt(etStart.getText().toString().substring(8) + j)) % 100000),
                                     Math.min(delayTime + j * (BaseApplication.settings.isTunnel() ? BaseApplication.settings.getSectionInside() : BaseApplication.settings.getHole()), ConstantUtils.MAX_DELAY_TIME),
                                     row, (BaseApplication.settings.isTunnel() ? hole : j + hole), (BaseApplication.settings.isTunnel() ? j + inside : inside), false));
-                        DbUtil.updateScheme(DetonatorListActivity.this, schemeBean);
-                        DbUtil.updateDetonatorList(DetonatorListActivity.this, list);
+                        DbUtil.updateDetonatorList(list);
                         checkButton();
                         adapter.updateList(list);
                     } else

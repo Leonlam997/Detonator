@@ -116,12 +116,12 @@ public class SendSchemeActivity extends BaseActivity {
         setContentView(R.layout.activity_send_scheme);
         myApp = (BaseApplication) getApplication();
         setProgressVisibility(true);
-        currentScheme = DbUtil.getCurrentScheme(SendSchemeActivity.this);
+        currentScheme = DbUtil.getCurrentScheme();
         if (currentScheme == null) {
             finish();
             return;
         }
-        detonatorBeanList = DbUtil.getDetonatorList(SendSchemeActivity.this, currentScheme.getId());
+        detonatorBeanList = DbUtil.getDetonatorList(currentScheme.getId());
         setTitle(String.format(getString(R.string.title_send_scheme), currentScheme.getName()));
         BTAdapter = BluetoothAdapter.getDefaultAdapter();
         btService = new BluetoothService(myHandler);

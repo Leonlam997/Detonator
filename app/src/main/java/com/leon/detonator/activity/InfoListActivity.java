@@ -38,15 +38,15 @@ public class InfoListActivity extends BaseActivity {
         if (RESULT_OK == result.getResultCode()) {
             switch (infoType) {
                 case ConstantUtils.INFO_ENTERPRISE:
-                    enterpriseList = DbUtil.getEnterpriseList(InfoListActivity.this);
+                    enterpriseList = DbUtil.getEnterpriseList();
                     enterpriseAdapter.updateList(enterpriseList);
                     break;
                 case ConstantUtils.INFO_PROJECT:
-                    projectList = DbUtil.getBaiSeInfoList(InfoListActivity.this);
+                    projectList = DbUtil.getBaiSeInfoList();
                     projectAdapter.updateList(projectList);
                     break;
                 case ConstantUtils.INFO_BLASTER:
-                    blasterList = DbUtil.getBaiSeBlasterList(InfoListActivity.this);
+                    blasterList = DbUtil.getBaiSeBlasterList();
                     blasterAdapter.updateList(blasterList);
                     break;
             }
@@ -63,7 +63,7 @@ public class InfoListActivity extends BaseActivity {
         switch (infoType) {
             case ConstantUtils.INFO_ENTERPRISE:
                 setTitle(R.string.settings_enterprise);
-                enterpriseList = DbUtil.getEnterpriseList(InfoListActivity.this);
+                enterpriseList = DbUtil.getEnterpriseList();
                 enterpriseAdapter = new InfoAdapter<>(InfoListActivity.this, enterpriseList);
                 listView.setAdapter(enterpriseAdapter);
                 for (int i = 0; i < enterpriseList.size(); i++)
@@ -75,7 +75,7 @@ public class InfoListActivity extends BaseActivity {
                 break;
             case ConstantUtils.INFO_PROJECT:
                 setTitle(R.string.settings_enterprise);
-                projectList = DbUtil.getBaiSeInfoList(InfoListActivity.this);
+                projectList = DbUtil.getBaiSeInfoList();
                 projectAdapter = new InfoAdapter<>(InfoListActivity.this, projectList);
                 listView.setAdapter(projectAdapter);
                 for (int i = 0; i < projectList.size(); i++)
@@ -87,7 +87,7 @@ public class InfoListActivity extends BaseActivity {
                 break;
             case ConstantUtils.INFO_BLASTER:
                 setTitle(R.string.bai_se_detector);
-                blasterList = DbUtil.getBaiSeBlasterList(InfoListActivity.this);
+                blasterList = DbUtil.getBaiSeBlasterList();
                 blasterAdapter = new InfoAdapter<>(InfoListActivity.this, blasterList);
                 listView.setAdapter(blasterAdapter);
                 for (int i = 0; i < blasterList.size(); i++)
@@ -127,7 +127,7 @@ public class InfoListActivity extends BaseActivity {
                 intent = new Intent(InfoListActivity.this, BaiSeDataActivity.class);
                 break;
             case ConstantUtils.INFO_BLASTER:
-                BaiSeInfoBean bean = DbUtil.getCurrentBaiSeInfo(InfoListActivity.this);
+                BaiSeInfoBean bean = DbUtil.getCurrentBaiSeInfo();
                 if (bean == null) {
                     ((BaseApplication) getApplication()).myToast(InfoListActivity.this, R.string.message_select_bai_se_project);
                     return;
@@ -174,17 +174,17 @@ public class InfoListActivity extends BaseActivity {
                     .setPositiveButton(R.string.button_confirm, (dialog1, which1) -> {
                         switch (infoType) {
                             case ConstantUtils.INFO_ENTERPRISE:
-                                DbUtil.deleteEnterprise(InfoListActivity.this, enterpriseList.get(i).getId());
+                                DbUtil.deleteEnterprise(enterpriseList.get(i).getId());
                                 enterpriseList.remove(i);
                                 enterpriseAdapter.updateList(enterpriseList);
                                 break;
                             case ConstantUtils.INFO_PROJECT:
-                                DbUtil.deleteBaiSeProject(InfoListActivity.this, projectList.get(i).getId());
+                                DbUtil.deleteBaiSeProject(projectList.get(i).getId());
                                 projectList.remove(i);
                                 projectAdapter.updateList(projectList);
                                 break;
                             case ConstantUtils.INFO_BLASTER:
-                                DbUtil.deleteBaiSeBlaster(InfoListActivity.this, blasterList.get(i).getId());
+                                DbUtil.deleteBaiSeBlaster(blasterList.get(i).getId());
                                 blasterList.remove(i);
                                 blasterAdapter.updateList(blasterList);
                                 break;
@@ -207,7 +207,7 @@ public class InfoListActivity extends BaseActivity {
                     for (EnterpriseBean bean : enterpriseList)
                         bean.setSelected(false);
                     enterpriseList.get(pos).setSelected(true);
-                    DbUtil.updateEnterprise(InfoListActivity.this, enterpriseList.get(pos));
+                    DbUtil.updateEnterprise(enterpriseList.get(pos));
                     enterpriseAdapter.updateList(enterpriseList);
                 }
                 break;
@@ -216,7 +216,7 @@ public class InfoListActivity extends BaseActivity {
                     for (BaiSeInfoBean bean : projectList)
                         bean.setSelected(false);
                     projectList.get(pos).setSelected(true);
-                    DbUtil.updateBaiSeInfo(InfoListActivity.this, projectList.get(pos));
+                    DbUtil.updateBaiSeInfo(projectList.get(pos));
                     projectAdapter.updateList(projectList);
                 }
                 break;
@@ -225,7 +225,7 @@ public class InfoListActivity extends BaseActivity {
                     for (BaiSeBlasterBean bean : blasterList)
                         bean.setSelected(false);
                     blasterList.get(pos).setSelected(true);
-                    DbUtil.updateBaiSeBlaster(InfoListActivity.this, blasterList.get(pos));
+                    DbUtil.updateBaiSeBlaster(blasterList.get(pos));
                     blasterAdapter.updateList(blasterList);
                 }
                 break;

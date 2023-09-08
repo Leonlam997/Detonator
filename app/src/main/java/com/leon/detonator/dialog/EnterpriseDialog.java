@@ -54,7 +54,7 @@ public class EnterpriseDialog extends Dialog {
                 ((TextView) findViewById(R.id.txt_title)).setText(R.string.dialog_title_detector);
                 findViewById(R.id.ll_detector).setVisibility(View.VISIBLE);
                 findViewById(R.id.sv_content).setVisibility(View.INVISIBLE);
-                BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(mContext);
+                BaiSeBlasterBean baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
                 if (baiSeBlasterBean == null) {
                     empty = true;
                     btnConfirm.setEnabled(false);
@@ -65,7 +65,7 @@ public class EnterpriseDialog extends Dialog {
             } else {
                 findViewById(R.id.ll_detector).setVisibility(View.INVISIBLE);
                 findViewById(R.id.sv_content).setVisibility(View.VISIBLE);
-                BaiSeProjectBean baiSeProjectBean = DbUtil.getCurrentBaiSeInfo(mContext);
+                BaiSeProjectBean baiSeProjectBean = DbUtil.getCurrentBaiSeInfo();
                 if (null == baiSeProjectBean) {
                     empty = true;
                     btnConfirm.setEnabled(false);
@@ -86,7 +86,7 @@ public class EnterpriseDialog extends Dialog {
             findViewById(R.id.ll_detector).setVisibility(View.INVISIBLE);
             findViewById(R.id.sv_content).setVisibility(View.INVISIBLE);
             findViewById(R.id.ll_enterprise).setVisibility(View.VISIBLE);
-            EnterpriseBean enterpriseBean = DbUtil.getCurrentEnterprise(mContext);
+            EnterpriseBean enterpriseBean = DbUtil.getCurrentEnterprise();
             if (null == enterpriseBean) {
                 empty = true;
                 btnConfirm.setEnabled(false);

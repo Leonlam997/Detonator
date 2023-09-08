@@ -42,8 +42,8 @@ public class BaiSeDetectorActivity extends BaseActivity {
         if (getIntent().getBooleanExtra(KeyUtils.KEY_NEW_INFO, false))
             baiSeBlasterBean = new BaiSeBlasterBean();
         else
-            baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster(BaiSeDetectorActivity.this);
-        BaiSeInfoBean baiSeInfoBean = DbUtil.getCurrentBaiSeInfo(BaiSeDetectorActivity.this);
+            baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
+        BaiSeInfoBean baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
         if (baiSeInfoBean == null || baiSeBlasterBean == null) {
             myApp.myToast(BaiSeDetectorActivity.this, R.string.message_select_enterprise);
             finish();
@@ -109,7 +109,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
                     baiSeBlasterBean.getData().setProjectCode(baiSeInfoBean.getProjectCode());
                     baiSeBlasterBean.getData().setBurstOrgCode(baiSeInfoBean.getBurstOrgCode());
                     baiSeBlasterBean.setSelected(true);
-                    DbUtil.updateBaiSeBlaster(BaiSeDetectorActivity.this, baiSeBlasterBean);
+                    DbUtil.updateBaiSeBlaster(baiSeBlasterBean);
                     setResult(RESULT_OK);
                     finish();
                 }

@@ -123,13 +123,13 @@ public class DetonateStep4Activity extends BaseActivity {
         BaseApplication.saveSettings();
 
         long schemeId = getIntent().getLongExtra(KeyUtils.KEY_TABLE_ID, -1);
-        explosionRecord = DbUtil.getExplosionRecord(DetonateStep4Activity.this, schemeId);
+        explosionRecord = DbUtil.getExplosionRecord(schemeId);
         LatLng latLng = new LatLng(getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0), getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
         explodeTime = getIntent().getIntExtra(KeyUtils.KEY_EXPLODE_TIME, 0);
         explosionRecord.setLng(latLng.longitude);
         explosionRecord.setLat(latLng.latitude);
         explosionRecord.setExplodeTime(new Date());
-        DbUtil.updateExplosionRecord(DetonateStep4Activity.this, explosionRecord);
+        DbUtil.updateExplosionRecord(explosionRecord);
 
         tvExplode = findViewById(R.id.tv_explode_percentage);
         pbExplode = findViewById(R.id.pb_explode);

@@ -1,7 +1,6 @@
 package com.leon.detonator.serial;
 
 import android.os.Handler;
-import android.util.Log;
 
 import com.kfree.expd.ExpdDevMgr;
 import com.leon.detonator.R;
@@ -19,6 +18,7 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
     public static final int HANDLER_RECEIVED_DATA = 300;
     private final int HANDLE_STATUS = 1;
     private final int HANDLE_BUS_VOLTAGE = 2;
+    private final int HANDLE_START_SHORT_DETECT = 3;
     private byte[] rcvData;
     private boolean startAutoDetect;
     private boolean initFinished;
@@ -40,6 +40,9 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
             case HANDLE_BUS_VOLTAGE:
                 serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, initStep == 1 ? 0 : 0xFF, 0XFF, semiTest || singleConnect ? 0x12 : 0x16);
                 msg.getTarget().sendEmptyMessageDelayed(HANDLE_BUS_VOLTAGE, ConstantUtils.RESEND_STATUS_TIMEOUT);
+                break;
+            case HANDLE_START_SHORT_DETECT:
+                startDetectShort = true;
                 break;
         }
         return false;
@@ -86,6 +89,7 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
             BaseApplication.writeErrorLog(e);
         }
         myHandler.sendEmptyMessageDelayed(HANDLE_BUS_VOLTAGE, ConstantUtils.INITIAL_TIME);
+        myHandler.sendEmptyMessageDelayed(HANDLE_START_SHORT_DETECT, 2000);
     }
 
     public void setSingleConnect(boolean singleConnect) {
@@ -140,11 +144,9 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
             if (code == SerialCommand.CODE_ERROR) {
                 if ((rcvData[SerialCommand.CODE_CHAR_AT + 1] & (1 << 2)) != 0)
                     handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT}).sendToTarget();
-                rcvData = new byte[0];
             } else if (initFinished) {
                 if (!startAutoDetect) {
                     handler.obtainMessage(HANDLER_RECEIVED_DATA, rcvData.clone()).sendToTarget();
-                    rcvData = new byte[0];
                 } else {
                     try {
                         if (code == SerialCommand.CODE_MEASURE_VALUE) {
@@ -188,7 +190,6 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
                             }
                             if (semiTest)
                                 handler.obtainMessage(HANDLER_RECEIVED_DATA, rcvData.clone()).sendToTarget();
-                            rcvData = new byte[0];
                         }
                     } catch (Exception e) {
                         BaseApplication.writeErrorLog(e);
@@ -207,9 +208,9 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
                         }
                     } else
                         handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.INITIAL_FAIL}).sendToTarget();
-                    rcvData = new byte[0];
                 }
             }
+            rcvData = new byte[0];
         }
     }
 

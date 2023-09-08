@@ -24,15 +24,20 @@ import java.util.List;
 import java.util.Locale;
 
 public class DbUtil {
-    public static List<SchemeBean> getSchemeList(Context context) {
+    private static MyHelper myHelper;
+
+    public static void initHelper(Context context) {
+        myHelper = new MyHelper(context);
+    }
+
+    public static List<SchemeBean> getSchemeList() {
         SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
         List<SchemeBean> list = new ArrayList<>();
-        MyHelper myHelper = new MyHelper(context);
+
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, null,
                 DatabaseStatic.Scheme.TUNNEL + "=? and "
-                        + DatabaseStatic.Scheme.EXPLODE_TIME + " is null and "
-                        + DatabaseStatic.Scheme.DELETED + "=0", new String[]{BaseApplication.settings.isTunnel() ? "1" : "0"}, null, null, null);
+                        + DatabaseStatic.Scheme.EXPLODE_TIME + " is null", new String[]{BaseApplication.settings.isTunnel() ? "1" : "0"}, null, null, null);
         while (cursor.moveToNext()) {
             SchemeBean bean = new SchemeBean();
             bean.setId(cursor.getInt(DatabaseStatic.Scheme.COL_ID));
@@ -49,13 +54,11 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return list;
     }
 
-    public static SchemeBean getScheme(Context context, long id) {
+    public static SchemeBean getScheme(long id) {
         SchemeBean bean = new SchemeBean();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, null,
                 DatabaseStatic.Scheme.ID + "=? ", new String[]{id + ""}, null, null, null);
@@ -74,13 +77,11 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return bean;
     }
 
-    public static SchemeBean getCurrentScheme(Context context) {
+    public static SchemeBean getCurrentScheme() {
         SchemeBean bean = null;
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, null,
                 DatabaseStatic.Scheme.SELECTED + "=1 and "
@@ -102,24 +103,17 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return bean;
     }
 
-    public static void updateScheme(Context context, SchemeBean bean) {
-        updateScheme(context, bean, BaseApplication.settings.isTunnel());
+    public static void updateScheme(SchemeBean bean) {
+        updateScheme(bean, BaseApplication.settings.isTunnel());
     }
 
-    public static void updateScheme(Context context, SchemeBean bean, boolean tunnel) {
+    public static void updateScheme(SchemeBean bean, boolean tunnel) {
         SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
-        if (bean.isSelected()) {
-            values.put(DatabaseStatic.Scheme.SELECTED, 0);
-            db.update(DatabaseStatic.TABLE_SCHEME, values, DatabaseStatic.Scheme.SELECTED + "=1 and " + DatabaseStatic.Scheme.TUNNEL + "=?", new String[]{tunnel ? "1" : "0"});
-            values = new ContentValues();
-        }
         values.put(DatabaseStatic.Scheme.AMOUNT, bean.getAmount());
         values.put(DatabaseStatic.Scheme.NAME, bean.getName());
         values.put(DatabaseStatic.Scheme.SELECTED, bean.isSelected() ? 1 : 0);
@@ -127,80 +121,68 @@ public class DbUtil {
         values.put(DatabaseStatic.Scheme.TUNNEL, tunnel ? 1 : 0);
         if (bean.getId() == -1) {
             values.put(DatabaseStatic.Scheme.SYNCHRONIZE, 0);
-            values.put(DatabaseStatic.Scheme.DELETED, 0);
             values.put(DatabaseStatic.Scheme.UPLOAD_SERVER, -1);
             bean.setId(db.insert(DatabaseStatic.TABLE_SCHEME, null, values));
             db.execSQL(String.format(DatabaseStatic.CREATE_TABLE_DETONATOR, DatabaseStatic.TABLE_DETONATOR + bean.getId()));
         } else
             db.update(DatabaseStatic.TABLE_SCHEME, values, DatabaseStatic.Scheme.ID + "=?", new String[]{bean.getId() + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static void deleteScheme(Context context, long id) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void deleteScheme(long id) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(DatabaseStatic.Scheme.DELETED, 1);
-        db.update(DatabaseStatic.TABLE_SCHEME, values, DatabaseStatic.Scheme.ID + "=?", new String[]{id + ""});
+        db.execSQL("drop table " + DatabaseStatic.TABLE_DETONATOR + id);
+        db.delete(DatabaseStatic.TABLE_SCHEME, DatabaseStatic.Scheme.ID + "=?", new String[]{id + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static List<DetonatorBean> getCurrentDetonatorList(Context context) {
-        long id = -1;
+    public static List<DetonatorBean> getCurrentDetonatorList() {
         List<DetonatorBean> list = new ArrayList<>();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, new String[]{DatabaseStatic.Scheme.ID},
                 DatabaseStatic.Scheme.SELECTED + "=1 and "
                         + DatabaseStatic.Scheme.EXPLODE_TIME + " is null and "
                         + DatabaseStatic.Scheme.TUNNEL + "=?", new String[]{BaseApplication.settings.isTunnel() ? "1" : "0"}, null, null, null);
-        if (cursor.moveToNext())
-            id = cursor.getLong(DatabaseStatic.Scheme.COL_ID);
-        cursor.close();
-        if (-1 != id) {
-            cursor = db.query(DatabaseStatic.TABLE_DETONATOR + id, null, null, null, null, null, null);
-            while (cursor.moveToNext()) {
+        while (cursor.moveToNext()) {
+            long id = cursor.getLong(DatabaseStatic.Scheme.COL_ID);
+            Cursor c = db.query(DatabaseStatic.TABLE_DETONATOR + id, null, null, null, null, null, null);
+            while (c.moveToNext()) {
                 DetonatorBean bean = new DetonatorBean();
                 bean.setSchemeId(id);
-                bean.setAddress(cursor.getString(DatabaseStatic.Detonator.COL_SHELL));
-                bean.setDownloaded(cursor.getInt(DatabaseStatic.Detonator.COL_DOWNLOADED) == 1);
-                bean.setDelayTime(cursor.getInt(DatabaseStatic.Detonator.COL_DELAY_TIME));
-                bean.setRow(cursor.getInt(DatabaseStatic.Detonator.COL_ROW));
-                bean.setHole(cursor.getInt(DatabaseStatic.Detonator.COL_HOLE));
-                bean.setInside(cursor.getInt(DatabaseStatic.Detonator.COL_INSIDE));
-                bean.setId(cursor.getInt(DatabaseStatic.Detonator.COL_ID));
+                bean.setAddress(c.getString(DatabaseStatic.Detonator.COL_SHELL));
+                bean.setDownloaded(c.getInt(DatabaseStatic.Detonator.COL_DOWNLOADED) == 1);
+                bean.setDelayTime(c.getInt(DatabaseStatic.Detonator.COL_DELAY_TIME));
+                bean.setRow(c.getInt(DatabaseStatic.Detonator.COL_ROW));
+                bean.setHole(c.getInt(DatabaseStatic.Detonator.COL_HOLE));
+                bean.setInside(c.getInt(DatabaseStatic.Detonator.COL_INSIDE));
+                bean.setId(c.getInt(DatabaseStatic.Detonator.COL_ID));
                 list.add(bean);
             }
-            cursor.close();
+            c.close();
         }
+        cursor.close();
         db.close();
-        myHelper.close();
         return list;
     }
 
-    public static List<DetonatorBean> getDetonatorList(Context context, long schemeId) {
-        return getTableDetonatorList(context, schemeId, DatabaseStatic.TABLE_DETONATOR + schemeId);
+    public static List<DetonatorBean> getDetonatorList(long schemeId) {
+        return getTableDetonatorList(schemeId, DatabaseStatic.TABLE_DETONATOR + schemeId);
     }
 
-    public static void updateDetonatorList(Context context, List<DetonatorBean> list) {
+    public static void updateDetonatorList(List<DetonatorBean> list) {
         if (list.size() > 0)
-            updateTableDetonatorList(context, list, DatabaseStatic.TABLE_DETONATOR + list.get(0).getSchemeId());
+            updateTableDetonatorList(list, null);
     }
 
-    public static void clearDetonatorDownloadFlag(Context context, long schemeId) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void clearDetonatorDownloadFlag(long schemeId) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(DatabaseStatic.Detonator.DOWNLOADED, 0);
         db.update(DatabaseStatic.TABLE_DETONATOR + schemeId, values, null, null);
         db.close();
-        myHelper.close();
     }
 
-    public static void deleteDetonatorTable(Context context, long schemeId) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void deleteDetonatorTable(long schemeId) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         db.execSQL("drop table " + DatabaseStatic.TABLE_DETONATOR + schemeId);
         db.execSQL(String.format(DatabaseStatic.CREATE_TABLE_DETONATOR, DatabaseStatic.TABLE_DETONATOR + schemeId));
@@ -208,16 +190,14 @@ public class DbUtil {
         values.put(DatabaseStatic.Scheme.AMOUNT, 0);
         db.update(DatabaseStatic.TABLE_SCHEME, values, DatabaseStatic.Scheme.ID + "=?", new String[]{schemeId + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static List<ExplosionRecordBean> getExplosionRecordList(Context context) {
+    public static List<ExplosionRecordBean> getExplosionRecordList() {
         SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
         List<ExplosionRecordBean> list = new ArrayList<>();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, null,
-                DatabaseStatic.Scheme.EXPLODE_TIME + " is not null and " + DatabaseStatic.Scheme.DELETED + "=0", null, null, null, null);
+                DatabaseStatic.Scheme.EXPLODE_TIME + " is not null", null, null, null, DatabaseStatic.Scheme.EXPLODE_TIME);
         while (cursor.moveToNext()) {
             ExplosionRecordBean bean = new ExplosionRecordBean();
             bean.setId(cursor.getLong(DatabaseStatic.Scheme.COL_ID));
@@ -234,22 +214,18 @@ public class DbUtil {
             }
             bean.setAmount(cursor.getInt(DatabaseStatic.Scheme.COL_AMOUNT));
             bean.setUploadServer(cursor.getInt(DatabaseStatic.Scheme.COL_UPLOAD_SERVER));
-            bean.setProjectId(cursor.getLong(DatabaseStatic.Scheme.COL_PROJECT_ID));
-            bean.setBlasterId(cursor.getLong(DatabaseStatic.Scheme.COL_BLASTER_ID));
             bean.setSynchronize(cursor.getInt(DatabaseStatic.Scheme.COL_SYNCHRONIZE) == 1);
             bean.setTunnel(cursor.getInt(DatabaseStatic.Scheme.COL_TUNNEL) == 1);
             list.add(bean);
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return list;
     }
 
-    public static ExplosionRecordBean getExplosionRecord(Context context, long id) {
+    public static ExplosionRecordBean getExplosionRecord(long id) {
         SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
         ExplosionRecordBean bean = new ExplosionRecordBean();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, null,
                 DatabaseStatic.Scheme.ID + "=?", new String[]{id + ""}, null, null, null);
@@ -267,49 +243,47 @@ public class DbUtil {
             }
             bean.setAmount(cursor.getInt(DatabaseStatic.Scheme.COL_AMOUNT));
             bean.setUploadServer(cursor.getInt(DatabaseStatic.Scheme.COL_UPLOAD_SERVER));
-            bean.setProjectId(cursor.getLong(DatabaseStatic.Scheme.COL_PROJECT_ID));
-            bean.setBlasterId(cursor.getLong(DatabaseStatic.Scheme.COL_BLASTER_ID));
             bean.setTunnel(cursor.getInt(DatabaseStatic.Scheme.COL_TUNNEL) == 1);
             bean.setSynchronize(cursor.getInt(DatabaseStatic.Scheme.COL_SYNCHRONIZE) == 1);
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return bean;
-
     }
 
-    public static void updateExplosionRecord(Context context, ExplosionRecordBean bean) {
+    public static void updateExplosionRecord(ExplosionRecordBean bean) {
         List<ExplosionRecordBean> list = new ArrayList<>();
         list.add(bean);
-        updateExplosionRecordList(context, list);
+        updateExplosionRecordList(list);
     }
 
-    public static void updateExplosionRecordList(Context context, List<ExplosionRecordBean> list) {
+    public static void updateExplosionRecordList(List<ExplosionRecordBean> list) {
         SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getWritableDatabase();
-        for (ExplosionRecordBean bean : list) {
-            ContentValues values = new ContentValues();
-            if (bean.getExplodeTime() != null)
-                values.put(DatabaseStatic.Scheme.EXPLODE_TIME, df.format(bean.getExplodeTime()));
-            if (bean.getUploadTime() != null)
-                values.put(DatabaseStatic.Scheme.UPLOAD_TIME, df.format(bean.getUploadTime()));
-            values.put(DatabaseStatic.Scheme.SYNCHRONIZE, bean.isSynchronize() ? 1 : 0);
-            values.put(DatabaseStatic.Scheme.LATITUDE, bean.getLat());
-            values.put(DatabaseStatic.Scheme.LONGITUDE, bean.getLng());
-            values.put(DatabaseStatic.Scheme.UPLOAD_SERVER, bean.getUploadServer());
-            values.put(DatabaseStatic.Scheme.PROJECT_ID, bean.getProjectId());
-            values.put(DatabaseStatic.Scheme.BLASTER_ID, bean.getBlasterId());
-            db.update(DatabaseStatic.TABLE_SCHEME, values, DatabaseStatic.Scheme.ID + "=?", new String[]{bean.getId() + ""});
+        db.beginTransaction();
+        try {
+            for (ExplosionRecordBean bean : list) {
+                ContentValues values = new ContentValues();
+                if (bean.getExplodeTime() != null)
+                    values.put(DatabaseStatic.Scheme.EXPLODE_TIME, df.format(bean.getExplodeTime()));
+                if (bean.getUploadTime() != null)
+                    values.put(DatabaseStatic.Scheme.UPLOAD_TIME, df.format(bean.getUploadTime()));
+                values.put(DatabaseStatic.Scheme.SYNCHRONIZE, bean.isSynchronize() ? 1 : 0);
+                values.put(DatabaseStatic.Scheme.LATITUDE, bean.getLat());
+                values.put(DatabaseStatic.Scheme.LONGITUDE, bean.getLng());
+                values.put(DatabaseStatic.Scheme.UPLOAD_SERVER, bean.getUploadServer());
+                db.update(DatabaseStatic.TABLE_SCHEME, values, DatabaseStatic.Scheme.ID + "=?", new String[]{bean.getId() + ""});
+            }
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
         }
+        db.endTransaction();
         db.close();
-        myHelper.close();
     }
 
-    public static List<EnterpriseBean> getEnterpriseList(Context context) {
+    public static List<EnterpriseBean> getEnterpriseList() {
         List<EnterpriseBean> list = new ArrayList<>();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_ENTERPRISE, null, null, null, null, null, null);
         while (cursor.moveToNext()) {
@@ -325,13 +299,11 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return list;
     }
 
-    public static EnterpriseBean getCurrentEnterprise(Context context) {
+    public static EnterpriseBean getCurrentEnterprise() {
         EnterpriseBean bean = null;
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_ENTERPRISE, null, DatabaseStatic.Enterprise.SELECTED + "=1", null, null, null, null);
         if (cursor.moveToNext()) {
@@ -346,12 +318,10 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return bean;
     }
 
-    public static void updateEnterprise(Context context, EnterpriseBean bean) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void updateEnterprise(EnterpriseBean bean) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         if (bean.isSelected()) {
@@ -370,24 +340,20 @@ public class DbUtil {
         else
             db.update(DatabaseStatic.TABLE_ENTERPRISE, values, DatabaseStatic.Enterprise.ID + "=?", new String[]{bean.getId() + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static void deleteEnterprise(Context context, long id) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void deleteEnterprise(long id) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         db.delete(DatabaseStatic.TABLE_ENTERPRISE, DatabaseStatic.Enterprise.ID + "=?", new String[]{id + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static DownloadDetonatorBean getDownloadDetonator(Context context, boolean offline) {
-        DownloadDetonatorBean bean = new DownloadDetonatorBean();
-        MyHelper myHelper = new MyHelper(context);
+    public static DownloadDetonatorBean getOfflineDownloadDetonator() {
+        DownloadDetonatorBean bean = null;
         SQLiteDatabase db = myHelper.getReadableDatabase();
-        Cursor cursor = db.query(DatabaseStatic.TABLE_DAN_LING, null, DatabaseStatic.DanLing.USED + "=0 and "
-                + DatabaseStatic.DanLing.OFFLINE + "=?", new String[]{offline ? "1" : "0"}, null, null, null);
+        Cursor cursor = db.query(DatabaseStatic.TABLE_DAN_LING, null, DatabaseStatic.DanLing.OFFLINE + "=1", null, null, null, null);
         if (cursor.moveToNext()) {
+            bean = new DownloadDetonatorBean();
             DownloadDetonatorBean.ResultBean resultBean = new DownloadDetonatorBean.ResultBean();
             resultBean.setCwxx(cursor.getString(DatabaseStatic.DanLing.COL_ERROR_CODE));
             resultBean.setSqrq(cursor.getString(DatabaseStatic.DanLing.COL_APPLICATION_TIME));
@@ -454,66 +420,75 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return bean;
     }
 
-    public static void addDownloadDetonator(Context context, boolean offline, DownloadDetonatorBean bean) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void updateDownloadDetonator(boolean offline, DownloadDetonatorBean bean) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(DatabaseStatic.DanLing.USED, 1);
-        db.update(DatabaseStatic.TABLE_DAN_LING, values, DatabaseStatic.DanLing.OFFLINE + "=?", new String[]{offline ? "1" : "0"});
-        values = new ContentValues();
-        values.put(DatabaseStatic.DanLing.ERROR_CODE, bean.getResult().getCwxx());
-        values.put(DatabaseStatic.DanLing.USED, 0);
-        values.put(DatabaseStatic.DanLing.OFFLINE, offline ? 1 : 0);
-        values.put(DatabaseStatic.DanLing.APPLICATION_TIME, bean.getResult().getSqrq());
-        int id = (int) db.insert(DatabaseStatic.TABLE_DAN_LING, null, values);
-        for (DownloadDetonatorBean.ResultBean.SbbhsBean b : bean.getResult().getSbbhs()) {
-            values = new ContentValues();
-            values.put(DatabaseStatic.DownloadedExploder.DAN_LING_ID, id);
-            values.put(DatabaseStatic.DownloadedExploder.EXPLODER_SN, b.getSbbh());
-            db.insert(DatabaseStatic.TABLE_DOWNLOADED_EXPLODER, null, values);
+        db.beginTransaction();
+        try {
+            Cursor cursor = db.query(DatabaseStatic.TABLE_DAN_LING, null, DatabaseStatic.DanLing.OFFLINE + "=?", new String[]{offline ? "1" : "0"}, null, null, null);
+            while (cursor.moveToNext()) {
+                long id = cursor.getLong(DatabaseStatic.DanLing.COL_ID);
+                db.delete(DatabaseStatic.TABLE_ALLOWED_AREA, DatabaseStatic.AllowedArea.DAN_LING_ID + "=?", new String[]{id + ""});
+                db.delete(DatabaseStatic.TABLE_FORBIDDEN_AREA, DatabaseStatic.ForbiddenArea.DAN_LING_ID + "=?", new String[]{id + ""});
+                db.delete(DatabaseStatic.TABLE_DOWNLOADED_DETONATOR, DatabaseStatic.DownloadedDetonator.DAN_LING_ID + "=?", new String[]{id + ""});
+                db.delete(DatabaseStatic.TABLE_DOWNLOADED_EXPLODER, DatabaseStatic.DownloadedExploder.DAN_LING_ID + "=?", new String[]{id + ""});
+            }
+            cursor.close();
+            db.delete(DatabaseStatic.TABLE_DAN_LING, DatabaseStatic.DanLing.OFFLINE + "=?", new String[]{offline ? "1" : "0"});
+            ContentValues values = new ContentValues();
+            values.put(DatabaseStatic.DanLing.ERROR_CODE, bean.getResult().getCwxx());
+            values.put(DatabaseStatic.DanLing.OFFLINE, offline ? 1 : 0);
+            values.put(DatabaseStatic.DanLing.APPLICATION_TIME, bean.getResult().getSqrq());
+            int id = (int) db.insert(DatabaseStatic.TABLE_DAN_LING, null, values);
+            for (DownloadDetonatorBean.ResultBean.SbbhsBean b : bean.getResult().getSbbhs()) {
+                values = new ContentValues();
+                values.put(DatabaseStatic.DownloadedExploder.DAN_LING_ID, id);
+                values.put(DatabaseStatic.DownloadedExploder.EXPLODER_SN, b.getSbbh());
+                db.insert(DatabaseStatic.TABLE_DOWNLOADED_EXPLODER, null, values);
+            }
+            for (ZbqyBean b : bean.getResult().getZbqys().getZbqy()) {
+                values = new ContentValues();
+                values.put(DatabaseStatic.AllowedArea.DAN_LING_ID, id);
+                values.put(DatabaseStatic.AllowedArea.NAME, b.getZbqymc());
+                values.put(DatabaseStatic.AllowedArea.LATITUDE, Float.parseFloat(b.getZbqyjd()));
+                values.put(DatabaseStatic.AllowedArea.LONGITUDE, Float.parseFloat(b.getZbqywd()));
+                values.put(DatabaseStatic.AllowedArea.RADIUS, Float.parseFloat(b.getZbqybj()));
+                values.put(DatabaseStatic.AllowedArea.START_TIME, b.getZbqssj());
+                values.put(DatabaseStatic.AllowedArea.END_TIME, b.getZbjzsj());
+                db.insert(DatabaseStatic.TABLE_ALLOWED_AREA, null, values);
+            }
+            for (JbqyBean b : bean.getResult().getJbqys().getJbqy()) {
+                values = new ContentValues();
+                values.put(DatabaseStatic.ForbiddenArea.DAN_LING_ID, id);
+                values.put(DatabaseStatic.ForbiddenArea.LATITUDE, Float.parseFloat(b.getJbqyjd()));
+                values.put(DatabaseStatic.ForbiddenArea.LONGITUDE, Float.parseFloat(b.getJbqywd()));
+                values.put(DatabaseStatic.ForbiddenArea.RADIUS, Float.parseFloat(b.getJbqybj()));
+                values.put(DatabaseStatic.ForbiddenArea.START_TIME, b.getJbqssj());
+                values.put(DatabaseStatic.ForbiddenArea.END_TIME, b.getJbjzsj());
+                db.insert(DatabaseStatic.TABLE_FORBIDDEN_AREA, null, values);
+            }
+            for (LgBean b : bean.getResult().getLgs().getLg()) {
+                values = new ContentValues();
+                values.put(DatabaseStatic.DownloadedDetonator.DAN_LING_ID, id);
+                values.put(DatabaseStatic.DownloadedDetonator.OFFLINE_SN, b.getFbh());
+                values.put(DatabaseStatic.DownloadedDetonator.UID, b.getUid());
+                values.put(DatabaseStatic.DownloadedDetonator.WORK_ID, b.getGzm());
+                values.put(DatabaseStatic.DownloadedDetonator.VALID_TIME, b.getYxq());
+                values.put(DatabaseStatic.DownloadedDetonator.ERROR_CODE, b.getGzmcwxx());
+                db.insert(DatabaseStatic.TABLE_DOWNLOADED_DETONATOR, null, values);
+            }
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
         }
-        for (ZbqyBean b : bean.getResult().getZbqys().getZbqy()) {
-            values = new ContentValues();
-            values.put(DatabaseStatic.AllowedArea.DAN_LING_ID, id);
-            values.put(DatabaseStatic.AllowedArea.NAME, b.getZbqymc());
-            values.put(DatabaseStatic.AllowedArea.LATITUDE, Float.parseFloat(b.getZbqyjd()));
-            values.put(DatabaseStatic.AllowedArea.LONGITUDE, Float.parseFloat(b.getZbqywd()));
-            values.put(DatabaseStatic.AllowedArea.RADIUS, Float.parseFloat(b.getZbqybj()));
-            values.put(DatabaseStatic.AllowedArea.START_TIME, b.getZbqssj());
-            values.put(DatabaseStatic.AllowedArea.END_TIME, b.getZbjzsj());
-            db.insert(DatabaseStatic.TABLE_ALLOWED_AREA, null, values);
-        }
-        for (JbqyBean b : bean.getResult().getJbqys().getJbqy()) {
-            values = new ContentValues();
-            values.put(DatabaseStatic.ForbiddenArea.DAN_LING_ID, id);
-            values.put(DatabaseStatic.ForbiddenArea.LATITUDE, Float.parseFloat(b.getJbqyjd()));
-            values.put(DatabaseStatic.ForbiddenArea.LONGITUDE, Float.parseFloat(b.getJbqywd()));
-            values.put(DatabaseStatic.ForbiddenArea.RADIUS, Float.parseFloat(b.getJbqybj()));
-            values.put(DatabaseStatic.ForbiddenArea.START_TIME, b.getJbqssj());
-            values.put(DatabaseStatic.ForbiddenArea.END_TIME, b.getJbjzsj());
-            db.insert(DatabaseStatic.TABLE_FORBIDDEN_AREA, null, values);
-        }
-        for (LgBean b : bean.getResult().getLgs().getLg()) {
-            values = new ContentValues();
-            values.put(DatabaseStatic.DownloadedDetonator.DAN_LING_ID, id);
-            values.put(DatabaseStatic.DownloadedDetonator.OFFLINE_SN, b.getFbh());
-            values.put(DatabaseStatic.DownloadedDetonator.UID, b.getUid());
-            values.put(DatabaseStatic.DownloadedDetonator.WORK_ID, b.getGzm());
-            values.put(DatabaseStatic.DownloadedDetonator.VALID_TIME, b.getYxq());
-            values.put(DatabaseStatic.DownloadedDetonator.ERROR_CODE, b.getGzmcwxx());
-            db.insert(DatabaseStatic.TABLE_DOWNLOADED_DETONATOR, null, values);
-        }
+        db.endTransaction();
         db.close();
-        myHelper.close();
     }
 
-    public static List<BaiSeInfoBean> getBaiSeInfoList(Context context) {
+    public static List<BaiSeInfoBean> getBaiSeInfoList() {
         List<BaiSeInfoBean> list = new ArrayList<>();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_BAI_SE_PROJECT, null, null, null, null, null, null);
         while (cursor.moveToNext()) {
@@ -538,13 +513,11 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return list;
     }
 
-    public static BaiSeInfoBean getCurrentBaiSeInfo(Context context) {
+    public static BaiSeInfoBean getCurrentBaiSeInfo() {
         BaiSeInfoBean bean = null;
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_BAI_SE_PROJECT, null, DatabaseStatic.BaiSeProject.SELECTED + "=1", null, null, null, null);
         if (cursor.moveToNext()) {
@@ -568,12 +541,10 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return bean;
     }
 
-    public static void updateBaiSeInfo(Context context, BaiSeInfoBean bean) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void updateBaiSeInfo(BaiSeInfoBean bean) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         if (bean.isSelected()) {
@@ -601,20 +572,16 @@ public class DbUtil {
         else
             db.update(DatabaseStatic.TABLE_BAI_SE_PROJECT, values, DatabaseStatic.BaiSeProject.ID + "=?", new String[]{bean.getId() + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static void deleteBaiSeProject(Context context, long id) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void deleteBaiSeProject(long id) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         db.delete(DatabaseStatic.TABLE_BAI_SE_PROJECT, DatabaseStatic.BaiSeProject.ID + "=?", new String[]{id + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static List<BaiSeBlasterBean> getBaiSeBlasterList(Context context) {
+    public static List<BaiSeBlasterBean> getBaiSeBlasterList() {
         List<BaiSeBlasterBean> list = new ArrayList<>();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_BAI_SE_BLASTER, null, null, null, null, null, null);
         while (cursor.moveToNext()) {
@@ -636,13 +603,11 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return list;
     }
 
-    public static BaiSeBlasterBean getCurrentBaiSeBlaster(Context context) {
+    public static BaiSeBlasterBean getCurrentBaiSeBlaster() {
         BaiSeBlasterBean bean = null;
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
         Cursor cursor = db.query(DatabaseStatic.TABLE_BAI_SE_BLASTER, null, DatabaseStatic.BaiSeBlaster.SELECTED + "=1", null, null, null, null);
         if (cursor.moveToNext()) {
@@ -663,12 +628,10 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return bean;
     }
 
-    public static void updateBaiSeBlaster(Context context, BaiSeBlasterBean bean) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void updateBaiSeBlaster(BaiSeBlasterBean bean) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         if (bean.isSelected()) {
@@ -691,22 +654,18 @@ public class DbUtil {
         else
             db.update(DatabaseStatic.TABLE_BAI_SE_BLASTER, values, DatabaseStatic.BaiSeBlaster.ID + "=?", new String[]{bean.getId() + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static void deleteBaiSeBlaster(Context context, long id) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void deleteBaiSeBlaster(long id) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         db.delete(DatabaseStatic.TABLE_BAI_SE_BLASTER, DatabaseStatic.BaiSeBlaster.ID + "=?", new String[]{id + ""});
         db.close();
-        myHelper.close();
     }
 
-    private static List<DetonatorBean> getTableDetonatorList(Context context, long schemeId, String table) {
+    private static List<DetonatorBean> getTableDetonatorList(long schemeId, String table) {
         List<DetonatorBean> list = new ArrayList<>();
-        MyHelper myHelper = new MyHelper(context);
         SQLiteDatabase db = myHelper.getReadableDatabase();
-        Cursor cursor = db.query(table, null, null, null, null, null, null);
+        Cursor cursor = db.query(table, null, null, null, null, null, DatabaseStatic.TABLE_AUTH_DETONATOR.equals(table) ? DatabaseStatic.Detonator.SHELL : null);
         while (cursor.moveToNext()) {
             DetonatorBean bean = new DetonatorBean();
             bean.setSchemeId(schemeId);
@@ -721,41 +680,53 @@ public class DbUtil {
         }
         cursor.close();
         db.close();
-        myHelper.close();
         return list;
     }
 
-    public static List<DetonatorBean> getAuthDetonatorList(Context context) {
-        return getTableDetonatorList(context, -1, DatabaseStatic.TABLE_AUTH_DETONATOR);
+    public static List<DetonatorBean> getAuthDetonatorList() {
+        return getTableDetonatorList(-1, DatabaseStatic.TABLE_AUTH_DETONATOR);
     }
 
-    private static void updateTableDetonatorList(Context context, List<DetonatorBean> list, String table) {
-        MyHelper myHelper = new MyHelper(context);
+    private static void updateTableDetonatorList(List<DetonatorBean> list, String table) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
-        db.execSQL("drop table " + table);
-        db.execSQL(String.format(DatabaseStatic.CREATE_TABLE_DETONATOR, table));
+        long schemeId = -1;
+        int i = 0;
         for (DetonatorBean bean : list) {
             ContentValues values = new ContentValues();
+            if (table == null && schemeId != bean.getSchemeId()) {
+                if (-1 != schemeId) {
+                    ContentValues v = new ContentValues();
+                    v.put(DatabaseStatic.Scheme.AMOUNT, i);
+                    db.update(DatabaseStatic.TABLE_SCHEME, v, DatabaseStatic.Scheme.ID + "=?", new String[]{bean.getSchemeId() + ""});
+                    i = 0;
+                }
+                schemeId = bean.getSchemeId();
+                db.execSQL("drop table " + DatabaseStatic.TABLE_DETONATOR + schemeId);
+                db.execSQL(String.format(DatabaseStatic.CREATE_TABLE_DETONATOR, DatabaseStatic.TABLE_DETONATOR + schemeId));
+            }
             values.put(DatabaseStatic.Detonator.SHELL, bean.getAddress());
             values.put(DatabaseStatic.Detonator.DELAY_TIME, bean.getDelayTime());
             values.put(DatabaseStatic.Detonator.ROW, bean.getRow());
             values.put(DatabaseStatic.Detonator.HOLE, bean.getHole());
             values.put(DatabaseStatic.Detonator.INSIDE, bean.getInside());
             values.put(DatabaseStatic.Detonator.DOWNLOADED, bean.isDownloaded() ? 1 : 0);
-            bean.setId((int) db.insert(table, null, values));
+            bean.setId((int) db.insert(table == null ? DatabaseStatic.TABLE_DETONATOR + schemeId : table, null, values));
+            i++;
         }
-        if (table.startsWith(DatabaseStatic.TABLE_DETONATOR)) {
-            long l = Long.parseLong(table.substring(DatabaseStatic.TABLE_DETONATOR.length()));
-            ContentValues values = new ContentValues();
-            values.put(DatabaseStatic.Scheme.AMOUNT, list.size());
-            db.update(DatabaseStatic.TABLE_SCHEME, values, DatabaseStatic.Scheme.ID + "=?", new String[]{l + ""});
+        if (table == null) {
+            if (schemeId != -1) {
+                ContentValues v = new ContentValues();
+                v.put(DatabaseStatic.Scheme.AMOUNT, i);
+                db.update(DatabaseStatic.TABLE_SCHEME, v, DatabaseStatic.Scheme.ID + "=?", new String[]{schemeId + ""});
+            }
+        } else if (list.size() == 0) {
+            db.execSQL("drop table " + table);
+            db.execSQL(String.format(DatabaseStatic.CREATE_TABLE_DETONATOR, table));
         }
         db.close();
-        myHelper.close();
     }
 
-    public static void updateDetonator(Context context, DetonatorBean bean) {
-        MyHelper myHelper = new MyHelper(context);
+    public static void updateDetonator(DetonatorBean bean) {
         SQLiteDatabase db = myHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(DatabaseStatic.Detonator.SHELL, bean.getAddress());
@@ -766,34 +737,9 @@ public class DbUtil {
         values.put(DatabaseStatic.Detonator.DOWNLOADED, bean.isDownloaded() ? 1 : 0);
         db.update(DatabaseStatic.TABLE_DETONATOR + bean.getSchemeId(), values, DatabaseStatic.Detonator.ID + "=?", new String[]{bean.getId() + ""});
         db.close();
-        myHelper.close();
     }
 
-    public static void updateAuthDetonatorList(Context context, List<DetonatorBean> list) {
-        updateTableDetonatorList(context, list, DatabaseStatic.TABLE_AUTH_DETONATOR);
-    }
-
-    public static void cleanDatabase(Context context) {
-        MyHelper myHelper = new MyHelper(context);
-        SQLiteDatabase db = myHelper.getWritableDatabase();
-        Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, null,
-                DatabaseStatic.Scheme.DELETED + "=1", null, null, null, null);
-        while (cursor.moveToNext()) {
-            db.execSQL("drop table " + DatabaseStatic.TABLE_DETONATOR + cursor.getLong(DatabaseStatic.Scheme.COL_ID));
-        }
-        cursor.close();
-        db.delete(DatabaseStatic.TABLE_SCHEME, DatabaseStatic.Scheme.DELETED + "=1", null);
-        cursor = db.query(DatabaseStatic.TABLE_DAN_LING, null, DatabaseStatic.DanLing.USED + "=1", null, null, null, null);
-        while (cursor.moveToNext()) {
-            long id = cursor.getLong(DatabaseStatic.DanLing.COL_ID);
-            db.delete(DatabaseStatic.TABLE_ALLOWED_AREA, DatabaseStatic.AllowedArea.DAN_LING_ID + "=?", new String[]{id + ""});
-            db.delete(DatabaseStatic.TABLE_FORBIDDEN_AREA, DatabaseStatic.ForbiddenArea.DAN_LING_ID + "=?", new String[]{id + ""});
-            db.delete(DatabaseStatic.TABLE_DOWNLOADED_DETONATOR, DatabaseStatic.DownloadedDetonator.DAN_LING_ID + "=?", new String[]{id + ""});
-            db.delete(DatabaseStatic.TABLE_DOWNLOADED_EXPLODER, DatabaseStatic.DownloadedExploder.DAN_LING_ID + "=?", new String[]{id + ""});
-        }
-        cursor.close();
-        db.delete(DatabaseStatic.TABLE_DAN_LING, DatabaseStatic.DanLing.USED + "=1", null);
-        db.close();
-        myHelper.close();
+    public static void updateAuthDetonatorList(List<DetonatorBean> list) {
+        updateTableDetonatorList(list, DatabaseStatic.TABLE_AUTH_DETONATOR);
     }
 }

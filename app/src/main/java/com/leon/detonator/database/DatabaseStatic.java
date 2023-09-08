@@ -11,30 +11,24 @@ public class DatabaseStatic {
         public final static String TUNNEL = "tunnel";
         public final static String AMOUNT = "amount";
         public final static String SELECTED = "selected";
-        public final static String PROJECT_ID = "project_id";
-        public final static String BLASTER_ID = "blaster_id";
         public final static String SYNCHRONIZE = "synchronize";
         public final static String UPLOAD_SERVER = "upload_server";
         public final static String EXPLODE_TIME = "explode_time";
         public final static String UPLOAD_TIME = "upload_time";
         public final static String LATITUDE = "latitude";
         public final static String LONGITUDE = "longitude";
-        public final static String DELETED = "deleted";
         public final static int COL_ID = 0;
         public final static int COL_NAME = 1;
         public final static int COL_CREATE_TIME = 2;
         public final static int COL_TUNNEL = 3;
         public final static int COL_AMOUNT = 4;
         public final static int COL_SELECTED = 5;
-        public final static int COL_PROJECT_ID = 6;
-        public final static int COL_BLASTER_ID = 7;
-        public final static int COL_SYNCHRONIZE = 8;
-        public final static int COL_UPLOAD_SERVER = 9;
-        public final static int COL_EXPLODE_TIME = 10;
-        public final static int COL_UPLOAD_TIME = 11;
-        public final static int COL_LATITUDE = 12;
-        public final static int COL_LONGITUDE = 13;
-        public final static int COL_DELETED = 14;
+        public final static int COL_SYNCHRONIZE = 6;
+        public final static int COL_UPLOAD_SERVER = 7;
+        public final static int COL_EXPLODE_TIME = 8;
+        public final static int COL_UPLOAD_TIME = 9;
+        public final static int COL_LATITUDE = 10;
+        public final static int COL_LONGITUDE = 11;
     }
 
     //雷管
@@ -83,12 +77,10 @@ public class DatabaseStatic {
         public final static String APPLICATION_TIME = "application_time";
         public final static String ERROR_CODE = "error_code";
         public final static String OFFLINE = "offline";
-        public final static String USED = "used";
         public final static int COL_ID = 0;
         public final static int COL_APPLICATION_TIME = 1;
         public final static int COL_ERROR_CODE = 2;
         public final static int COL_OFFLINE = 3;
-        public final static int COL_USED = 4;
     }
 
     //丹灵网下载起爆器列表
@@ -238,15 +230,12 @@ public class DatabaseStatic {
             Scheme.TUNNEL + " tinyint(1) not null, " +
             Scheme.AMOUNT + " integer, " +
             Scheme.SELECTED + " tinyint(1) not null, " +
-            Scheme.PROJECT_ID + " integer, " +
-            Scheme.BLASTER_ID + " integer, " +
             Scheme.SYNCHRONIZE + " tinyint(1) not null, " +
             Scheme.UPLOAD_SERVER + " tinyint not null, " +
             Scheme.EXPLODE_TIME + " datetime, " +
             Scheme.UPLOAD_TIME + " datetime, " +
             Scheme.LATITUDE + " float, " +
-            Scheme.LONGITUDE + " float, " +
-            Scheme.DELETED + " tinyint(1))";
+            Scheme.LONGITUDE + " float)";
 
     public final static String CREATE_TABLE_DETONATOR = "create table %s (" +
             Detonator.ID + " Integer primary key autoincrement, " +
@@ -272,8 +261,7 @@ public class DatabaseStatic {
             DanLing.ID + " integer primary key autoincrement, " +
             DanLing.APPLICATION_TIME + " datetime, " +
             DanLing.ERROR_CODE + " varchar(10), " +
-            DanLing.OFFLINE + " tinyint(1) not null, " +
-            DanLing.USED + " tinyint(1) not null)";
+            DanLing.OFFLINE + " tinyint(1) not null)";
 
     public final static String CREATE_TABLE_DOWNLOADED_EXPLODER = "create table " + TABLE_DOWNLOADED_EXPLODER + "(" +
             DownloadedExploder.ID + " integer primary key autoincrement, " +

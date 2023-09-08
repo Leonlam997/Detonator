@@ -8,8 +8,6 @@ import java.util.Date;
 
 public class ExplosionRecordBean {
     private long id;
-    private long projectId;
-    private long blasterId;
     private String name;
     private Date uploadTime;
     private Date explodeTime;
@@ -54,22 +52,6 @@ public class ExplosionRecordBean {
 
     public void setUploadServer(int isUpload) {
         this.uploadServer = isUpload;
-    }
-
-    public long getProjectId() {
-        return projectId;
-    }
-
-    public void setProjectId(long projectId) {
-        this.projectId = projectId;
-    }
-
-    public long getBlasterId() {
-        return blasterId;
-    }
-
-    public void setBlasterId(long blasterId) {
-        this.blasterId = blasterId;
     }
 
     public boolean isSelected() {

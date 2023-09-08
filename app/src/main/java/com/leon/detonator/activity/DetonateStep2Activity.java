@@ -373,7 +373,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                                     DetonatorBean b1 = lists.get(ConstantUtils.ListType.ALL.ordinal()).get(i);
                                                     if (bean.getDelayTime() == b1.getDelayTime() && i + 1 == bean.getRow() && b1.getHole() == bean.getHole()) {
                                                         b1.setDownloaded(true);
-                                                        DbUtil.updateDetonator(DetonateStep2Activity.this, b1);
+                                                        DbUtil.updateDetonator(b1);
                                                     }
                                                     if (lists.get(ConstantUtils.ListType.DETECTED.ordinal()).contains(b1))
                                                         myApp.myToast(DetonateStep2Activity.this, String.format(getString(R.string.message_detect_multiple), b1.getAddress()));
@@ -415,7 +415,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                         pDialog.incrementProgressBy(1);
                                         pDialog.setSecondaryProgress(55 + 45 * pDialog.getProgress() / pDialog.getMax());
                                         lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex).setDownloaded(true);
-                                        DbUtil.updateDetonator(DetonateStep2Activity.this, lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex));
+                                        DbUtil.updateDetonator(lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex));
                                         nextDownloadIndex();
                                         break;
                                     case STEP_CHECK_ONLINE:
@@ -472,7 +472,7 @@ public class DetonateStep2Activity extends BaseActivity {
                                         pDialog.setSecondaryProgress(55 + 45 * pDialog.getProgress() / pDialog.getMax());
                                         lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex).setDownloaded(true);
                                         lists.get(ConstantUtils.ListType.ALL.ordinal()).get(lists.get(ConstantUtils.ListType.ALL.ordinal()).indexOf(lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex))).setDownloaded(true);
-                                        DbUtil.updateDetonator(DetonateStep2Activity.this, lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex));
+                                        DbUtil.updateDetonator(lists.get(ConstantUtils.ListType.DETECTED.ordinal()).get(listIndex));
                                         nextDownloadIndex();
                                         break;
                                     case STEP_READ_FIELD:
@@ -688,7 +688,7 @@ public class DetonateStep2Activity extends BaseActivity {
                 lists.get(i).clear();
             for (DetonatorBean d : lists.get(ConstantUtils.ListType.ALL.ordinal()))
                 d.setDownloaded(false);
-            DbUtil.clearDetonatorDownloadFlag(DetonateStep2Activity.this, lists.get(ConstantUtils.ListType.ALL.ordinal()).get(0).getSchemeId());
+            DbUtil.clearDetonatorDownloadFlag(lists.get(ConstantUtils.ListType.ALL.ordinal()).get(0).getSchemeId());
             rescanWhich = ConstantUtils.ListType.ALL;
         } else {
             BaseApplication.writeFile(getString(R.string.button_start_detect) + ", " + getString(R.string.tab_title_offline) + ":" + lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size());

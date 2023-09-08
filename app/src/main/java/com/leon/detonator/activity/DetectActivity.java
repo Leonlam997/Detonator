@@ -18,7 +18,6 @@ import com.leon.detonator.R;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.DetonatorBean;
-import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.component.MyButton;
 import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.serial.DataReceiveListener;
@@ -39,7 +38,6 @@ public class DetectActivity extends BaseActivity {
     private SerialPortUtil serialPortUtil;
     private DataReceiveListener myReceiveListener;
     private BaseApplication myApp;
-    private SchemeBean schemeBean;
     private List<DetonatorBean> list;
     private TextView tvRowDelay;
     private TextView tvHoleDelay;
@@ -55,7 +53,7 @@ public class DetectActivity extends BaseActivity {
     private MyButton btnNextHole;
     private MyButton btnInside;
     private SoundPool soundPool;
-    private ADD_MODE add_mode;
+    private AddMode addMode;
     private String tempAddress;
     private final int DETECT_CONTINUE = 1;
     private int lastRow;
@@ -71,7 +69,7 @@ public class DetectActivity extends BaseActivity {
     private boolean scanKeyPressed;
     private long schemeId;
 
-    private enum ADD_MODE {
+    private enum AddMode {
         NONE,                         //无效
         NEXT_HOLE,                   //下一孔
         NEXT_ROW,                    //下一排
@@ -103,7 +101,7 @@ public class DetectActivity extends BaseActivity {
                 flowStep = STEP_END;
                 myApp.playSoundVibrate(soundPool, soundSuccess);
                 if (lastDelay != -1) {
-                    switch (add_mode) {
+                    switch (addMode) {
                         case NEXT_ROW:
                             lastRow++;
                             lastHole = 1;
@@ -137,28 +135,48 @@ public class DetectActivity extends BaseActivity {
                 flowStep = !scanKeyPressed && cbMode.isChecked() ? STEP_CLEAR_STATUS : STEP_SCAN_CODE;
                 int row = lastRow, hole = lastHole, inside = lastInside;
                 if (lastDelay != -1) {
-                    switch (add_mode) {
+                    switch (addMode) {
                         case NEXT_ROW:
                             row++;
                             hole = 1;
                             inside = 1;
+                            delayTime = 0;
+                            if (row > 1) {
+                                int r = 0;
+                                for (DetonatorBean bean : list)
+                                    if (bean.getRow() != r) {
+                                        r = bean.getRow();
+                                        if (bean.getRow() >= row)
+                                            break;
+                                        delayTime = bean.getDelayTime() + BaseApplication.settings.getRow();
+                                    }
+                            }
                             break;
                         case NEXT_SECTION:
-                            row = hole + 1;
+                            row = ++hole;
                             delayTime = lastDelay + BaseApplication.settings.getSection();
+                            inside = 1;
+                            break;
                         case NEXT_HOLE:
                             hole++;
-                            inside = 1;
+                            delayTime = 0;
+                            if (hole > 1) {
+                                int h = 0;
+                                for (DetonatorBean bean : list)
+                                    if (bean.getRow() == row && bean.getHole() != h) {
+                                        h = bean.getHole();
+                                        if (bean.getHole() >= hole)
+                                            break;
+                                        delayTime = bean.getDelayTime() + BaseApplication.settings.getHole();
+                                    }
+                            }
                             break;
                         case INSIDE_SECTION:
                             row = hole;
-                            delayTime = lastDelay + BaseApplication.settings.getSectionInside();
                         case INSIDE_HOLE:
                             inside++;
+                            delayTime = lastDelay + BaseApplication.settings.getSectionInside();
                             break;
-                    }
-                    if (!BaseApplication.settings.isTunnel()) {
-                        delayTime = (row - 1) * BaseApplication.settings.getRow() + (row - 1) * BaseApplication.settings.getHole() + (hole - 1) * BaseApplication.settings.getHole() + (inside - 1) * BaseApplication.settings.getHoleInside();
                     }
                     if (delayTime > ConstantUtils.MAX_DELAY_TIME || delayTime < 0) {
                         myApp.myToast(DetectActivity.this, String.format(Locale.getDefault(), getString(R.string.message_delay_time_out_of_range), ConstantUtils.MAX_DELAY_TIME));
@@ -177,8 +195,8 @@ public class DetectActivity extends BaseActivity {
                 tvHole.setText(String.format(Locale.getDefault(), "%d", hole));
                 tvInside.setText(String.format(Locale.getDefault(), "%d", inside));
                 tvTube.setText("--");
-                tvDelayTime.setText(String.format(Locale.getDefault(), "%dms", delayTime));
-                tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : (lastDelay + "ms"));
+                tvDelayTime.setText(String.format(Locale.getDefault(), getString(R.string.delay_time), delayTime));
+                tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : String.format(Locale.getDefault(), getString(R.string.delay_time), lastDelay));
                 msg.getTarget().sendEmptyMessage(DETECT_SEND_COMMAND);
                 break;
             case DETECT_FAIL: //检测失败
@@ -341,8 +359,7 @@ public class DetectActivity extends BaseActivity {
             list.add(bean);
         BaseApplication.writeFile(bean.toString());
         insertIndex++;
-        DbUtil.updateScheme(DetectActivity.this, schemeBean);
-        DbUtil.updateDetonatorList(DetectActivity.this, list);
+        DbUtil.updateDetonatorList(list);
     }
 
     @Override
@@ -359,7 +376,6 @@ public class DetectActivity extends BaseActivity {
         insertMode = getIntent().getIntExtra(KeyUtils.KEY_INSERT_MODE, 0);
         insertIndex = getIntent().getIntExtra(KeyUtils.KEY_INSERT_INDEX, 0);
         schemeId = getIntent().getLongExtra(KeyUtils.KEY_TABLE_ID, -1);
-        schemeBean = DbUtil.getScheme(DetectActivity.this, schemeId);
         BaseApplication.writeFile("schemeId:" + schemeId + "row:" + lastRow + ", hole:" + lastHole + ", inside:" + lastInside + ", delay:" + lastDelay + ", mode:" + insertMode + ", index:" + insertIndex);
         cbMode = findViewById(R.id.cb_mode);
         tvTube = findViewById(R.id.tv_tube);
@@ -372,11 +388,11 @@ public class DetectActivity extends BaseActivity {
         tvInside = findViewById(R.id.tv_inside);
         tvInside.setText(lastInside == 0 ? "--" : (lastInside + ""));
         tvLastDelay = findViewById(R.id.tv_last_delay);
-        tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : (lastDelay + "ms"));
+        tvLastDelay.setText(lastDelay == -1 ? getString(R.string.no_delay_time) : String.format(Locale.getDefault(), getString(R.string.delay_time), lastDelay));
         btnNextRow = findViewById(R.id.btn_next_row);
         btnNextHole = findViewById(R.id.btn_next_hole);
         btnInside = findViewById(R.id.btn_inside);
-        list = DbUtil.getDetonatorList(DetectActivity.this, schemeId);
+        list = DbUtil.getDetonatorList(schemeId);
         tvRowDelay = findViewById(R.id.tv_row_delay);
         tvHoleDelay = findViewById(R.id.tv_hole_delay);
         tvInsideDelay = findViewById(R.id.tv_inside_delay);
@@ -388,8 +404,8 @@ public class DetectActivity extends BaseActivity {
             ((TextView) findViewById(R.id.txt_inside)).setText(R.string.text_section_inside_num);
             ((TextView) findViewById(R.id.txt_row_delay)).setText(R.string.text_section_delay);
             ((TextView) findViewById(R.id.txt_inside_delay)).setText(R.string.text_section_inside_delay);
-            tvRowDelay.setText(String.format(Locale.getDefault(), "%dms", BaseApplication.settings.getSection()));
-            tvInsideDelay.setText(String.format(Locale.getDefault(), "%dms", BaseApplication.settings.getSectionInside()));
+            tvRowDelay.setText(String.format(Locale.getDefault(), getString(R.string.delay_time), BaseApplication.settings.getSection()));
+            tvInsideDelay.setText(String.format(Locale.getDefault(), getString(R.string.delay_time), BaseApplication.settings.getSectionInside()));
             tvRowDelay.setOnClickListener((v) -> modifyDelay(4));
             findViewById(R.id.txt_row_delay).setOnClickListener((v) -> modifyDelay(4));
             tvInsideDelay.setOnClickListener((v) -> modifyDelay(5));
@@ -405,9 +421,9 @@ public class DetectActivity extends BaseActivity {
             ((TextView) findViewById(R.id.txt_inside)).setText(R.string.text_inside_num);
             ((TextView) findViewById(R.id.txt_row_delay)).setText(R.string.text_row_delay);
             ((TextView) findViewById(R.id.txt_inside_delay)).setText(R.string.text_inside_delay);
-            tvRowDelay.setText(String.format(Locale.getDefault(), "%dms", BaseApplication.settings.getRow()));
-            tvHoleDelay.setText(String.format(Locale.getDefault(), "%dms", BaseApplication.settings.getHole()));
-            tvInsideDelay.setText(String.format(Locale.getDefault(), "%dms", BaseApplication.settings.getHoleInside()));
+            tvRowDelay.setText(String.format(Locale.getDefault(), getString(R.string.delay_time), BaseApplication.settings.getRow()));
+            tvHoleDelay.setText(String.format(Locale.getDefault(), getString(R.string.delay_time), BaseApplication.settings.getHole()));
+            tvInsideDelay.setText(String.format(Locale.getDefault(), getString(R.string.delay_time), BaseApplication.settings.getHoleInside()));
             tvRowDelay.setOnClickListener((v) -> modifyDelay(1));
             findViewById(R.id.txt_row_delay).setOnClickListener((v) -> modifyDelay(1));
             tvHoleDelay.setOnClickListener((v) -> modifyDelay(2));
@@ -432,7 +448,7 @@ public class DetectActivity extends BaseActivity {
         });
         findViewById(R.id.tv_register).setOnClickListener(view -> cbMode.setChecked(true));
         findViewById(R.id.tv_scan).setOnClickListener(view -> cbMode.setChecked(false));
-        add_mode = ADD_MODE.NONE;
+        addMode = AddMode.NONE;
         btnNextHole.requestFocus();
 
         enabledButton(false);
@@ -487,7 +503,7 @@ public class DetectActivity extends BaseActivity {
                                 if (i > ConstantUtils.MAX_DELAY_TIME || i < 0)
                                     myApp.myToast(DetectActivity.this, String.format(Locale.getDefault(), getString(R.string.message_delay_time_out_of_range), ConstantUtils.MAX_DELAY_TIME));
                                 else {
-                                    String text = etDelay.getText().toString() + "ms";
+                                    String text = etDelay.getText().toString() + getString(R.string.delay_unit);
                                     switch (which) {
                                         case 1:
                                             tvRowDelay.setText(text);
@@ -522,9 +538,8 @@ public class DetectActivity extends BaseActivity {
     }
 
     private void enabledButton(boolean enable) {
-        if (null != myReceiveListener) {
+        if (null != myReceiveListener)
             myReceiveListener.setStartAutoDetect(enable);
-        }
         setProgressVisibility(!enable);
         btnNextRow.setEnabled(insertMode == 0 && enable);
         btnNextHole.setEnabled(insertMode != ConstantUtils.INSERT_INSIDE && enable);
@@ -547,14 +562,14 @@ public class DetectActivity extends BaseActivity {
             case KeyEvent.KEYCODE_1:
                 if (btnNextHole.isEnabled()) {
                     BaseApplication.writeFile(btnNextHole.getText().toString());
-                    add_mode = BaseApplication.settings.isTunnel() ? ADD_MODE.INSIDE_SECTION : ADD_MODE.NEXT_HOLE;
+                    addMode = BaseApplication.settings.isTunnel() ? AddMode.INSIDE_SECTION : AddMode.NEXT_HOLE;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
                 break;
             case KeyEvent.KEYCODE_2:
                 if (btnNextRow.isEnabled()) {
                     BaseApplication.writeFile(btnNextRow.getText().toString());
-                    add_mode = BaseApplication.settings.isTunnel() ? ADD_MODE.NEXT_SECTION : ADD_MODE.NEXT_ROW;
+                    addMode = BaseApplication.settings.isTunnel() ? AddMode.NEXT_SECTION : AddMode.NEXT_ROW;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
                 break;
@@ -563,7 +578,7 @@ public class DetectActivity extends BaseActivity {
                     modifyDelay(4);
                 else if (btnInside.isEnabled() && !BaseApplication.settings.isTunnel()) {
                     BaseApplication.writeFile(btnInside.getText().toString());
-                    add_mode = ADD_MODE.INSIDE_HOLE;
+                    addMode = AddMode.INSIDE_HOLE;
                     myHandler.sendEmptyMessage(DETECT_CONTINUE);
                 }
                 break;

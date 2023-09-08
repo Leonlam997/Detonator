@@ -177,7 +177,7 @@ public class BaseApplication extends Application {
                 soundPool.release();
             }
         }
-        activity.runOnUiThread(() -> customDialog(new AlertDialog.Builder(this, R.style.AlertDialog)
+        activity.runOnUiThread(() -> customDialog(new AlertDialog.Builder(activity, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_warning)
                 .setCancelable(false)
                 .setMessage(R.string.dialog_short_circuit)
@@ -198,10 +198,10 @@ public class BaseApplication extends Application {
                     list.add(bean1);
                 }
                 bean.setName(scheme[0]);
-                DbUtil.updateScheme(this, bean, Boolean.parseBoolean(scheme[1]));
+                DbUtil.updateScheme(bean, Boolean.parseBoolean(scheme[1]));
                 for (DetonatorBean bean1 : list)
                     bean1.setSchemeId(bean.getId());
-                DbUtil.updateDetonatorList(this, list);
+                DbUtil.updateDetonatorList(list);
                 myToast(BaseApplication.this, R.string.message_save_list_success);
             } catch (Exception e) {
                 BaseApplication.writeErrorLog(e);
@@ -358,6 +358,7 @@ public class BaseApplication extends Application {
             if ((!file.exists() && !file.mkdir()) || (file.exists() && !file.isDirectory() && file.delete() && !file.mkdir()))
                 myToast(this, R.string.message_create_folder_fail);
             settings = readSettings();
+            DbUtil.initHelper(this);
             btService = new BluetoothService(myHandler);
             IntentFilter filter = new IntentFilter();
             filter.addAction("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED");

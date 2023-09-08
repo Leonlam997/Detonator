@@ -87,7 +87,7 @@ public class SemiProductActivity extends BaseActivity {
                             BaseApplication.writeFile(getString(R.string.dialog_qualified));
                             myDialog.setCode("");
                             if (!textViewCode.getText().toString().isEmpty() && cbWrite.isChecked())
-                                textViewCode.setText(String.format(Locale.CHINA, "%s%05d", textViewCode.getText().toString().substring(0, 8), Long.parseLong(textViewCode.getText().toString().substring(8)) + 1));
+                                textViewCode.setText(String.format(Locale.CHINA, "%s%05d", textViewCode.getText().toString().substring(0, 8), (Integer.parseInt(textViewCode.getText().toString().substring(8)) + 1) % 100000));
                         } else {
                             Map<Integer, String> failCode = new HashMap<Integer, String>() {
                                 {
