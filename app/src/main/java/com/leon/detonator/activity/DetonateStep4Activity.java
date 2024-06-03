@@ -187,7 +187,8 @@ public class DetonateStep4Activity extends BaseActivity {
                         myApp.myToast(DetonateStep4Activity.this, R.string.progress_upload);
                 break;
             case KeyEvent.KEYCODE_2:
-                finish();
+                if (btnExit.isEnabled())
+                    finish();
                 break;
         }
     }

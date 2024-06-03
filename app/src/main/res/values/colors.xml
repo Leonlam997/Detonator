@@ -33,5 +33,7 @@
     <color name="colorButtonEnabled">#ffffff</color>
     <color name="colorButtonDisabled">#333333</color>
     <color name="colorDialogBackground">#db2a2a</color>
-
+    <color name="colorCountDown">#a62124</color>
+    <color name="text_blue">#1f9ad5</color>
+    <color name="text_black">#000000</color>
 </resources>

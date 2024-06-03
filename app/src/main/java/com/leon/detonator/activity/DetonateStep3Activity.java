@@ -49,6 +49,7 @@ public class DetonateStep3Activity extends BaseActivity {
     private TextView tvChargePercentage;
     private TextView tvPercentage;
     private TextView tvHint;
+    private TextView tvCount;
     private EditText tvLog;
     private ProgressBar progressBar;
     private ProgressBar pbCharge;
@@ -56,6 +57,7 @@ public class DetonateStep3Activity extends BaseActivity {
     private final int HANDLER_START = 1;
     private final int HANDLER_PROGRESS = 2;
     private final int HANDLER_PRESS_KEY = 3;
+    private final int HANDLER_COUNT_DOWN = 7;
     private boolean keepingEnd;
     private boolean confirmExplode;
     private boolean nextStep;
@@ -69,6 +71,8 @@ public class DetonateStep3Activity extends BaseActivity {
     private boolean dialogShowing;
     private boolean chargeFinished;
     private boolean notCheckStatus;
+    private boolean enabledKeys;
+    private int countingStatus;
     private int changeAction;   //0：正常，1：关屏，2：开屏
     private int countDown;
     private int chargeTime;
@@ -106,6 +110,8 @@ public class DetonateStep3Activity extends BaseActivity {
         final int STEP_LOWER_VOLTAGE_2 = 22;
         final int STEP_CHECK_STATUS = 23;
         final int STEP_CHECK_ONLINE = 24;
+        final int STEP_UPPER_VOLTAGE_2 = 25;
+        final int STEP_LOWER_VOLTAGE_3 = 26;
         switch (msg.what) {
             case HANDLER_START:
                 switch (explodeStep) {
@@ -158,6 +164,7 @@ public class DetonateStep3Activity extends BaseActivity {
                     tvChargePercentage.setText("0%");
                     pbCharge.setProgress(0);
                     chargeFinished = true;
+                    enabledKeys = true;
                     myReceiveListener.setDetonatorAmount(detonatorList.size());
                     myReceiveListener.setStartDetectShort(true);
                     BaseApplication.writeFile(getString(R.string.message_charge_success));
@@ -173,6 +180,16 @@ public class DetonateStep3Activity extends BaseActivity {
                 if (pDialog.getProgress() < pDialog.getMax() - 1) {
                     pDialog.incrementProgressBy(1);
                     msg.getTarget().sendEmptyMessageDelayed(HANDLER_PROGRESS, 50);
+                }
+                break;
+            case HANDLER_COUNT_DOWN:
+                tvCount.setText(String.format(Locale.getDefault(), "%d", countDown--));
+                if (countDown >= 0)
+                    msg.getTarget().sendEmptyMessageDelayed(HANDLER_COUNT_DOWN, 1000);
+                else {
+                    countingStatus = 2;
+                    explodeStep = STEP_LOWER_VOLTAGE_3;
+                    msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
                 }
                 break;
             case HANDLER_NEXT_STEP:
@@ -193,6 +210,17 @@ public class DetonateStep3Activity extends BaseActivity {
                         explodeStep = STEP_WAIT;
                         break;
                     case STEP_READ_STATUS:
+                        explodeStep = STEP_UPPER_VOLTAGE_2;
+                        break;
+                    case STEP_UPPER_VOLTAGE_2:
+                        if (pDialog != null && pDialog.isShowing())
+                            pDialog.dismiss();
+                        findViewById(R.id.fl_count).setVisibility(View.VISIBLE);
+                        countDown = 5;
+                        countingStatus = 1;
+                        msg.getTarget().sendEmptyMessage(HANDLER_COUNT_DOWN);
+                        return false;
+                    case STEP_LOWER_VOLTAGE_3:
                         explodeStep = STEP_EXPLODE;
                         break;
                     case STEP_LOWER_VOLTAGE_2:
@@ -239,8 +267,7 @@ public class DetonateStep3Activity extends BaseActivity {
                         break;
                 }
             case HANDLER_SEND_COMMAND:
-                if (serialPortUtil == null)
-                    return false;
+                if (serialPortUtil == null) return false;
                 switch (explodeStep) {
                     case STEP_DELAY:
                         serialPortUtil.sendCmd("", SerialCommand.CODE_DELAY, delayTime >= 1024 ? 0xFFFF : delayTime);
@@ -290,12 +317,14 @@ public class DetonateStep3Activity extends BaseActivity {
                         serialPortUtil.sendCmd("", SerialCommand.CODE_CHECK_STATUS, detonatorList.size());
                         msg.getTarget().sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, detonatorList.size() * 2L + ConstantUtils.SCAN_DELAY_TIME);
                         break;
+                    case STEP_LOWER_VOLTAGE_3:
                     case STEP_LOWER_VOLTAGE_2:
                     case STEP_LOWER_VOLTAGE:
                         serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, 0xFF, 0XFF, 0X16);
                         msg.getTarget().sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                         break;
                     case STEP_UPPER_VOLTAGE:
+                    case STEP_UPPER_VOLTAGE_2:
                         serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, 0xFF, 0XFF, 0X32);
                         msg.getTarget().sendEmptyMessageDelayed(HANDLER_SEND_COMMAND, ConstantUtils.RESEND_STATUS_TIMEOUT);
                         break;
@@ -303,6 +332,7 @@ public class DetonateStep3Activity extends BaseActivity {
                         myReceiveListener.setStartAutoDetect(false);
                         serialPortUtil.sendCmd("", SerialCommand.CODE_CLEAR_READ_STATUS, 0);
                         msg.getTarget().removeMessages(HANDLER_PROGRESS);
+                        enabledKeys = false;
                         pDialog = new MyProgressDialog(DetonateStep3Activity.this);
                         pDialog.setInverseBackgroundForced(false);
                         pDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
@@ -343,20 +373,19 @@ public class DetonateStep3Activity extends BaseActivity {
                             dialogShowing = true;
                             if (chargeFinished)
                                 resetStatus();
-                            BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
-                                    .setTitle(R.string.dialog_title_warning)
-                                    .setMessage(R.string.dialog_large_current)
-                                    .setCancelable(false)
-                                    .setNegativeButton(R.string.button_exit, (dialog, which) -> {
-                                        msg.getTarget().removeCallbacksAndMessages(null);
-                                        myReceiveListener.setStartAutoDetect(false);
-                                        explodeStep = STEP_RELEASE_1;
-                                        msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
-                                        nextStep = true;
-                                        if (uniteExplode)
-                                            setResult(RESULT_CANCELED);
-                                    })
-                                    .setPositiveButton(R.string.button_ignore, ((dialog, which) -> ignoreCurrent = true)).show(), true);
+                            enabledKeys = false;
+                            BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog).setTitle(R.string.dialog_title_warning).setMessage(R.string.dialog_large_current).setCancelable(false).setNegativeButton(R.string.button_exit, (dialog, which) -> {
+                                msg.getTarget().removeCallbacksAndMessages(null);
+                                myReceiveListener.setStartAutoDetect(false);
+                                explodeStep = STEP_RELEASE_1;
+                                msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
+                                nextStep = true;
+                                if (uniteExplode)
+                                    setResult(RESULT_CANCELED);
+                            }).setPositiveButton(R.string.button_ignore, ((dialog, which) -> {
+                                enabledKeys = true;
+                                ignoreCurrent = true;
+                            })).show(), true);
                         }
                     } else if (received[0] == SerialCommand.ALERT_BREAK_CIRCUIT) {
                         breakExplode(R.string.dialog_break_circuit);
@@ -371,34 +400,34 @@ public class DetonateStep3Activity extends BaseActivity {
                                 case STEP_CHARGE:
                                     msg.getTarget().sendEmptyMessage(HANDLER_CHARGE);
                                     break;
+                                case STEP_LOWER_VOLTAGE_3:
                                 case STEP_LOWER_VOLTAGE_2:
                                 case STEP_LOWER_VOLTAGE:
                                     msg.getTarget().sendEmptyMessageDelayed(HANDLER_NEXT_STEP, 2000);
                                     return false;
                                 case STEP_CLOSE_BUS:
                                     msg.getTarget().removeCallbacksAndMessages(null);
-                                    if (pDialog.isShowing()) {
-                                        Intent intent = new Intent(DetonateStep3Activity.this, DetonateStep4Activity.class);
-                                        intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0));
-                                        intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
-                                        intent.putExtra(KeyUtils.KEY_EXPLODE_ELAPSED, startExplodeTime);
-                                        intent.putParcelableArrayListExtra(KeyUtils.KEY_LIST, getIntent().getParcelableArrayListExtra(KeyUtils.KEY_LIST));
-                                        if (null != offlineBean) {
-                                            for (DetonatorBean bean : detonatorList) {
-                                                Iterator<LgBean> it = offlineBean.getResult().getLgs().getLg().iterator();
-                                                while (it.hasNext()) {
-                                                    if (it.next().getFbh().equals(bean.getAddress())) {
-                                                        it.remove();
-                                                        break;
-                                                    }
+                                    Intent intent = new Intent(DetonateStep3Activity.this, DetonateStep4Activity.class);
+                                    intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0));
+                                    intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
+                                    intent.putExtra(KeyUtils.KEY_EXPLODE_ELAPSED, startExplodeTime);
+                                    intent.putParcelableArrayListExtra(KeyUtils.KEY_LIST, getIntent().getParcelableArrayListExtra(KeyUtils.KEY_LIST));
+                                    if (null != offlineBean) {
+                                        for (DetonatorBean bean : detonatorList) {
+                                            Iterator<LgBean> it = offlineBean.getResult().getLgs().getLg().iterator();
+                                            while (it.hasNext()) {
+                                                if (it.next().getFbh().equals(bean.getAddress())) {
+                                                    it.remove();
+                                                    break;
                                                 }
                                             }
-                                            DbUtil.updateDownloadDetonator(true, offlineBean);
                                         }
-                                        startActivity(intent);
-                                        pDialog.dismiss();
-                                        finish();
+                                        DbUtil.updateDownloadDetonator(true, offlineBean);
                                     }
+                                    countingStatus = 0;
+                                    nextStep = true;
+                                    startActivity(intent);
+                                    finish();
                                     return false;
                                 case STEP_EXPLODE:
                                 case STEP_EXPLODE_2:
@@ -416,12 +445,10 @@ public class DetonateStep3Activity extends BaseActivity {
                                 case STEP_EXIT_CLOSE_BUS:
                                     msg.getTarget().removeCallbacksAndMessages(null);
                                     if (countScanZero < ConstantUtils.SCAN_ZERO_COUNT)
-                                        if (nextStep)
-                                            finish();
+                                        if (nextStep) finish();
                                         else {
                                             nextStep = true;
-                                            if (uniteExplode)
-                                                setResult(RESULT_CANCELED);
+                                            if (uniteExplode) setResult(RESULT_CANCELED);
                                         }
                                     return false;
                                 case STEP_SCAN:
@@ -434,14 +461,12 @@ public class DetonateStep3Activity extends BaseActivity {
                                                 isNull = false;
                                                 break;
                                             }
-                                        DetonatorBean bean = new DetonatorBean(-1, new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9)),
-                                                (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 11]) << 16) + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 12]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 13]),//Delay
+                                        DetonatorBean bean = new DetonatorBean(-1, new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 9)), (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 11]) << 16) + (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 12]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 13]),//Delay
                                                 (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 9]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 10]),//Number
                                                 (Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 14]) << 8) + Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 15]),//Hole
                                                 Byte.toUnsignedInt(received[SerialCommand.CODE_CHAR_AT + 16]), true);//Status
                                         StringBuilder text = new StringBuilder().append(tvLog.getText()).append("\n");
-                                        if (isNull)
-                                            text.append(ConstantUtils.NULL_ID);
+                                        if (isNull) text.append(ConstantUtils.NULL_ID);
                                         else {
                                             int i = detonatorList.indexOf(bean);
                                             if (i >= 0) {
@@ -495,14 +520,14 @@ public class DetonateStep3Activity extends BaseActivity {
                                         explodeStep = STEP_RELEASE_1;
                                         msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
                                         nextStep = true;
+                                        enabledKeys = false;
                                         if (uniteExplode)
                                             setResult(RESULT_CANCELED);
                                         BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
                                                 .setTitle(R.string.progress_title)
                                                 .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_exist_offline), j))
                                                 .setCancelable(false)
-                                                .setPositiveButton(R.string.button_confirm, null)
-                                                .show(), true);
+                                                .setPositiveButton(R.string.button_confirm, null).show(), true);
                                         findViewById(R.id.sv_log).setVisibility(View.VISIBLE);
                                         findViewById(R.id.fl_charge).setVisibility(View.GONE);
                                         findViewById(R.id.fl_slide).setVisibility(View.GONE);
@@ -529,8 +554,7 @@ public class DetonateStep3Activity extends BaseActivity {
                                             allZero = false;
                                             break;
                                         }
-                                    if (allZero)
-                                        countScanZero++;
+                                    if (allZero) countScanZero++;
                                     if (pDialog.getProgress() < pDialog.getMax() - 1)
                                         pDialog.incrementProgressBy(1);
                                     msg.getTarget().sendEmptyMessageDelayed(HANDLER_NEXT_STEP, ConstantUtils.SCAN_DELAY_TIME);
@@ -560,6 +584,7 @@ public class DetonateStep3Activity extends BaseActivity {
         tvPercentage = findViewById(R.id.tv_percentage);
         tvHint = findViewById(R.id.tv_hint);
         tvLog = findViewById(R.id.tv_log);
+        tvCount = findViewById(R.id.tv_count);
         progressBar.setVisibility(View.INVISIBLE);
         tvPercentage.setVisibility(View.INVISIBLE);
         findViewById(R.id.sv_log).setVisibility(View.GONE);
@@ -574,7 +599,9 @@ public class DetonateStep3Activity extends BaseActivity {
         bKeyDown = false;
         bothKeyUp = false;
         nextStep = false;
+        enabledKeys = false;
         notCheckStatus = true;
+        countingStatus = 0;
         countDown = 0;
         hide = new AlphaAnimation(1.0f, 0.3f);
         hide.setDuration(800);
@@ -623,9 +650,8 @@ public class DetonateStep3Activity extends BaseActivity {
 
             @Override
             public void OnMoveToOthers() {
-                if (keepingEnd) {
+                if (keepingEnd)
                     resetStatus();
-                }
             }
 
             @Override
@@ -658,31 +684,25 @@ public class DetonateStep3Activity extends BaseActivity {
             serialPortUtil.setOnDataReceiveListener(myReceiveListener);
             detonatorList = getIntent().getParcelableArrayListExtra(KeyUtils.KEY_LIST);
             delayTime = maxDelay();
-            if (detonatorList.size() >= 500)
-                chargeTime = 72000;
-            else if (detonatorList.size() >= 400)
-                chargeTime = 50000;
-            else if (detonatorList.size() >= 300)
-                chargeTime = 32000;
-            else if (detonatorList.size() >= 200)
-                chargeTime = 20000;
-            else if (detonatorList.size() >= 100)
-                chargeTime = 10000;
-            else
-                chargeTime = 6000;
+            if (detonatorList.size() >= 500) chargeTime = 72000;
+            else if (detonatorList.size() >= 400) chargeTime = 50000;
+            else if (detonatorList.size() >= 300) chargeTime = 32000;
+            else if (detonatorList.size() >= 200) chargeTime = 20000;
+            else if (detonatorList.size() >= 100) chargeTime = 10000;
+            else chargeTime = 6000;
             chargeTime += 11000 + detonatorList.size() * 4;
             explodeStep = 0;
             doubleSend = true;
             myHandler.sendEmptyMessage(HANDLER_START);
             BaseApplication.acquireWakeLock(this);
             initSound();
-        } catch (
-                Exception e) {
+        } catch (Exception e) {
             BaseApplication.writeErrorLog(e);
         }
     }
 
     private void detect() {
+        enabledKeys = false;
         BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
                 .setTitle(R.string.progress_title)
                 .setMessage(R.string.dialog_explode_status_error)
@@ -729,6 +749,7 @@ public class DetonateStep3Activity extends BaseActivity {
             findViewById(R.id.sv_log).setVisibility(View.GONE);
             findViewById(R.id.fl_charge).setVisibility(View.GONE);
             findViewById(R.id.fl_slide).setVisibility(View.VISIBLE);
+            findViewById(R.id.fl_slide).requestFocus();
         }
     }
 
@@ -739,17 +760,16 @@ public class DetonateStep3Activity extends BaseActivity {
         myHandler.sendEmptyMessage(HANDLER_START);
         if (chargeFinished)
             resetStatus();
+        enabledKeys = false;
         runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
                 .setTitle(R.string.dialog_title_warning)
-                .setMessage(message)
-                .setCancelable(false)
+                .setMessage(message).setCancelable(false)
                 .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
                     if (nextStep)
                         finish();
                     else {
                         nextStep = true;
-                        if (uniteExplode)
-                            setResult(RESULT_CANCELED);
+                        if (uniteExplode) setResult(RESULT_CANCELED);
                     }
                 }).show(), true));
     }
@@ -757,6 +777,8 @@ public class DetonateStep3Activity extends BaseActivity {
     private void resetStatus() {
         confirmExplode = false;
         keepingEnd = false;
+        bKeyDown = false;
+        rKeyDown = false;
         countDown = 0;
         myHandler.removeMessages(HANDLER_PRESS_KEY);
         runOnUiThread(() -> {
@@ -770,91 +792,98 @@ public class DetonateStep3Activity extends BaseActivity {
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_R:
-                if (notAllow) {
-                    myApp.myToast(this, R.string.message_not_allow_area);
-                } else if (!rKeyDown && !bKeyDown && chargeFinished) {
-                    sliderImageView.startMove(true);
-                    rKeyDown = true;
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        BaseApplication.writeFile("key:" + event.getAction() + "," + event.getKeyCode());
+        if (enabledKeys) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                switch (event.getKeyCode()) {
+                    case KeyEvent.KEYCODE_R:
+                        BaseApplication.writeFile("按下R键：" + rKeyDown + ", Bomb键：" + bKeyDown + ", keepingEnd=" + keepingEnd + ", chargeFinished=" + chargeFinished);
+                        if (notAllow) {
+                            myApp.myToast(this, R.string.message_not_allow_area);
+                        } else if (!rKeyDown && !bKeyDown && chargeFinished) {
+                            sliderImageView.startMove(true);
+                            rKeyDown = true;
+                        }
+                        break;
+                    case KeyEvent.KEYCODE_B:
+                        BaseApplication.writeFile("按下Bomb键：" + bKeyDown + ", R键：" + rKeyDown + ", keepingEnd=" + keepingEnd + ", confirmExplode=" + confirmExplode);
+                        if (notAllow) {
+                            myApp.myToast(this, R.string.message_not_allow_area);
+                        } else if (rKeyDown && keepingEnd && !bKeyDown && !confirmExplode) {
+                            bKeyDown = true;
+                            countDown = 0;
+                            tvPercentage.setText("0%");
+                            progressBar.setProgress(0);
+                            progressBar.setVisibility(View.VISIBLE);
+                            tvPercentage.setVisibility(View.VISIBLE);
+                            myHandler.sendEmptyMessageDelayed(HANDLER_PRESS_KEY, 100);
+                        }
+                        break;
+                    default:
+                        BaseApplication.writeFile("按键：" + event.getKeyCode());
+                        break;
                 }
-                break;
-            case KeyEvent.KEYCODE_B:
-                if (notAllow) {
-                    myApp.myToast(this, R.string.message_not_allow_area);
-                } else if (rKeyDown && keepingEnd && !bKeyDown && !confirmExplode) {
-                    bKeyDown = true;
-                    countDown = 0;
-                    tvPercentage.setText("0%");
-                    progressBar.setProgress(0);
-                    progressBar.setVisibility(View.VISIBLE);
-                    tvPercentage.setVisibility(View.VISIBLE);
-                    myHandler.sendEmptyMessageDelayed(HANDLER_PRESS_KEY, 100);
+            } else if (event.getAction() == KeyEvent.ACTION_UP) {
+                switch (event.getKeyCode()) {
+                    case KeyEvent.KEYCODE_R:
+                        BaseApplication.writeFile("松开R键：" + rKeyDown + ", Bomb键：" + bKeyDown + ", keepingEnd=" + keepingEnd + ", chargeFinished=" + chargeFinished);
+                        if (!bKeyDown) {
+                            tvHint.setText(R.string.det_slide_hint);
+                            sliderImageView.startMove(false);
+                        } else {
+                            if (keepingEnd && !confirmExplode) {
+                                resetStatus();
+                            }
+                        }
+                        rKeyDown = false;
+                        break;
+                    case KeyEvent.KEYCODE_B:
+                        BaseApplication.writeFile("松开Bomb键：" + bKeyDown + ", R键：" + rKeyDown + ", keepingEnd=" + keepingEnd + ", confirmExplode=" + confirmExplode);
+                        if (keepingEnd && !confirmExplode && rKeyDown) {
+                            tvHint.setText(String.format(Locale.getDefault(), getString(R.string.det_slide_hold_key), COUNT_TIME / 1000));
+                            myHandler.removeMessages(HANDLER_PRESS_KEY);
+                            countDown = 0;
+                            tvPercentage.setText("0%");
+                            progressBar.setProgress(0);
+                            progressBar.setVisibility(View.INVISIBLE);
+                            tvPercentage.setVisibility(View.INVISIBLE);
+                        }
+                        bKeyDown = false;
+                        break;
+                    default:
+                        BaseApplication.writeFile("松键：" + event.getKeyCode());
+                        break;
                 }
-                break;
-            default:
-                break;
-        }
-        return super.onKeyDown(keyCode, event);
-    }
-
-    @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_R:
-                if (!bKeyDown) {
-                    tvHint.setText(R.string.det_slide_hint);
-                    sliderImageView.startMove(false);
-                } else {
-                    if (keepingEnd && !confirmExplode) {
-                        resetStatus();
-                    }
-                }
-                rKeyDown = false;
-                break;
-            case KeyEvent.KEYCODE_B:
-                if (keepingEnd && !confirmExplode && rKeyDown) {
-                    tvHint.setText(String.format(Locale.getDefault(), getString(R.string.det_slide_hold_key), COUNT_TIME / 1000));
-                    myHandler.removeMessages(HANDLER_PRESS_KEY);
-                    countDown = 0;
-                    tvPercentage.setText("0%");
-                    progressBar.setProgress(0);
-                    progressBar.setVisibility(View.INVISIBLE);
-                    tvPercentage.setVisibility(View.INVISIBLE);
-                }
-                bKeyDown = false;
-                break;
-            default:
-                break;
-        }
-        if (confirmExplode) {
-            int KEY_UP_TIME = 200;
-            if (!bothKeyUp) {
-                bothKeyUp = true;
-                keyUpPeriod = System.currentTimeMillis();
-                new Handler().postDelayed(() -> {
-                    if (bothKeyUp) {
+                if (confirmExplode) {
+                    int KEY_UP_TIME = 200;
+                    if (!bothKeyUp) {
+                        bothKeyUp = true;
+                        keyUpPeriod = System.currentTimeMillis();
+                        new Handler().postDelayed(() -> {
+                            if (bothKeyUp) {
+                                bothKeyUp = false;
+                                resetStatus();
+                            }
+                        }, KEY_UP_TIME * 2);
+                    } else {
                         bothKeyUp = false;
+                        if (System.currentTimeMillis() - keyUpPeriod < KEY_UP_TIME) {
+                            explode();
+                        }
                         resetStatus();
                     }
-                }, KEY_UP_TIME * 2);
-            } else {
-                bothKeyUp = false;
-                if (System.currentTimeMillis() - keyUpPeriod < KEY_UP_TIME) {
-                    explode();
+                } else if (keepingEnd && !rKeyDown && !bKeyDown) {
+                    resetStatus();
                 }
-                resetStatus();
             }
-        } else if (keepingEnd && !rKeyDown && !bKeyDown) {
-            resetStatus();
         }
-        return super.onKeyUp(keyCode, event);
+        return super.dispatchKeyEvent(event);
     }
 
     private void explode() {
-        nextStep = true;
         if (uniteExplode) {
+            nextStep = true;
             setResult(RESULT_OK);
             finish();
         } else {
@@ -862,6 +891,7 @@ public class DetonateStep3Activity extends BaseActivity {
             myHandler.removeCallbacksAndMessages(null);
             explodeStep = 3;
             myHandler.sendEmptyMessage(HANDLER_START);
+            enabledKeys = false;
             pDialog = new MyProgressDialog(this);
             pDialog.setInverseBackgroundForced(false);
             pDialog.setCancelable(false);
@@ -874,24 +904,37 @@ public class DetonateStep3Activity extends BaseActivity {
 
     @Override
     public void finish() {
+        if (countingStatus == 2)
+            return;
         if (!nextStep) {
-            if (chargeFinished)
+            if (countingStatus > 0)
+                myHandler.removeMessages(HANDLER_COUNT_DOWN);
+            else if (chargeFinished)
                 resetStatus();
+            enabledKeys = false;
+            sliderImageView.setEnabled(false);
             BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
                     .setTitle(R.string.progress_title)
                     .setMessage(R.string.dialog_exit_explode)
                     .setCancelable(false)
-                    .setPositiveButton(R.string.button_confirm, (dialogInterface, i) -> {
+                    .setPositiveButton(R.string.button_exit_explode, (dialogInterface, i) -> {
                         if (uniteExplode)
                             setResult(RESULT_CANCELED);
                         nextStep = true;
                         countScanZero = 0;
                         myReceiveListener.setStartAutoDetect(false);
                         explodeStep = 2;
+                        if (countingStatus > 0) {
+                            resetStatus();
+                            runOnUiThread(() -> findViewById(R.id.fl_count).setVisibility(View.GONE));
+                        }
                         myHandler.sendEmptyMessage(HANDLER_START);
-                    })
-                    .setNegativeButton(R.string.button_cancel, null)
-                    .show(), true);
+                    }).setNegativeButton(R.string.button_continue_explode, (dialog, which) -> {
+                        enabledKeys = true;
+                        sliderImageView.setEnabled(true);
+                        if (countingStatus > 0)
+                            myHandler.sendEmptyMessage(HANDLER_COUNT_DOWN);
+                    }).show(), true);
         } else
             super.finish();
     }
@@ -905,8 +948,7 @@ public class DetonateStep3Activity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (changeAction == 2)
-            changeActionBar();
+        if (changeAction == 2) changeActionBar();
         changeAction = 0;
     }
 
@@ -914,8 +956,7 @@ public class DetonateStep3Activity extends BaseActivity {
     protected void onDestroy() {
         myHandler.removeCallbacksAndMessages(null);
         BaseApplication.releaseWakeLock(DetonateStep3Activity.this);
-        if (!uniteExplode && myReceiveListener != null)
-            myReceiveListener.closeAllHandler();
+        if (!uniteExplode && myReceiveListener != null) myReceiveListener.closeAllHandler();
         if (null != soundPool) {
             soundPool.autoPause();
             soundPool.unload(soundSuccess);

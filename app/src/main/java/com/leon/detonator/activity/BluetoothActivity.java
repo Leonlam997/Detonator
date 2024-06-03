@@ -221,26 +221,8 @@ public class BluetoothActivity extends BaseActivity {
 
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode()) {
-            sendIndex = -1;
             schemeList = DbUtil.getCurrentSchemeList();
-            getNextList();
-            if (detonatorList.size() <= 0)
-                myApp.myToast(BluetoothActivity.this, R.string.message_list_not_found);
-            else {
-                if (null != btService) {
-                    BluetoothDevice device = btAdapter.getRemoteDevice(list.get(clickIndex).getBluetooth().getAddress());
-                    btService.connect(device);
-                    sender = true;
-                    pDialog = new MyProgressDialog(BluetoothActivity.this);
-                    pDialog.setInverseBackgroundForced(false);
-                    pDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                    pDialog.setCancelable(false);
-                    pDialog.setTitle(R.string.progress_title);
-                    pDialog.setMessage(getString(R.string.progress_connecting));
-                    pDialog.show();
-                    myHandler.sendMessageDelayed(myHandler.obtainMessage(STATUS_ERROR, getString(R.string.bt_connect_timeout)), 10000);
-                }
-            }
+            startSendList();
         }
     });
 
@@ -379,6 +361,26 @@ public class BluetoothActivity extends BaseActivity {
             }
     }
 
+    private void startSendList() {
+        sendIndex = -1;
+        getNextList();
+        if (detonatorList.size() <= 0)
+            myApp.myToast(BluetoothActivity.this, R.string.message_list_not_found);
+        else if (null != btService) {
+            BluetoothDevice device = btAdapter.getRemoteDevice(list.get(clickIndex).getBluetooth().getAddress());
+            btService.connect(device);
+            sender = true;
+            pDialog = new MyProgressDialog(BluetoothActivity.this);
+            pDialog.setInverseBackgroundForced(false);
+            pDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            pDialog.setCancelable(false);
+            pDialog.setTitle(R.string.progress_title);
+            pDialog.setMessage(getString(R.string.progress_connecting));
+            pDialog.show();
+            myHandler.sendMessageDelayed(myHandler.obtainMessage(STATUS_ERROR, getString(R.string.bt_connect_timeout)), 10000);
+        }
+    }
+
     private void showPopupWindow(AdapterView<?> parent, View view, int position) {
         final String[] menu;
         menu = new String[]{getString(R.string.menu_send_list),
@@ -411,7 +413,8 @@ public class BluetoothActivity extends BaseActivity {
                     Intent intent = new Intent(BluetoothActivity.this, SchemeActivity.class);
                     intent.putExtra(KeyUtils.KEY_SELECT_SCHEME, true);
                     launcher.launch(intent);
-                }
+                } else if (schemeSize == 1)
+                    startSendList();
                 break;
             case 1:
                 try {

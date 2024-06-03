@@ -8,7 +8,6 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.NumberKeyListener;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -102,7 +101,6 @@ public class AuthorizationListActivity extends BaseActivity {
         findViewById(R.id.table_title).setBackgroundColor(getColor(R.color.colorTableTitleBackground));
         listView = findViewById(R.id.lv_offline_list);
         schemeList = DbUtil.getSchemeList();
-        Log.d("ZBEST", "list size=" + schemeList.size());
         btnAdd = findViewById(R.id.btn_add);
         btnDownload = findViewById(R.id.btn_offline_download);
         btnDelete = findViewById(R.id.btn_delete);

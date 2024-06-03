@@ -813,6 +813,15 @@ public class BaseApplication extends Application {
     }
 
     public static void customDialog(AlertDialog dialog, boolean setText) {
+        customDialogWithoutKey(dialog,setText);
+        dialog.setOnKeyListener((dialog1, keyCode, event) -> {
+            if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK && dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isShown())
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick();
+            return false;
+        });
+    }
+
+    public static void customDialogWithoutKey(AlertDialog dialog, boolean setText) {
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextSize(26);
         dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextSize(26);
         try {
@@ -837,11 +846,6 @@ public class BaseApplication extends Application {
                 layoutParams.height = 200;
             layoutParams.width = 330;
             dialog.getWindow().setAttributes(layoutParams);
-            dialog.setOnKeyListener((dialog1, keyCode, event) -> {
-                if (event.getAction() == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK && dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isShown())
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE).callOnClick();
-                return false;
-            });
         } catch (Exception e) {
             writeErrorLog(e);
         }

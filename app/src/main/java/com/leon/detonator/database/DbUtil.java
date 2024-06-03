@@ -195,6 +195,35 @@ public class DbUtil {
         return list;
     }
 
+    public static String checkDetonatorListExist(List<String> shell, long schemeId) {
+        String result = null;
+        SQLiteDatabase db = myHelper.getReadableDatabase();
+        Cursor cursor = db.query(DatabaseStatic.TABLE_SCHEME, new String[]{DatabaseStatic.Scheme.ID, DatabaseStatic.Scheme.NAME, DatabaseStatic.Scheme.TUNNEL},
+                DatabaseStatic.Scheme.EXPLODE_TIME + " is null and "
+                        + DatabaseStatic.Scheme.ID + " <>?", new String[]{schemeId + ""}, null, null, null);
+        while (cursor.moveToNext()) {
+            long id = cursor.getLong(0);
+            try {
+                Cursor c = db.query(DatabaseStatic.TABLE_DETONATOR + id, null, null, null, null, null, null);
+                while (c.moveToNext()) {
+                    int i = shell.indexOf(c.getString(DatabaseStatic.Detonator.COL_SHELL));
+                    if (i >= 0) {
+                        result = String.format(Locale.getDefault(), "%d%04d%s", cursor.getInt(2), i, cursor.getString(1));
+                        break;
+                    }
+                }
+                c.close();
+            } catch (Exception e) {
+                BaseApplication.writeErrorLog(e);
+            }
+            if (result != null)
+                break;
+        }
+        cursor.close();
+        db.close();
+        return result;
+    }
+
     public static List<DetonatorBean> getDetonatorList(long schemeId) {
         return getTableDetonatorList(schemeId, DatabaseStatic.TABLE_DETONATOR + schemeId);
     }

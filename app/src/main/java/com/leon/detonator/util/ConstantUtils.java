@@ -34,6 +34,8 @@ public class ConstantUtils {
     public final static String SHELL_PATTERN = "\\d{7}[0-9A-Z]\\d{5}$";
     public final static String UID_PATTERN = "\\d[0-9A-Z]\\d{5}$";
     public final static String ID_PATTERN = "(^\\d{18}$)|(^\\d{17}(\\d|X)$)";
+    public final static String BOX_CODE_PATTERN = "^[a-zA-Z]\\d{2}[0-9A-Z][a-zA-Z]\\d{9}[0-9a-zA-Z]\\d{3}$";
+    public final static String TRUNK_CODE_PATTERN = "^[a-zA-Z]\\d{2}[0-9A-Z][a-zA-Z]\\d{2}[0-9A-Z]\\d{9}$";
     public final static String ENTERPRISE_PROJECT = "Project";
     public final static String ENTERPRISE_CONTRACT = "Contract";
     public final static String GPS_SYSTEM = "BD09";

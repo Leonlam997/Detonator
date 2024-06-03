@@ -239,8 +239,8 @@
     <string name="message_detonator_duplicate">发现重复雷管：%1$s！\n方案\"%2$s\"第%3$d发\n方案\"%4$s\"第%5$d发</string>
     <string name="message_scheme_empty_list">方案\"%1$s\"列表为空！</string>
     <string name="message_list_not_found">未发现延期方案！</string>
-    <string name="message_current_detonator_exist">当前雷管已存在！列表序号:%1$d。</string>
-    <string name="message_detonator_exist">已存在！列表序号:%1$d。</string>
+    <string name="message_current_detonator_exist">雷管%1$s已存在！列表序号:%2$d。</string>
+    <string name="message_current_detonator_exist_other_scheme">雷管%1$s已存在%2$s方案\"%3$s\"中。</string>
     <string name="message_amount_in_box_out_of_range">每盒数量不能超过100发！</string>
     <string name="message_send_success">文件发送成功！</string>
     <string name="message_send_error">连接断开！</string>
@@ -255,6 +255,7 @@
     <string name="message_download_unknown_error">未知错误:</string>
     <string name="message_token_error">标志错误！</string>
     <string name="message_return_data_error">返回数据错误！</string>
+    <string name="message_return_trunk_data">扫描到箱码%1$s！</string>
     <string name="message_online_check_finished">在线雷管检查完毕！</string>
     <string name="message_offline_check_finished">离线雷管检查完毕！</string>
     <string name="message_not_registered">起爆器未注册！</string>
@@ -286,8 +287,6 @@
     <string name="message_not_allow_empty_password">密码不能为空！</string>
     <string name="message_user_login_success">用户"%1$s"登录成功！</string>
     <string name="message_charge_success">充电完成！</string>
-    <string name="message_delay_error">第%1$d发延时不正确！</string>
-    <string name="message_charge_fail">第%1$d发充电没完成！</string>
     <string name="message_explode_success">起爆成功！</string>
     <string name="message_detect_multiple">%1$s发现重码！</string>
     <string name="message_export_success">列表导出成功！</string>
@@ -429,6 +428,8 @@
     <string name="button_self_test">自 检</string>
     <string name="button_rescan">重新搜索</string>
     <string name="button_reconnect">重新联机</string>
+    <string name="button_exit_explode">退出起爆</string>
+    <string name="button_continue_explode">继续起爆</string>
     <string name="button_confirm">确 定</string>
     <string name="button_cancel">取 消</string>
     <string name="button_modify">修 改</string>

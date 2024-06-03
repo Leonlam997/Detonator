@@ -152,6 +152,7 @@ public class DetonateStep1Activity extends BaseActivity {
                     coordinate = String.format(Locale.getDefault(), getString(R.string.map_position) + getString(R.string.map_last_position), BaseApplication.settings.getLongitude(), BaseApplication.settings.getLatitude());
                     myApp.myToast(DetonateStep1Activity.this, R.string.message_use_last_position);
                     message.getTarget().sendEmptyMessageDelayed(1, 3000);
+                    enabledButton(true);
                 } else {
                     tvCoordinate.setTextColor(Color.RED);
                     coordinate = getString(R.string.map_position_init);
@@ -210,17 +211,17 @@ public class DetonateStep1Activity extends BaseActivity {
         firstLocate = true;
         enabledButton(false);
         mapView = findViewById(R.id.map_view);
-        mapView.getChildAt(2).setPadding(0, 0, 10, 60);
-        baiduMap = mapView.getMap();
-        baiduMap.setMyLocationEnabled(true);
-        MapStatus mMapStatus = new MapStatus.Builder().target(new LatLng(BaseApplication.settings.getLatitude() != 0 ? BaseApplication.settings.getLatitude() : 22.551083,
-                BaseApplication.settings.getLongitude() != 0 ? BaseApplication.settings.getLongitude() : 110.950548)).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
-        MapStatusUpdate mMapStatusUpdate = MapStatusUpdateFactory.newMapStatus(mMapStatus);
-        baiduMap.setMapStatus(mMapStatusUpdate);//改变地图状态
-        baiduMap.setCompassEnable(true);
-        baiduMap.setCompassPosition(new Point(10, 10));
-        //定位初始化
         try {
+            mapView.getChildAt(2).setPadding(0, 0, 10, 60);
+            baiduMap = mapView.getMap();
+            baiduMap.setMyLocationEnabled(true);
+            MapStatus mMapStatus = new MapStatus.Builder().target(new LatLng(BaseApplication.settings.getLatitude() != 0 ? BaseApplication.settings.getLatitude() : 22.551083,
+                    BaseApplication.settings.getLongitude() != 0 ? BaseApplication.settings.getLongitude() : 110.950548)).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
+            MapStatusUpdate mMapStatusUpdate = MapStatusUpdateFactory.newMapStatus(mMapStatus);
+            baiduMap.setMapStatus(mMapStatusUpdate);//改变地图状态
+            baiduMap.setCompassEnable(true);
+            baiduMap.setCompassPosition(new Point(10, 10));
+            //定位初始化
             locationClient = new LocationClient(this);
             //通过LocationClientOption设置LocationClient相关参数
             LocationClientOption option = new LocationClientOption();

@@ -27,6 +27,7 @@ import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.KeyUtils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -80,39 +81,73 @@ public class DetectActivity extends BaseActivity {
         final int STEP_WRITE_FIELD = 5;
         final int STEP_SCAN_CODE = 7;
         final int STEP_DATA_ERROR = 8;
+        final int STEP_TRUNK_DATA = 9;
         final int STEP_END = 6;
         switch (msg.what) {
             case DETECT_SUCCESS: //检测成功
                 msg.getTarget().removeMessages(DETECT_SEND_COMMAND);
                 flowStep = STEP_END;
                 myApp.playSoundVibrate(soundPool, soundSuccess);
-                if (lastDelay != -1) {
+                List<String> address = new ArrayList<>();
+                List<DetonatorBean> addList = new ArrayList<>();
+                if (tempAddress.length() > 13) {
+                    StringBuilder temp = new StringBuilder().append(tempAddress.substring(1, 3)).append(tempAddress.substring(9));
+                    int amount = Integer.parseInt(tempAddress.substring(5, 7)) * 5;
+                    for (int i = 0; i < amount; i++)
+                        address.add(String.format(Locale.getDefault(), "%s%02d", temp, i));
+                } else
+                    address.add(tempAddress);
+                int lastTime = 0;
+                for (String add : address) {
+                    if (lastDelay != -1) {
+                        switch (addMode) {
+                            case NEXT_ROW:
+                                lastRow++;
+                                lastHole = 1;
+                                lastInside = 1;
+                                break;
+                            case NEXT_HOLE:
+                            case NEXT_SECTION:
+                                lastHole++;
+                                lastInside = 1;
+                                break;
+                            case INSIDE_SECTION:
+                            case INSIDE_HOLE:
+                                lastInside++;
+                                break;
+                        }
+                    } else {
+                        lastRow = 1;
+                        lastHole = 1;
+                        lastInside = 1;
+                    }
+                    addList.add(new DetonatorBean(schemeId, add, delayTime, lastRow, lastHole, lastInside, !rbScan.isChecked()));
+                    lastTime = lastDelay;
+                    lastDelay = delayTime;
+                    if (addMode == AddMode.NEXT_ROW)
+                        addMode = AddMode.NEXT_HOLE;
+                    else if (addMode == AddMode.NEXT_SECTION)
+                        addMode = AddMode.INSIDE_SECTION;
                     switch (addMode) {
-                        case NEXT_ROW:
-                            lastRow++;
-                            lastHole = 1;
-                            lastInside = 1;
-                            break;
                         case NEXT_HOLE:
-                        case NEXT_SECTION:
-                            lastHole++;
-                            lastInside = 1;
+                            delayTime = lastDelay + BaseApplication.settings.getHole();
                             break;
                         case INSIDE_SECTION:
+                            delayTime = lastDelay + BaseApplication.settings.getSectionInside();
+                            break;
                         case INSIDE_HOLE:
-                            lastInside++;
+                            delayTime = lastDelay + BaseApplication.settings.getHoleInside();
                             break;
                     }
-                } else {
-                    lastRow = 1;
-                    lastHole = 1;
-                    lastInside = 1;
                 }
-                saveData(new DetonatorBean(schemeId, tempAddress, delayTime, lastRow, lastHole, lastInside, !rbScan.isChecked()));
+                saveData(addList);
                 setResult(RESULT_OK);
-                //tvDelayTime.setText("-- ms");
-                tvTube.setText(tempAddress);
-                lastDelay = delayTime;
+                tvRow.setText(String.format(Locale.getDefault(), "%d", BaseApplication.isTunnel ? lastHole : lastRow));
+                tvHole.setText(String.format(Locale.getDefault(), "%d", lastHole));
+                tvInside.setText(String.format(Locale.getDefault(), "%d", lastInside));
+                tvDelayTime.setText(String.format(Locale.getDefault(), "%dms", lastDelay));
+                tvLastDelay.setText(String.format(Locale.getDefault(), "%dms", lastTime));
+                tvTube.setText(address.get(address.size() - 1));
                 enabledButton(true);
                 break;
             case DETECT_CONTINUE: //开始检测
@@ -196,9 +231,13 @@ public class DetectActivity extends BaseActivity {
                 };
                 msg.getTarget().removeMessages(DETECT_SEND_COMMAND);
                 if (STEP_END != flowStep) {
-                    Integer i = failCode.get(flowStep);
-                    if (null != i)
-                        myApp.myToast(DetectActivity.this, i);
+                    if (flowStep == STEP_TRUNK_DATA)
+                        myApp.myToast(DetectActivity.this, String.format(Locale.getDefault(), getString(R.string.message_return_trunk_data), tempAddress));
+                    else {
+                        Integer i = failCode.get(flowStep);
+                        if (null != i)
+                            myApp.myToast(DetectActivity.this, i);
+                    }
                 }
                 flowStep = STEP_END;
                 myApp.playSoundVibrate(soundPool, soundFail);
@@ -286,22 +325,70 @@ public class DetectActivity extends BaseActivity {
                                         return false;
                                     }
                                 case STEP_READ_SHELL:
-                                    tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
-                                    if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, tempAddress)) {
-                                        flowStep = STEP_DATA_ERROR;
-                                        msg.getTarget().sendEmptyMessage(DETECT_FAIL);
-                                        return false;
-                                    } else {
-                                        int index = list.indexOf(new DetonatorBean(tempAddress));
-                                        if (index >= 0) {
-                                            flowStep = STEP_END;
-                                            myApp.myToast(DetectActivity.this, String.format(Locale.getDefault(), getString(R.string.message_current_detonator_exist), index + 1));
+                                    List<String> addressList = new ArrayList<>();
+                                    switch (received[SerialCommand.CODE_CHAR_AT - 1]) {
+                                        case 21://箱条码
+                                            tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 19));
+                                            BaseApplication.writeFile("箱条码：" + tempAddress);
+                                            flowStep = Pattern.matches(ConstantUtils.TRUNK_CODE_PATTERN, tempAddress) ? STEP_TRUNK_DATA : STEP_DATA_ERROR;
                                             msg.getTarget().sendEmptyMessage(DETECT_FAIL);
                                             return false;
-                                        } else if (flowStep == STEP_SCAN_CODE) {
-                                            msg.getTarget().sendEmptyMessage(DETECT_SUCCESS);
+                                        case 22://盒条码
+                                            tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 20));
+                                            BaseApplication.writeFile("盒条码：" + tempAddress);
+                                            if (!Pattern.matches(ConstantUtils.BOX_CODE_PATTERN, tempAddress)) {
+                                                flowStep = STEP_DATA_ERROR;
+                                                msg.getTarget().sendEmptyMessage(DETECT_FAIL);
+                                                return false;
+                                            } else {
+                                                try {
+                                                    StringBuilder temp = new StringBuilder().append(tempAddress.substring(1, 3)).append(tempAddress.substring(9));
+                                                    int amount = Integer.parseInt(tempAddress.substring(5, 7)) * 5;
+                                                    for (int i = 0; i < amount; i++)
+                                                        addressList.add(String.format(Locale.getDefault(), "%s%02d", temp, i));
+                                                } catch (Exception e) {
+                                                    flowStep = STEP_DATA_ERROR;
+                                                    BaseApplication.writeErrorLog(e);
+                                                    msg.getTarget().sendEmptyMessage(DETECT_FAIL);
+                                                    return false;
+                                                }
+                                            }
+                                            break;
+                                        default://16:管壳码
+                                            tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
+                                            if (!Pattern.matches(ConstantUtils.SHELL_PATTERN, tempAddress)) {
+                                                flowStep = STEP_DATA_ERROR;
+                                                msg.getTarget().sendEmptyMessage(DETECT_FAIL);
+                                                return false;
+                                            }
+                                            addressList.add(tempAddress);
+                                            break;
+                                    }
+                                    for (String add : addressList) {
+                                        int index = list.indexOf(new DetonatorBean(add));
+                                        if (index >= 0) {
+                                            flowStep = STEP_END;
+                                            myApp.myToast(DetectActivity.this, String.format(Locale.getDefault(), getString(R.string.message_current_detonator_exist), add, index + 1));
+                                            msg.getTarget().sendEmptyMessage(DETECT_FAIL);
                                             return false;
                                         }
+                                    }
+                                    String scheme = DbUtil.checkDetonatorListExist(addressList, schemeId);
+                                    if (scheme != null) {
+                                        flowStep = STEP_END;
+                                        try {
+                                            myApp.myToast(DetectActivity.this, String.format(Locale.getDefault(), getString(R.string.message_current_detonator_exist_other_scheme),
+                                                    addressList.get(Integer.parseInt(scheme.substring(1, 5))),
+                                                    getString(Integer.parseInt(scheme.substring(0, 1)) == 0 ? R.string.mode_open_air : R.string.mode_tunnel),
+                                                    scheme.substring(5)));
+                                        } catch (Exception e) {
+                                            BaseApplication.writeErrorLog(e);
+                                        }
+                                        msg.getTarget().sendEmptyMessage(DETECT_FAIL);
+                                        return false;
+                                    } else if (flowStep == STEP_SCAN_CODE) {
+                                        msg.getTarget().sendEmptyMessage(DETECT_SUCCESS);
+                                        return false;
                                     }
                                     break;
                                 case STEP_WRITE_FIELD:
@@ -524,36 +611,39 @@ public class DetectActivity extends BaseActivity {
         }
     }
 
-    private void saveData(DetonatorBean bean) {
-        int i = list.indexOf(bean);
-        if (i >= 0) list.remove(i);
+    private void saveData(List<DetonatorBean> addList) {
+        for (DetonatorBean bean : addList) {
+            int i = list.indexOf(bean);
+            if (i >= 0)
+                list.remove(i);
 //        myApp.myToast(this, "index:" + insertIndex + ",size" + oldList.size());
-        if (insertIndex <= list.size() - 1 && insertMode != 0) {
-            int period;
-            if (insertMode == ConstantUtils.INSERT_INSIDE) {
-                period = BaseApplication.isTunnel ? BaseApplication.settings.getSectionInside() : BaseApplication.settings.getHoleInside();
-            } else {
-                period = BaseApplication.isTunnel ? BaseApplication.settings.getSection() : BaseApplication.settings.getHole();
-            }
-
-            for (i = insertIndex; i < list.size(); i++) {
-                DetonatorBean b = list.get(i);
-                if (bean.getRow() != b.getRow() || (insertMode == ConstantUtils.INSERT_INSIDE && bean.getHole() != b.getHole()))
-                    break;
-                b.setDownloaded(false);
-                b.setDelayTime(b.getDelayTime() + period);
-                if (insertMode == ConstantUtils.INSERT_HOLE && bean.getRow() == b.getRow()) {
-                    b.setHole(b.getHole() + 1);
-                } else if (insertMode == ConstantUtils.INSERT_INSIDE && bean.getRow() == b.getRow() && bean.getHole() == b.getHole()) {
-                    b.setInside(b.getInside() + 1);
+            if (insertIndex <= list.size() - 1 && insertMode != 0) {
+                int period;
+                if (insertMode == ConstantUtils.INSERT_INSIDE) {
+                    period = BaseApplication.isTunnel ? BaseApplication.settings.getSectionInside() : BaseApplication.settings.getHoleInside();
+                } else {
+                    period = BaseApplication.isTunnel ? BaseApplication.settings.getSection() : BaseApplication.settings.getHole();
                 }
+
+                for (i = insertIndex; i < list.size(); i++) {
+                    DetonatorBean b = list.get(i);
+                    if (bean.getRow() != b.getRow() || (insertMode == ConstantUtils.INSERT_INSIDE && bean.getHole() != b.getHole()))
+                        break;
+                    b.setDownloaded(false);
+                    b.setDelayTime(b.getDelayTime() + period);
+                    if (insertMode == ConstantUtils.INSERT_HOLE && bean.getRow() == b.getRow()) {
+                        b.setHole(b.getHole() + 1);
+                    } else if (insertMode == ConstantUtils.INSERT_INSIDE && bean.getRow() == b.getRow() && bean.getHole() == b.getHole()) {
+                        b.setInside(b.getInside() + 1);
+                    }
+                }
+                list.add(insertIndex, bean);
+            } else {
+                list.add(bean);
             }
-            list.add(insertIndex, bean);
-        } else {
-            list.add(bean);
+            BaseApplication.writeFile(bean.toString());
+            insertIndex++;
         }
-        BaseApplication.writeFile(bean.toString());
-        insertIndex++;
         DbUtil.updateDetonatorList(list);
     }
 

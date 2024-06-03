@@ -42,14 +42,29 @@ public class InfoListActivity extends BaseActivity {
                 case ConstantUtils.INFO_ENTERPRISE:
                     enterpriseList = DbUtil.getEnterpriseList();
                     enterpriseAdapter.updateList(enterpriseList);
+                    for (EnterpriseBean bean: enterpriseList)
+                        if (bean.isSelected()){
+                            setResult(RESULT_OK);
+                            break;
+                        }
                     break;
                 case ConstantUtils.INFO_PROJECT:
                     projectList = DbUtil.getBaiSeInfoList();
                     projectAdapter.updateList(projectList);
+                    for (BaiSeInfoBean bean: projectList)
+                        if (bean.isSelected()){
+                            setResult(RESULT_OK);
+                            break;
+                        }
                     break;
                 case ConstantUtils.INFO_BLASTER:
                     blasterList = DbUtil.getBaiSeBlasterList();
                     blasterAdapter.updateList(blasterList);
+                    for (BaiSeBlasterBean bean: blasterList)
+                        if (bean.isSelected()){
+                            setResult(RESULT_OK);
+                            break;
+                        }
                     break;
             }
             checkButton();
