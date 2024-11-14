@@ -6,7 +6,6 @@ import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,6 +44,9 @@ public class DetonateStep2Activity extends BaseActivity {
     private SerialPortUtil serialPortUtil;
     private MyButton btnCharge;
     private MyButton btnRescan;
+    private TextView tvOnLine;
+    private TextView tvOffLine;
+    private TextView tvUnregister;
     private ViewPager viewPager;
     private CustomProgressDialog pDialog;
     private ConstantUtils.ListType rescanWhich;
@@ -98,6 +100,9 @@ public class DetonateStep2Activity extends BaseActivity {
                 case DETECT_SUCCESS:
                     if (null != viewPager.getAdapter())
                         viewPager.getAdapter().notifyDataSetChanged();
+                    tvOnLine.setText(String.format(getString(R.string.text_on_line), lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size()));
+                    tvOffLine.setText(String.format(getString(R.string.text_off_line), lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size()));
+                    tvUnregister.setText(String.format(getString(R.string.text_unregister), lists.get(ConstantUtils.ListType.ERROR.ordinal()).size()));
                     break;
                 case DETECT_FINISH:
                     BaseApplication.releaseWakeLock(DetonateStep2Activity.this);
@@ -412,8 +417,10 @@ public class DetonateStep2Activity extends BaseActivity {
                                             received[SerialCommand.CODE_CHAR_AT + 3] += 0x40;
                                         String address = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 15));
                                         BaseApplication.writeFile("雷壳码：" + address);
-                                        if (Pattern.matches(ConstantUtils.SHELL_PATTERN, address))
+                                        if (Pattern.matches(ConstantUtils.SHELL_PATTERN, address)) {
                                             lists.get(ConstantUtils.ListType.ERROR.ordinal()).get(listIndex).setAddress(address);
+                                            msg.getTarget().sendEmptyMessage(DETECT_SUCCESS);
+                                        }
                                         listIndex++;
                                         break;
                                     case STEP_WRITE_FIELD:
@@ -470,7 +477,8 @@ public class DetonateStep2Activity extends BaseActivity {
                                     case STEP_READ_SHELL:
                                         pDialog.incrementProgressBy(1);
                                         pDialog.setSecondaryProgress(45 + 10 * pDialog.getProgress() / pDialog.getMax());
-                                        listIndex++;
+                                        lists.get(ConstantUtils.ListType.ERROR.ordinal()).remove(listIndex);
+                                        msg.getTarget().sendEmptyMessage(DETECT_SUCCESS);
                                         break;
                                     case STEP_WRITE_FIELD:
                                         pDialog.incrementProgressBy(1);
@@ -560,6 +568,12 @@ public class DetonateStep2Activity extends BaseActivity {
             for (int i = 1; i < ConstantUtils.ListType.NONE.ordinal(); i++)
                 lists.add(new ArrayList<>());
             initPager();
+            tvOnLine = findViewById(R.id.tv_on_line);
+            tvOffLine = findViewById(R.id.tv_off_line);
+            tvUnregister = findViewById(R.id.tv_unregister);
+            tvOnLine.setText(String.format(getString(R.string.text_on_line), lists.get(ConstantUtils.ListType.DETECTED.ordinal()).size()));
+            tvOffLine.setText(String.format(getString(R.string.text_off_line), lists.get(ConstantUtils.ListType.NOT_FOUND.ordinal()).size()));
+            tvUnregister.setText(String.format(getString(R.string.text_unregister), lists.get(ConstantUtils.ListType.ERROR.ordinal()).size()));
             btnCharge.setEnabled(false);
             btnRescan = findViewById(R.id.btn_rescan);
             btnRescan.requestFocus();

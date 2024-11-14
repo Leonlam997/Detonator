@@ -37,7 +37,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 import com.leon.detonator.R;
@@ -71,12 +70,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -238,28 +239,56 @@ public class BaseApplication extends Application {
             }
     }
 
-    public static String getMacAddress() {
+
+    /**
+     * 根据IP地址获取MAC地址
+     */
+    private String getMacAddress() {
+        String result = "";
         try {
-            List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (NetworkInterface nif : all) {
-                if (!nif.getName().equalsIgnoreCase("wlan0")) continue;
-                byte[] macBytes = nif.getHardwareAddress();
-                if (macBytes == null) {
-                    return "";
-                }
-                StringBuilder res1 = new StringBuilder();
-                for (byte b : macBytes) {
-                    res1.append(String.format("%02X-", b));
-                }
-                if (res1.length() > 0) {
-                    res1.deleteCharAt(res1.length() - 1);
-                }
-                return res1.toString();
+            // 获得IpD地址
+            InetAddress ip = getLocalInetAddress();
+            byte[] b = NetworkInterface.getByInetAddress(ip).getHardwareAddress();
+            StringBuilder buffer = new StringBuilder();
+            for (int i = 0; i < b.length; i++) {
+                if (i != 0)
+                    buffer.append('-');
+                buffer.append(String.format("%02X", b[i] & 0xFF));
             }
+            result = buffer.toString().toUpperCase();
         } catch (Exception e) {
-            writeErrorLog(e);
+            BaseApplication.writeErrorLog(e);
         }
-        return "";
+        return result;
+    }
+
+    /**
+     * 获取移动设备本地IP
+     */
+    private static InetAddress getLocalInetAddress() {
+        InetAddress ip = null;
+        try {
+            // 列举
+            Enumeration<NetworkInterface> en_netInterface = NetworkInterface.getNetworkInterfaces();
+            while (en_netInterface.hasMoreElements()) {// 是否还有元素
+                NetworkInterface ni = (NetworkInterface) en_netInterface
+                        .nextElement();// 得到下一个元素
+                Enumeration<InetAddress> en_ip = ni.getInetAddresses();// 得到一个ip地址的列举
+                while (en_ip.hasMoreElements()) {
+                    ip = en_ip.nextElement();
+                    if (!ip.isLoopbackAddress() && ip.getHostAddress() != null && !ip.getHostAddress().contains(":"))
+                        break;
+                    else
+                        ip = null;
+                }
+                if (ip != null) {
+                    break;
+                }
+            }
+        } catch (SocketException e) {
+            BaseApplication.writeErrorLog(e);
+        }
+        return ip;
     }
 
     public static void acquireWakeLock(Activity activity) {
@@ -371,6 +400,7 @@ public class BaseApplication extends Application {
             filter.addAction("android.bluetooth.BluetoothAdapter.STATE_ON");
             registerReceiver(new BluetoothBroadcast(), filter);
             textToSpeech = new TextToSpeech(this, null);
+            writeFile(getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
         } catch (Exception e) {
             writeErrorLog(e);
         }
@@ -492,7 +522,7 @@ public class BaseApplication extends Application {
         for (Map.Entry<String, String> mapping : list) {
             sign.append(mapping.getKey()).append(mapping.getValue());
         }
-        sign.append(getMacAddress());
+        sign.append(settings.getMac());
         return MD5.encryptTo16BitString(sign.toString());
     }
 
@@ -606,7 +636,7 @@ public class BaseApplication extends Application {
                         OkHttpUtils.post()
                                 .url(ConstantUtils.UPLOAD_LOG_URL)
                                 .addFile("file", file.getName().replace(".log", ".txt"), file)
-                                .addHeader("MAC", getMacAddress())
+                                .addHeader("MAC", settings.getMac())
                                 .addHeader("IMEI", id)
                                 .build().execute(new Callback<UploadListResultBean>() {
 
@@ -710,20 +740,15 @@ public class BaseApplication extends Application {
                 }
             }
             if (null != params) {
-                params.put("mac", getMacAddress());
+                params.put("mac", settings.getMac());
                 if (disableWifi)
                     wm.setWifiEnabled(false);
                 if (null != telephonyManager) {
                     try {
-                        if (null != telephonyManager.getSimSerialNumber()) {
-                            params.put("iccid", telephonyManager.getSimSerialNumber());
-                        }
-                        if (null != telephonyManager.getSubscriberId()) {
+                        if (null != telephonyManager.getSubscriberId())
                             params.put("imsi", telephonyManager.getSubscriberId());
-                        }
-                        if (null != telephonyManager.getLine1Number()) {
+                        if (null != telephonyManager.getLine1Number())
                             params.put("mobilePhone".toLowerCase(), telephonyManager.getLine1Number());
-                        }
                     } catch (Exception e) {
                         writeErrorLog(e);
                     }
@@ -764,9 +789,15 @@ public class BaseApplication extends Application {
                                         BluetoothAdapter.getDefaultAdapter().setName(registerExploderBean.getResult().getExploder().getCodeID());
                                         saveSettings();
                                     }
-                                } else
+                                    if (handler != null)
+                                        handler.sendEmptyMessage(HANDLER_REGISTER_SUCCESS);
+                                } else {
                                     myToast(BaseApplication.this, registerExploderBean.getDescription());
-                            }
+                                    if (handler != null)
+                                        handler.sendEmptyMessage(HANDLER_REGISTER_ERROR);
+                                }
+                            } else if (handler != null)
+                                handler.sendEmptyMessage(HANDLER_REGISTER_ERROR);
                             registerFinished = true;
                         }
                     });
@@ -816,15 +847,15 @@ public class BaseApplication extends Application {
     }
 
     public void speakText(String text) {
-        if (textToSpeech.isSpeaking())
-            textToSpeech.stop();
-        textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null);
+        if (settings.isTtsSpeak()) {
+            if (textToSpeech.isSpeaking())
+                textToSpeech.stop();
+            textToSpeech.speak(text, TextToSpeech.QUEUE_ADD, null, null);
+        }
     }
 
     public void speakText(@StringRes int msg) {
-        if (textToSpeech.isSpeaking())
-            textToSpeech.stop();
-        textToSpeech.speak(getString(msg), TextToSpeech.QUEUE_ADD, null, null);
+        speakText(getString(msg));
     }
 
     public void setBtSender(boolean btSender) {

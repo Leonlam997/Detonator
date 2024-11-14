@@ -27,9 +27,11 @@ public class HideTestActivity extends BaseActivity implements View.OnClickListen
                     myApp.myToast(HideTestActivity.this, msg.arg1 == 0 ? R.string.message_registered_fail : msg.arg1 == 3 ? R.string.message_upload_log_fail : R.string.progress_upload);
                 else
                     myApp.myToast(HideTestActivity.this, (String) msg.obj);
+                btnFunctions[3].setEnabled(true);
                 break;
             case BaseApplication.HANDLER_REGISTER_SUCCESS:
                 myApp.myToast(HideTestActivity.this, msg.arg1 == 0 ? R.string.message_registered_success : R.string.message_upload_success);
+                btnFunctions[3].setEnabled(true);
                 break;
         }
         return false;

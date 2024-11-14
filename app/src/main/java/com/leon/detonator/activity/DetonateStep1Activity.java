@@ -7,6 +7,7 @@ import android.graphics.Point;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -38,9 +39,11 @@ import com.leon.detonator.base.BaseApplication;
 import com.leon.detonator.bean.BaiSeBlasterBean;
 import com.leon.detonator.bean.BaiSeCheckResultBean;
 import com.leon.detonator.bean.BaiSeInfoBean;
+import com.leon.detonator.bean.DanLinDetonatorBean;
+import com.leon.detonator.bean.DanLinOnlineDownloadRequestBean;
 import com.leon.detonator.bean.DetonatorBean;
-import com.leon.detonator.bean.OfflineDetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
+import com.leon.detonator.bean.JbqyBean;
 import com.leon.detonator.bean.LgBean;
 import com.leon.detonator.bean.SchemeBean;
 import com.leon.detonator.bean.ZbqyBean;
@@ -50,11 +53,12 @@ import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.util.ConstantUtils;
 import com.leon.detonator.util.ErrorCode;
 import com.leon.detonator.util.KeyUtils;
-import com.leon.detonator.util.MethodUtils;
+import com.leon.detonator.util.TripleDESUtil;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.Callback;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -70,47 +74,52 @@ public class DetonateStep1Activity extends BaseActivity {
     private BaiduMap baiduMap;
     private LocationClient locationClient;
     private EnterpriseBean enterpriseBean;
-    private String token;
     private List<DetonatorBean> list;
     private MyButton btnOnline;
     private MyButton btnOffline;
     private TextView tvCoordinate;
     private LatLng lastLatLng;
-    private OfflineDetonatorBean offlineBean;
+    private DanLinDetonatorBean offlineBean;
     private BaiSeInfoBean baiSeInfoBean;
     private BaiSeBlasterBean baiSeBlasterBean;
     private String address;
     private boolean firstLocate;
     private int requestCode;
     private int schemeSize;
+    private static final int REQUEST_CODE_GET_ENTERPRISE = 0;
+    private static final int REQUEST_CODE_GET_BAI_SE_INFO = 1;
+    private static final int REQUEST_CODE_GET_BAI_SE_BLASTER = 2;
+    private static final int REQUEST_CODE_EDIT_ENTERPRISE = 3;
+    private static final int REQUEST_CODE_SELECT_SCHEME = 4;
+    private static final int REQUEST_CODE_SELECT_SCHEME_BYPASS = 5;
+    private static final int REQUEST_CODE_EDIT_BAI_SE_DETECTOR = 6;
+    private static final int HANDLER_LOCATION_FINISHED = 1;
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (RESULT_OK == result.getResultCode())
             switch (requestCode) {
-                case 0:
+                case REQUEST_CODE_GET_ENTERPRISE:
+                case REQUEST_CODE_EDIT_ENTERPRISE:
                     enterpriseBean = DbUtil.getCurrentEnterprise();
                     break;
-                case 1:
+                case REQUEST_CODE_GET_BAI_SE_INFO:
                     baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
-                case 2:
+                case REQUEST_CODE_GET_BAI_SE_BLASTER:
+                case REQUEST_CODE_EDIT_BAI_SE_DETECTOR:
                     baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
                     break;
-                case 3:
-                case 4:
-                case 5:
+                case REQUEST_CODE_SELECT_SCHEME:
+                case REQUEST_CODE_SELECT_SCHEME_BYPASS:
                     List<SchemeBean> schemeBeanList = DbUtil.getCurrentSchemeList();
                     for (SchemeBean bean : schemeBeanList)
                         if (bean.getAmount() == 0) {
                             myApp.myToast(DetonateStep1Activity.this, String.format(getString(R.string.message_scheme_empty_list), schemeBeanList.get(0).getName()));
                             return;
                         }
-                    if (requestCode == 5 || (0 != BaseApplication.settings.getServerHost() && 3 != BaseApplication.settings.getServerHost()))
+                    if (requestCode == REQUEST_CODE_SELECT_SCHEME_BYPASS || !isDanLin())
                         enterDetect();
                     else {
                         list = DbUtil.getCurrentDetonatorList();
-                        if (requestCode == 3)
-                            checkRegister();
-                        else
-                            checkList(offlineBean.getResult().getLgs().getLg(), false);
+                        checkList(offlineBean.getResult().getLgs().getLg(), false);
                     }
                     break;
             }
@@ -121,12 +130,12 @@ public class DetonateStep1Activity extends BaseActivity {
                 enabledButton(true);
                 break;
             case BaseApplication.HANDLER_REGISTER_SUCCESS:
-                if (0 == BaseApplication.settings.getServerHost() || 3 == BaseApplication.settings.getServerHost()) {
+                if (isDanLin()) {
                     if (null == enterpriseBean || enterpriseBean.getCode().isEmpty()) {
                         myApp.myToast(DetonateStep1Activity.this, R.string.message_select_enterprise);
                         Intent intent = new Intent(DetonateStep1Activity.this, InfoListActivity.class);
                         intent.putExtra(KeyUtils.KEY_INFO_TYPE, ConstantUtils.INFO_ENTERPRISE);
-                        requestCode = 0;
+                        requestCode = REQUEST_CODE_GET_ENTERPRISE;
                         launcher.launch(intent);
                     } else if (BaseApplication.isNetSystemUsable(DetonateStep1Activity.this))
                         onlineDownload();
@@ -137,19 +146,19 @@ public class DetonateStep1Activity extends BaseActivity {
                         myApp.myToast(DetonateStep1Activity.this, R.string.message_select_enterprise);
                         Intent intent = new Intent(DetonateStep1Activity.this, InfoListActivity.class);
                         intent.putExtra(KeyUtils.KEY_INFO_TYPE, ConstantUtils.INFO_PROJECT);
-                        requestCode = 1;
+                        requestCode = REQUEST_CODE_GET_BAI_SE_INFO;
                         launcher.launch(intent);
                     } else if (baiSeBlasterBean == null || baiSeBlasterBean.getData() == null || baiSeBlasterBean.getData().getUserIdCard().isEmpty()) {
                         myApp.myToast(DetonateStep1Activity.this, R.string.message_select_detector);
                         Intent intent = new Intent(DetonateStep1Activity.this, InfoListActivity.class);
                         intent.putExtra(KeyUtils.KEY_INFO_TYPE, ConstantUtils.INFO_BLASTER);
-                        requestCode = 2;
+                        requestCode = REQUEST_CODE_GET_BAI_SE_BLASTER;
                         launcher.launch(intent);
                     } else
-                        launchWhich(KeyEvent.KEYCODE_F2);
+                        baiSeBlasterCheck();
                 }
                 break;
-            case 1:
+            case HANDLER_LOCATION_FINISHED:
                 StringBuilder coordinate = new StringBuilder();
                 tvCoordinate.setShadowLayer(1, 1, 1, Color.BLACK);
                 if (null != lastLatLng && (int) lastLatLng.latitude != 0 && (int) lastLatLng.longitude != 0) {
@@ -162,16 +171,13 @@ public class DetonateStep1Activity extends BaseActivity {
                     coordinate.append(String.format(Locale.getDefault(), getString(R.string.map_position), BaseApplication.settings.getLongitude(), BaseApplication.settings.getLatitude()));
                     coordinate.append(getString(R.string.map_locate_fail));
                     myApp.myToast(DetonateStep1Activity.this, R.string.message_use_last_position);
-                    msg.getTarget().sendEmptyMessageDelayed(3, 3000);
+                    msg.getTarget().sendEmptyMessageDelayed(HANDLER_LOCATION_FINISHED, 3000);
                     enabledButton(true);
                 } else
                     coordinate.append(getString(R.string.map_position_init));
                 if (address != null)
                     coordinate.append("\n").append(getString(R.string.map_address)).append(address);
                 tvCoordinate.setText(coordinate);
-                break;
-            case 4:
-                baiSeBlasterCheck();
                 break;
             default:
                 myApp.myToast(DetonateStep1Activity.this, (String) msg.obj);
@@ -211,21 +217,17 @@ public class DetonateStep1Activity extends BaseActivity {
         btnOffline = findViewById(R.id.btn_offline_auth);
         btnOnline = findViewById(R.id.btn_online_auth);
         tvCoordinate = findViewById(R.id.tv_coordinate);
-        if (0 == BaseApplication.settings.getServerHost() || 2 == BaseApplication.settings.getServerHost() || 3 == BaseApplication.settings.getServerHost()) {
-            findViewById(R.id.btn_offline_auth).setVisibility(View.VISIBLE);
-            if (2 == BaseApplication.settings.getServerHost()) {
-                baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
-                baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
-                btnOnline.setTextId(R.string.button_online_detect);
-                btnOffline.setTextId(R.string.button_auth);
-            } else {
-                btnOnline.setTextId(R.string.button_online_auth);
-                enterpriseBean = DbUtil.getCurrentEnterprise();
-                offlineBean = DbUtil.getOfflineDownloadDetonator();
-            }
-        } else {
-            btnOffline.setVisibility(View.GONE);
-            btnOnline.setTextId(R.string.button_online_detect);
+        if (isBaiSe()) {
+            btnOffline.setVisibility(View.VISIBLE);
+            baiSeInfoBean = DbUtil.getCurrentBaiSeInfo();
+            baiSeBlasterBean = DbUtil.getCurrentBaiSeBlaster();
+        } else if (isDanLin()) {
+            enterpriseBean = DbUtil.getCurrentEnterprise();
+            offlineBean = DbUtil.getDanLinDownloadDetonator(true);
+            if ((offlineBean == null || offlineBean.getResult() == null || offlineBean.getResult().getLgs() == null
+                    || offlineBean.getResult().getLgs().getLg() == null
+                    || offlineBean.getResult().getLgs().getLg().size() == 0))
+                myApp.myToast(DetonateStep1Activity.this, R.string.message_offline_list_not_found);
         }
         btnOnline.setOnClickListener(view -> launchWhich(KeyEvent.KEYCODE_1));
         btnOffline.setOnClickListener(view -> launchWhich(KeyEvent.KEYCODE_2));
@@ -259,32 +261,50 @@ public class DetonateStep1Activity extends BaseActivity {
         //开启地图定位图层
         locationClient.start();
         btnOnline.requestFocus();
-        myHandler.sendEmptyMessageDelayed(3, 2000);
+        myHandler.sendEmptyMessageDelayed(HANDLER_LOCATION_FINISHED, 2000);
     }
 
     private void launchWhich(int which) {
-        if (KeyEvent.KEYCODE_1 == which && btnOnline.isEnabled()) {
-            if (schemeSize > 1)
-                selectScheme(3);
-            else if (0 != BaseApplication.settings.getServerHost() && 3 != BaseApplication.settings.getServerHost())
-                enterDetect();
-            else
-                checkRegister();
-        } else if (KeyEvent.KEYCODE_2 == which && btnOffline.isEnabled()) {
-            if (0 == BaseApplication.settings.getServerHost() || 3 == BaseApplication.settings.getServerHost()) {
-                if (!checkLocation())
-                    myApp.myToast(DetonateStep1Activity.this, R.string.message_not_allow_area);
-                else if (schemeSize > 1)
-                    selectScheme(4);
+        switch (which) {
+            case KeyEvent.KEYCODE_1:
+                if (btnOnline.isEnabled()) {
+                    if (isDanLin()) {
+                        int check = checkLocation();
+                        if (1 == check)
+                            myApp.myToast(DetonateStep1Activity.this, R.string.message_not_allow_area);
+                        else if (2 == check)
+                            myApp.myToast(DetonateStep1Activity.this, R.string.message_forbidden_area);
+                        else if (schemeSize > 1)
+                            selectScheme(REQUEST_CODE_SELECT_SCHEME);
+                        else
+                            checkList(offlineBean.getResult().getLgs().getLg(), false);
+                    } else
+                        enterDetect();
+                } else {
+                    if (schemeSize == 0)
+                        myApp.myToast(DetonateStep1Activity.this, R.string.message_list_not_found);
+                    else if (isDanLin()
+                            && (offlineBean == null
+                            || offlineBean.getResult() == null
+                            || offlineBean.getResult().getLgs() == null
+                            || offlineBean.getResult().getLgs().getLg() == null
+                            || offlineBean.getResult().getLgs().getLg().size() == 0))
+                        myApp.myToast(DetonateStep1Activity.this, R.string.message_offline_list_not_found);
+                    else if (isBaiSe() && (baiSeBlasterBean == null || !baiSeBlasterBean.isChecked()))
+                        myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_fail);
+                }
+                break;
+            case KeyEvent.KEYCODE_2:
+                if (isBaiSe() && btnOffline.isEnabled())
+                    checkRegister();
+                break;
+            case KeyEvent.KEYCODE_F2:
+                BaseApplication.writeFile("按F2键, 方案数量:" + schemeSize);
+                if (schemeSize > 1)
+                    selectScheme(REQUEST_CODE_SELECT_SCHEME_BYPASS);
                 else
-                    checkList(offlineBean.getResult().getLgs().getLg(), false);
-            } else if (2 == BaseApplication.settings.getServerHost())
-                checkRegister();
-        } else if (KeyEvent.KEYCODE_F2 == which)
-            if (schemeSize > 1)
-                selectScheme(5);
-            else
-                enterDetect();
+                    enterDetect();
+        }
     }
 
     private void selectScheme(int code) {
@@ -373,71 +393,86 @@ public class DetonateStep1Activity extends BaseActivity {
                         str.append(bean.getAddress()).append(",");
                     if (str.length() > 0)
                         str.deleteCharAt(str.length() - 1);
-                    token = myApp.makeToken();
-                    Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_ONLINE_DOWNLOAD);
-                    if (null != params) {
-                        params.put("dsc", str.toString());
-                        params.put("dwdm", enterpriseBean.getCode());
-                        params.put("jd", validLocation().longitude + "");
-                        params.put("wd", validLocation().latitude + "");
-                        if (enterpriseBean.isCommercial()) {
-                            params.put("htid", enterpriseBean.getContract());
-                            params.put("xmbh", enterpriseBean.getProject());
-                        }
-                        params.put("signature", myApp.signature(params));
-                        OkHttpUtils.post()
-                                .url(ConstantUtils.HOST_URL)
-                                .params(params)
-                                .build().execute(new Callback<OfflineDetonatorBean>() {
-                                    @Override
-                                    public OfflineDetonatorBean parseNetworkResponse(Response response, int i) throws Exception {
-                                        if (response.body() != null) {
-                                            String string = Objects.requireNonNull(response.body()).string();
-                                            return BaseApplication.jsonFromString(string, OfflineDetonatorBean.class);
-                                        }
-                                        return null;
-                                    }
-
-                                    @Override
-                                    public void onError(Call call, Exception e, int i) {
-                                        myApp.myToast(DetonateStep1Activity.this, R.string.message_check_network);
-                                        myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
-                                    }
-
-                                    @Override
-                                    public void onResponse(OfflineDetonatorBean onlineBean, int i) {
-                                        myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
-                                        if (null != onlineBean) {
-                                            if (onlineBean.getToken().equals(token)) {
-                                                if (onlineBean.isStatus()) {
-                                                    if (null != onlineBean.getResult()) {
-                                                        if (onlineBean.getResult().getCwxx().equals("0")) {
-                                                            List<LgBean> detonators = onlineBean.getResult().getLgs().getLg();
-                                                            if (null != detonators) {
-                                                                DbUtil.updateDownloadDetonator(false, onlineBean);
-                                                                checkList(detonators, true);
-                                                            }
-                                                        } else {
-                                                            String error = ErrorCode.downloadErrorCode.get(onlineBean.getResult().getCwxx());
-                                                            if (null == error) {
-                                                                error = getString(R.string.message_download_unknown_error) + onlineBean.getResult().getCwxx();
-                                                            }
-                                                            myApp.myToast(DetonateStep1Activity.this, error);
-                                                        }
-                                                    }
-                                                } else
-                                                    myApp.myToast(DetonateStep1Activity.this, onlineBean.getDescription());
-                                            } else
-                                                myApp.myToast(DetonateStep1Activity.this, R.string.message_token_error);
-                                        } else
-                                            myApp.myToast(DetonateStep1Activity.this, R.string.message_return_data_error);
-                                    }
-                                });
+                    Map<String, String> params = new HashMap<>();
+                    DanLinOnlineDownloadRequestBean bean = new DanLinOnlineDownloadRequestBean();
+                    bean.setDwdm(enterpriseBean.getCode());
+                    bean.setSbbh(BaseApplication.settings.getExploderID());
+                    bean.setJd(validLocation().longitude + "");
+                    bean.setWd(validLocation().latitude + "");
+                    bean.setUid(str.toString());
+                    if (enterpriseBean.isCommercial()) {
+                        bean.setHtid(enterpriseBean.getContract());
+                        bean.setXmbh(enterpriseBean.getProject());
                     }
+                    try {
+                        BaseApplication.writeFile(new Gson().toJson(bean));
+                        String param = Base64.encodeToString(TripleDESUtil.encrypt(new Gson().toJson(bean).getBytes(), TripleDESUtil.KEY_DAN_LIN.getBytes()), Base64.NO_WRAP);
+                        params.put("param", param);
+                        BaseApplication.writeFile(param);
+                    } catch (Exception e) {
+                        BaseApplication.writeErrorLog(e);
+                        myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
+                        myApp.myToast(DetonateStep1Activity.this, R.string.message_generate_data_error);
+                        return;
+                    }
+                    OkHttpUtils.post()
+                            .url(ConstantUtils.HOST_URL)
+                            .params(params)
+                            .build().execute(new Callback<String>() {
+
+                                @Override
+                                public String parseNetworkResponse(Response response, int i) throws Exception {
+                                    if (response.body() != null)
+                                        return Objects.requireNonNull(response.body()).string();
+                                    return null;
+                                }
+
+                                @Override
+                                public void onError(Call call, Exception e, int i) {
+                                    myApp.myToast(DetonateStep1Activity.this, R.string.message_check_network);
+                                    myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
+                                }
+
+                                @Override
+                                public void onResponse(String s, int i) {
+                                    if (null != s) {
+                                        BaseApplication.writeFile(s);
+                                        try {
+                                            String param = new String(TripleDESUtil.decrypt(Base64.decode(s, Base64.NO_WRAP), TripleDESUtil.KEY_DAN_LIN.getBytes()));
+                                            BaseApplication.writeFile(param);
+                                            DanLinDetonatorBean danLinDetonatorBean = new DanLinDetonatorBean();
+                                            danLinDetonatorBean.setResult(new Gson().fromJson(param, DanLinDetonatorBean.ResultBean.class));
+                                            danLinDetonatorBean.setOffline(false);
+                                            danLinDetonatorBean.setEnterpriseId(enterpriseBean.getId());
+                                            if (null != danLinDetonatorBean.getResult()) {
+                                                if (danLinDetonatorBean.getResult().getCwxx().equals("0")) {
+                                                    List<LgBean> detonators = danLinDetonatorBean.getResult().getLgs().getLg();
+                                                    if (null != detonators) {
+                                                        DbUtil.updateDownloadDetonator(danLinDetonatorBean);
+                                                        checkList(detonators, true);
+                                                    }
+                                                } else {
+                                                    String error = ErrorCode.downloadErrorCode.get(danLinDetonatorBean.getResult().getCwxx());
+                                                    if (null == error) {
+                                                        error = getString(R.string.message_download_unknown_error) + danLinDetonatorBean.getResult().getCwxx();
+                                                    }
+                                                    myApp.myToast(DetonateStep1Activity.this, error);
+                                                }
+                                            } else {
+                                                myApp.myToast(DetonateStep1Activity.this, R.string.message_return_data_error);
+                                            }
+                                        } catch (Exception e) {
+                                            BaseApplication.writeErrorLog(e);
+                                            myApp.myToast(DetonateStep1Activity.this, R.string.message_return_data_error);
+                                        }
+                                    }
+                                    myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
+                                }
+                            });
                 })
                 .setNeutralButton(R.string.button_modify, (dialogInterface, i) -> {
-                    enabledButton(true);
-                    requestCode = 3;
+                    myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
+                    requestCode = REQUEST_CODE_EDIT_ENTERPRISE;
                     launcher.launch(new Intent(DetonateStep1Activity.this, EnterpriseActivity.class));
                 })
                 .show());
@@ -484,12 +519,12 @@ public class DetonateStep1Activity extends BaseActivity {
                                         @Override
                                         public void onError(Call call, Exception e, int i) {
                                             myApp.myToast(DetonateStep1Activity.this, R.string.message_check_network);
-                                            myHandler.sendEmptyMessage(1);
+                                            myHandler.sendEmptyMessage(HANDLER_LOCATION_FINISHED);
                                         }
 
                                         @Override
                                         public void onResponse(BaiSeCheckResultBean baiSeCheckResultBean, int i) {
-                                            myHandler.sendEmptyMessage(1);
+                                            myHandler.sendEmptyMessage(HANDLER_LOCATION_FINISHED);
                                             if (baiSeCheckResultBean != null) {
                                                 if (baiSeCheckResultBean.isSuccess() && baiSeCheckResultBean.getData().isIsPass()) {
                                                     myApp.myToast(DetonateStep1Activity.this, R.string.message_bai_se_check_success);
@@ -511,16 +546,9 @@ public class DetonateStep1Activity extends BaseActivity {
                         myApp.myToast(DetonateStep1Activity.this, R.string.message_check_network);
                 })
                 .setNeutralButton(R.string.button_modify, (dialogInterface, i) -> {
-                    enabledButton(true);
-                    if (baiSeBlasterBean == null) {
-                        Intent intent = new Intent(DetonateStep1Activity.this, InfoListActivity.class);
-                        intent.putExtra(KeyUtils.KEY_INFO_TYPE, ConstantUtils.INFO_BLASTER);
-                        requestCode = 4;
-                        launcher.launch(intent);
-                    } else {
-                        requestCode = 4;
-                        launcher.launch(new Intent(DetonateStep1Activity.this, BaiSeDetectorActivity.class));
-                    }
+                    myHandler.sendEmptyMessage(BaseApplication.HANDLER_REGISTER_ERROR);
+                    requestCode = REQUEST_CODE_EDIT_BAI_SE_DETECTOR;
+                    launcher.launch(new Intent(DetonateStep1Activity.this, BaiSeDetectorActivity.class));
                 })
                 .show());
     }
@@ -573,11 +601,11 @@ public class DetonateStep1Activity extends BaseActivity {
 
     private void enabledButton(boolean b) {
         setProgressVisibility(!b);
-        btnOnline.setEnabled(b && schemeSize > 0 && (2 != BaseApplication.settings.getServerHost() || (baiSeBlasterBean != null && baiSeBlasterBean.isChecked())));
-        btnOffline.setEnabled(b && (2 == BaseApplication.settings.getServerHost()
-                || (schemeSize > 0 && (offlineBean != null && offlineBean.getResult() != null && offlineBean.getResult().getLgs() != null
+        btnOnline.setEnabled(b && schemeSize > 0 && ((isDanLin() &&
+                offlineBean != null && offlineBean.getResult() != null && offlineBean.getResult().getLgs() != null
                 && offlineBean.getResult().getLgs().getLg() != null
-                && offlineBean.getResult().getLgs().getLg().size() > 0))));
+                && offlineBean.getResult().getLgs().getLg().size() > 0) || (isBaiSe() && baiSeBlasterBean != null && baiSeBlasterBean.isChecked()) || (!isDanLin() && !isBaiSe())));
+        btnOffline.setEnabled(b && isBaiSe());
     }
 
     private LatLng validLocation() {
@@ -586,21 +614,33 @@ public class DetonateStep1Activity extends BaseActivity {
         return new LatLng(BaseApplication.settings.getLatitude(), BaseApplication.settings.getLongitude());
     }
 
-    private boolean checkLocation() {
+    /**
+     * @return 0在准爆区域 1不在准爆区域 2在禁爆区域
+     */
+    private int checkLocation() {
         if (null != offlineBean) {
-            List<ZbqyBean> list = offlineBean.getResult().getZbqys().getZbqy();
-            for (ZbqyBean bean : list) {
+            for (JbqyBean bean : offlineBean.getResult().getJbqys().getJbqy()) {
+                try {
+                    if (BaseApplication.distance(Double.parseDouble(bean.getJbqywd()), Double.parseDouble(bean.getJbqyjd()), validLocation().latitude, validLocation().longitude)
+                            < Double.parseDouble(bean.getJbqybj())) {
+                        return 2;
+                    }
+                } catch (Exception e) {
+                    BaseApplication.writeErrorLog(e);
+                }
+            }
+            for (ZbqyBean bean : offlineBean.getResult().getZbqys().getZbqy()) {
                 try {
                     if (BaseApplication.distance(Double.parseDouble(bean.getZbqywd()), Double.parseDouble(bean.getZbqyjd()), validLocation().latitude, validLocation().longitude)
                             < Double.parseDouble(bean.getZbqybj())) {
-                        return true;
+                        return 0;
                     }
                 } catch (Exception e) {
                     BaseApplication.writeErrorLog(e);
                 }
             }
         }
-        return false;
+        return 1;
     }
 
     @Override
@@ -647,7 +687,7 @@ public class DetonateStep1Activity extends BaseActivity {
                 if (0 != (int) location.getLatitude() && 0 != (int) location.getLongitude()) {
                     address = location.getAddrStr();
                     lastLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                    myHandler.sendEmptyMessage(1);
+                    myHandler.sendEmptyMessage(HANDLER_LOCATION_FINISHED);
                     if (firstLocate) {
                         MapStatus mMapStatus = new MapStatus.Builder().target(lastLatLng).zoom(17).build();  //定义MapStatusUpdate对象，以便描述地图状态将要发生的变化
                         MapStatusUpdate mMapStatusUpdate = MapStatusUpdateFactory.newMapStatus(mMapStatus);

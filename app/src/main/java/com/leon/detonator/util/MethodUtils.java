@@ -7,6 +7,7 @@ public class MethodUtils {
     public final static String METHOD_GET_PROJECT = "GetEnterpriseProject";
     public final static String METHOD_GET_USERS = "GetEnterpriseUser";
     public final static String METHOD_UPLOAD_EXPLODE_LIST = "UploadEnterpriseProject";
+    public final static String METHOD_UPLOAD_EXPLODE_LIST_V2 = "UploadEnterpriseProjectV2";
     public final static String METHOD_EDIT_EXPLODER = "EditExploder";
     public final static String METHOD_GET_EXPLODER = "GetExploder";
 }

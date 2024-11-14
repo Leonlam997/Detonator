@@ -332,13 +332,13 @@ public class DetectActivity extends BaseActivity {
                                 case STEP_READ_SHELL:
                                     List<String> addressList = new ArrayList<>();
                                     switch (received[SerialCommand.CODE_CHAR_AT - 1]) {
-                                        case 21://箱条码
+                                        case 20://箱条码
                                             tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 19));
                                             BaseApplication.writeFile("箱条码：" + tempAddress);
                                             flowStep = Pattern.matches(ConstantUtils.TRUNK_CODE_PATTERN, tempAddress) ? STEP_TRUNK_DATA : STEP_DATA_ERROR;
                                             msg.getTarget().sendEmptyMessage(DETECT_FAIL);
                                             return false;
-                                        case 22://盒条码
+                                        case 21://盒条码
                                             tempAddress = new String(Arrays.copyOfRange(received, SerialCommand.CODE_CHAR_AT + 2, SerialCommand.CODE_CHAR_AT + 20));
                                             BaseApplication.writeFile("盒条码：" + tempAddress);
                                             if (!Pattern.matches(ConstantUtils.BOX_CODE_PATTERN, tempAddress)) {
@@ -589,9 +589,9 @@ public class DetectActivity extends BaseActivity {
         if (null != myReceiveListener)
             myReceiveListener.setStartAutoDetect(enable);
         setProgressVisibility(!enable);
-        btnNextRow.setEnabled(insertMode == 0 && enable);
-        btnNextHole.setEnabled(insertMode != ConstantUtils.INSERT_INSIDE && enable);
-        btnInside.setEnabled(insertMode != ConstantUtils.INSERT_HOLE && !BaseApplication.settings.isTunnel() && enable);
+        btnNextRow.setEnabled((insertMode == 0 || (BaseApplication.settings.isTunnel() && insertMode != ConstantUtils.INSERT_INSIDE)) && enable);
+        btnNextHole.setEnabled((BaseApplication.settings.isTunnel() || insertMode != ConstantUtils.INSERT_INSIDE) && enable);
+        btnInside.setEnabled(!BaseApplication.settings.isTunnel() && enable);
     }
 
     @Override

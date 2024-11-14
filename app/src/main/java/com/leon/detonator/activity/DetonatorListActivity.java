@@ -1,8 +1,11 @@
 package com.leon.detonator.activity;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
@@ -13,10 +16,15 @@ import android.text.TextWatcher;
 import android.text.method.NumberKeyListener;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.PopupWindow;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -51,6 +59,7 @@ public class DetonatorListActivity extends BaseActivity {
     private MyButton btnDelete;
     private ListView listView;
     private DetonatorListAdapter adapter;
+    private PopupWindow popupMenu;
     private SerialPortUtil serialPortUtil;
     private DataReceiveListener myReceiveListener;
     private SoundPool soundPool;
@@ -61,6 +70,9 @@ public class DetonatorListActivity extends BaseActivity {
     private long schemeId;
     private int soundSuccess;
     private int soundFail;
+    private int clickIndex;
+    private int insertMode;
+    private int lastTouchX;
     private int keyMode;
     private final TextWatcher watcher = new TextWatcher() {
         @Override
@@ -109,10 +121,10 @@ public class DetonatorListActivity extends BaseActivity {
                                 int index = list.indexOf(new DetonatorBean(tempAddress));
                                 if (index >= 0 && index < list.size()) {
                                     listView.smoothScrollToPosition(index);
-                                    listView.postDelayed(()->{
+                                    listView.postDelayed(() -> {
                                         listView.requestFocusFromTouch();
                                         listView.setSelection(index);
-                                    },100);
+                                    }, 100);
                                     myApp.myToast(DetonatorListActivity.this, String.format(getString(R.string.message_detonator_found), index + 1));
                                 } else
                                     myApp.myToast(DetonatorListActivity.this, String.format(getString(R.string.message_detonator_not_found), tempAddress));
@@ -135,6 +147,7 @@ public class DetonatorListActivity extends BaseActivity {
             myApp.shortCircuit(DetonatorListActivity.this, DetonatorListActivity.this.myHandler);
     });
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -197,8 +210,20 @@ public class DetonatorListActivity extends BaseActivity {
                 btnModify.setOnClickListener(view -> modifyBatch());
                 btnDelete = findViewById(R.id.btn_delete);
                 btnDelete.setOnClickListener(view -> deleteDetonator());
-                listView.setOnItemClickListener((adapterView, view, i, l) -> modifyDetonator(i));
                 checkButton();
+                listView.setOnTouchListener((v, event) -> {
+                    switch (event.getAction()) {
+                        case MotionEvent.ACTION_DOWN:
+                            lastTouchX = (int) event.getX();
+                            break;
+                        case MotionEvent.ACTION_UP:
+                            listView.performClick();
+                            break;
+                    }
+                    return false;
+                });
+                listView.setOnItemClickListener((adapterView, view, i, l) -> showPopupWindow(adapterView, view, i));
+
                 break;
             case ConstantUtils.HISTORY_LIST:
                 keyMode = MODE_HISTORY;
@@ -232,6 +257,147 @@ public class DetonatorListActivity extends BaseActivity {
         btnModify.setEnabled(list.size() > 0);
         btnDelete.setEnabled(list.size() > 0);
     }
+
+
+    private void showPopupWindow(AdapterView<?> adapterView, View view, int position) {
+        String[] menu;
+        menu = new String[]{getString(R.string.menu_delete_detonator),
+                getString(R.string.menu_modify),
+                getString(BaseApplication.settings.isTunnel() ? R.string.menu_tunnel_section_insert : R.string.menu_open_air_hole_insert),
+                getString(BaseApplication.settings.isTunnel() ? R.string.menu_tunnel_hole_insert : R.string.menu_open_air_inside_insert)};
+        for (int i = 0; i < menu.length; i++)
+            menu[i] = (i + 1) + ". " + menu[i];
+        keyMode += 10;
+        clickIndex = position;
+        View popupView = DetonatorListActivity.this.getLayoutInflater().inflate(R.layout.layout_popup_window, adapterView, false);
+        ((TextView) popupView.findViewById(R.id.tvTitle)).setText(list.get(clickIndex).getAddress());
+        ListView lsvMenu = popupView.findViewById(R.id.lvPopupMenu);
+        lsvMenu.setAdapter(new ArrayAdapter<>(DetonatorListActivity.this, R.layout.layout_item_popup_window, menu));
+        lsvMenu.setOnItemClickListener((parent, view1, position1, id) -> launchMenu(position1));
+        lsvMenu.setOnKeyListener((view12, i, keyEvent) -> {
+            launchMenu(i - KeyEvent.KEYCODE_1);
+            return false;
+        });
+        popupMenu = new PopupWindow(popupView, 450, 380);
+        popupMenu.setAnimationStyle(R.style.popup_window_anim);
+        popupMenu.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popupMenu.setFocusable(true);
+        popupMenu.setOutsideTouchable(true);
+        popupMenu.update();
+        popupMenu.showAsDropDown(view, lastTouchX > 75 ? lastTouchX - 75 : 0, list.size() == 0 ? -145 : 0);
+        popupMenu.setOnDismissListener(() -> {
+            keyMode -= 10;
+        });
+    }
+
+    private void launchMenu(int which) {
+        popupMenu.dismiss();
+        switch (which) {
+            case 0:
+                runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
+                        .setTitle(R.string.dialog_title_delete_detonator)
+                        .setMessage(R.string.dialog_confirm_delete_detonator)
+                        .setPositiveButton(R.string.button_confirm, (dialog1, which1) -> {
+                            list.remove(clickIndex);
+                            if (list.size() == 0)
+                                DbUtil.deleteDetonatorTable(schemeId);
+                            else
+                                DbUtil.updateDetonatorList(list);
+                            adapter.updateList(list);
+                            checkButton();
+                        })
+                        .setNegativeButton(R.string.button_cancel, null)
+                        .show()));
+
+                break;
+            case 1:
+                modifyDetonator(clickIndex);
+                break;
+            case 2:
+            case 3:
+                insertMode = which - 1;
+                doInsert();
+                break;
+        }
+    }
+
+    private void doInsert() {
+        final View insertView = LayoutInflater.from(DetonatorListActivity.this).inflate(R.layout.layout_dialog_insert_mode, null, false);
+        final RadioButton rbManuel = insertView.findViewById(R.id.rb_manual_line);
+        final RadioButton rbUp = insertView.findViewById(R.id.rb_insert_up);
+        BaseApplication.customDialog(new AlertDialog.Builder(DetonatorListActivity.this, R.style.AlertDialog)
+                .setTitle(R.string.dialog_title_select_mode)
+                .setView(insertView)
+                .setPositiveButton(R.string.button_confirm, (dialog, which) -> {
+                    if (list.size() > 0 && clickIndex < list.size()) {
+                        if (insertMode == ConstantUtils.INSERT_HOLE) {
+                            boolean hasChanged = false;
+                            if (rbUp.isChecked()) {
+                                if (list.get(clickIndex).getInside() > 1 && clickIndex > 0) {
+                                    for (int i = clickIndex - 1; i >= 0; i--)
+                                        if (list.get(clickIndex).getHole() != list.get(i).getHole()) {
+                                            clickIndex = i + 1;
+                                            hasChanged = true;
+                                            break;
+                                        }
+                                    if (!hasChanged)
+                                        clickIndex = 0;
+                                }
+                            } else if (clickIndex != list.size() - 1) {
+                                for (int i = clickIndex + 1; i < list.size(); i++)
+                                    if (list.get(clickIndex).getHole() != list.get(i).getHole()) {
+                                        clickIndex = i - 1;
+                                        hasChanged = true;
+                                        break;
+                                    }
+                                if (!hasChanged)
+                                    clickIndex = list.size() - 1;
+                            }
+                        }
+                        if (rbManuel.isChecked()) {
+                            insertMode += rbUp.isChecked() ? 10 : 0;
+                            manualAppend();
+                        } else {
+                            int lastRow = 0, lastHole = 0, lastInside = 0, lastDelay = -1;
+                            if (rbUp.isChecked()) {
+                                if (clickIndex > 0) {
+                                    lastRow = list.get(clickIndex).getRow();
+                                    lastDelay = list.get(clickIndex - 1).getDelayTime();
+                                    if (ConstantUtils.INSERT_INSIDE == insertMode) {
+                                        lastHole = list.get(clickIndex).getHole();
+                                        if (1 != list.get(clickIndex).getInside())
+                                            lastInside = list.get(clickIndex - 1).getInside();
+                                        else
+                                            lastDelay = list.get(clickIndex).getDelayTime()
+                                                    - (BaseApplication.settings.isTunnel() ? BaseApplication.settings.getSectionInside() : BaseApplication.settings.getHoleInside());
+                                    } else
+                                        lastHole = list.get(clickIndex - 1).getHole();
+                                }
+                            } else {
+                                lastRow = list.get(clickIndex).getRow();
+                                lastHole = list.get(clickIndex).getHole();
+                                lastInside = list.get(clickIndex).getInside();
+                                lastDelay = list.get(clickIndex).getDelayTime();
+                            }
+                            Intent intent = new Intent();
+                            intent.putExtra(KeyUtils.KEY_LAST_ROW, lastRow);
+                            intent.putExtra(KeyUtils.KEY_LAST_HOLE, lastHole);
+                            intent.putExtra(KeyUtils.KEY_LAST_INSIDE, lastInside);
+                            intent.putExtra(KeyUtils.KEY_LAST_DELAY, lastDelay);
+                            intent.putExtra(KeyUtils.KEY_INSERT_MODE, insertMode);
+                            intent.putExtra(KeyUtils.KEY_INSERT_INDEX, clickIndex + (rbUp.isChecked() ? 0 : 1));
+                            intent.putExtra(KeyUtils.KEY_TABLE_ID, schemeId);
+                            intent.setClass(DetonatorListActivity.this, DetectActivity.class);
+                            BaseApplication.writeFile(getString(rbUp.isChecked() ? R.string.insert_up : R.string.insert_down));
+                            serialPortUtil.sendCmd("", SerialCommand.CODE_BUS_CONTROL, 0xFF, 0xFF, 0x12);
+                            launcher.launch(intent);
+                        }
+                    }
+                })
+                .setNegativeButton(R.string.button_cancel, null)
+                .show());
+    }
+
 
     private void modifyDetonator(int i) {
         runOnUiThread(() -> {

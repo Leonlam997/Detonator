@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:text="@string/button_online_auth"
+            android:text="@string/button_online_detect"
             android:textSize="@dimen/button_text_size"
             button:keyCode="1" />
 
@@ -48,8 +48,10 @@
             android:layout_height="wrap_content"
             android:layout_columnWeight="1"
             android:layout_gravity="center"
-            android:text="@string/button_offline_auth"
+            android:enabled="false"
+            android:text="@string/button_auth"
             android:textSize="@dimen/button_text_size"
+            android:visibility="gone"
             button:keyCode="2" />
     </GridLayout>
 </RelativeLayout>

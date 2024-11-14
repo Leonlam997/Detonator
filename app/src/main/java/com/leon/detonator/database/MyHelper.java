@@ -30,5 +30,13 @@ public class MyHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        switch (oldVersion) {
+            case 1:
+                db.execSQL("ALTER TABLE " + DatabaseStatic.TABLE_DAN_LING + " ADD COLUMN " + DatabaseStatic.DanLing.USED + " tinyint(1) not null default 0");
+                db.execSQL("ALTER TABLE " + DatabaseStatic.TABLE_DAN_LING + " ADD COLUMN " + DatabaseStatic.DanLing.ENTERPRISE_ID + " integer");
+                db.execSQL("ALTER TABLE " + DatabaseStatic.TABLE_DOWNLOADED_DETONATOR + " ADD COLUMN " + DatabaseStatic.DownloadedDetonator.SCHEME_ID + " integer default -1");
+                db.execSQL("ALTER TABLE " + DatabaseStatic.TABLE_SCHEME + " ADD COLUMN " + DatabaseStatic.Scheme.DELETED + " tinyint(1) not null default 0");
+                db.execSQL("ALTER TABLE " + DatabaseStatic.TABLE_ENTERPRISE + " ADD COLUMN " + DatabaseStatic.Enterprise.DELETED + " tinyint(1) not null default 0");
+        }
     }
 }

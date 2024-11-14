@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.AlphaAnimation;
@@ -209,7 +208,7 @@ public class DetonateStep3Activity extends BaseActivity {
                         explodeStep = STEP_WAIT;
                         break;
                     case STEP_READ_STATUS:
-                        explodeStep = STEP_UPPER_VOLTAGE_2;
+                        explodeStep = BaseApplication.settings.isCountDown() ? STEP_UPPER_VOLTAGE_2 : STEP_EXPLODE;
                         break;
                     case STEP_UPPER_VOLTAGE_2:
                         if (pDialog != null && pDialog.isShowing())
@@ -373,20 +372,26 @@ public class DetonateStep3Activity extends BaseActivity {
                             if (chargeFinished)
                                 resetStatus();
                             enabledKeys = false;
-                            BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog).setTitle(R.string.dialog_title_warning).setMessage(R.string.dialog_large_current).setCancelable(false).setNegativeButton(R.string.button_exit, (dialog, which) -> {
-                                msg.getTarget().removeCallbacksAndMessages(null);
-                                myReceiveListener.setStartAutoDetect(false);
-                                explodeStep = STEP_RELEASE_1;
-                                msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
-                                nextStep = true;
-                                if (uniteExplode)
-                                    setResult(RESULT_CANCELED);
-                            }).setPositiveButton(R.string.button_ignore, ((dialog, which) -> {
-                                enabledKeys = true;
-                                ignoreCurrent = true;
-                            })).show());
+                            myApp.speakText(R.string.dialog_large_current);
+                            BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
+                                    .setTitle(R.string.dialog_title_warning)
+                                    .setMessage(R.string.dialog_large_current)
+                                    .setCancelable(false)
+                                    .setNegativeButton(R.string.button_exit, (dialog, which) -> {
+                                        msg.getTarget().removeCallbacksAndMessages(null);
+                                        myReceiveListener.setStartAutoDetect(false);
+                                        explodeStep = STEP_RELEASE_1;
+                                        msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
+                                        nextStep = true;
+                                        if (uniteExplode)
+                                            setResult(RESULT_CANCELED);
+                                    }).setPositiveButton(R.string.button_ignore, ((dialog, which) -> {
+                                        enabledKeys = true;
+                                        ignoreCurrent = true;
+                                    })).show());
                         }
                     } else if (received[0] == SerialCommand.ALERT_BREAK_CIRCUIT) {
+                        myApp.speakText(R.string.dialog_break_circuit);
                         breakExplode(R.string.dialog_break_circuit);
                     } else if (received.length > 5) {
                         msg.getTarget().removeMessages(HANDLER_SEND_COMMAND);
@@ -407,6 +412,8 @@ public class DetonateStep3Activity extends BaseActivity {
                                     Intent intent = new Intent(DetonateStep3Activity.this, DetonateStep4Activity.class);
                                     intent.putExtra(KeyUtils.KEY_EXPLODE_LAT, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LAT, 0));
                                     intent.putExtra(KeyUtils.KEY_EXPLODE_LNG, getIntent().getDoubleExtra(KeyUtils.KEY_EXPLODE_LNG, 0));
+                                    intent.putExtra(KeyUtils.KEY_EXPLODE_ONLINE, getIntent().getBooleanExtra(KeyUtils.KEY_EXPLODE_ONLINE, false));
+                                    intent.putParcelableArrayListExtra(KeyUtils.KEY_LIST, getIntent().getParcelableArrayListExtra(KeyUtils.KEY_LIST));
                                     intent.putExtra(KeyUtils.KEY_EXPLODE_ELAPSED, startExplodeTime);
                                     int t = 0;
                                     for (DetonatorBean bean : detonatorList)
@@ -496,7 +503,7 @@ public class DetonateStep3Activity extends BaseActivity {
                                     int j = 0;
                                     StringBuilder builder = new StringBuilder();
                                     for (int i = 0; i < detonatorList.size(); i++)
-                                        if ((received[SerialCommand.CODE_CHAR_AT + 2 + i / 8] & (1 << (7 - i % 8))) == 0) {
+                                        if (SerialCommand.CODE_CHAR_AT + 2 + i / 8 >= received.length || (received[SerialCommand.CODE_CHAR_AT + 2 + i / 8] & (1 << (7 - i % 8))) == 0) {
                                             j++;
                                             if (BaseApplication.settings.isTunnel())
                                                 builder.append(detonatorList.get(i).getHole()).append(getString(R.string.unit_section)).append(detonatorList.get(i).getInside());
@@ -506,28 +513,31 @@ public class DetonateStep3Activity extends BaseActivity {
                                         }
                                     builder.insert(0, "(" + j + getString(R.string.unit_detonator) + ")\n");
                                     if (j > 0) {
-                                        countDown = 0;
-                                        countScanZero = ConstantUtils.SCAN_ZERO_COUNT;
-                                        msg.getTarget().removeCallbacksAndMessages(null);
-                                        explodeStep = STEP_RELEASE_1;
-                                        msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
-                                        nextStep = true;
-                                        enabledKeys = false;
-                                        if (uniteExplode)
-                                            setResult(RESULT_CANCELED);
-                                        BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
-                                                .setTitle(R.string.progress_title)
-                                                .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_exist_offline), j))
-                                                .setCancelable(false)
-                                                .setPositiveButton(R.string.button_confirm, null).show());
-                                        findViewById(R.id.sv_log).setVisibility(View.VISIBLE);
-                                        findViewById(R.id.fl_charge).setVisibility(View.GONE);
-                                        findViewById(R.id.fl_slide).setVisibility(View.GONE);
-                                        setTitle(R.string.detect_result);
                                         tvLog.setText(builder.toString());
-                                        BaseApplication.writeFile(tvLog.getText().toString());
-                                        setProgressVisibility(false);
-                                        return false;
+                                        BaseApplication.writeFile(builder.toString());
+                                        if (STEP_CHECK_ONLINE == explodeStep) {
+                                            countDown = 0;
+                                            countScanZero = ConstantUtils.SCAN_ZERO_COUNT;
+                                            msg.getTarget().removeCallbacksAndMessages(null);
+                                            explodeStep = STEP_RELEASE_1;
+                                            msg.getTarget().sendEmptyMessage(HANDLER_SEND_COMMAND);
+                                            nextStep = true;
+                                            enabledKeys = false;
+                                            if (uniteExplode)
+                                                setResult(RESULT_CANCELED);
+                                            myApp.speakText(String.format(Locale.getDefault(), getString(R.string.dialog_exist_offline), j));
+                                            BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
+                                                    .setTitle(R.string.progress_title)
+                                                    .setMessage(String.format(Locale.getDefault(), getString(R.string.dialog_exist_offline), j))
+                                                    .setCancelable(false)
+                                                    .setPositiveButton(R.string.button_confirm, null).show());
+                                            findViewById(R.id.sv_log).setVisibility(View.VISIBLE);
+                                            findViewById(R.id.fl_charge).setVisibility(View.GONE);
+                                            findViewById(R.id.fl_slide).setVisibility(View.GONE);
+                                            setTitle(R.string.detect_result);
+                                            setProgressVisibility(false);
+                                            return false;
+                                        }
                                     }
                                     break;
                             }
@@ -675,8 +685,10 @@ public class DetonateStep3Activity extends BaseActivity {
             serialPortUtil.setDevEventCb(new ExpdDevMgr.IOnExpdDevEventCb() {
                 @Override
                 public void onSafeSwitchStChg(boolean b) {
-                    if (!b)
+                    if (!b) {
+                        myApp.speakText(R.string.dialog_safe_switch_off);
                         breakExplode(R.string.dialog_safe_switch_off);
+                    }
                 }
 
                 @Override
@@ -712,6 +724,7 @@ public class DetonateStep3Activity extends BaseActivity {
 
     private void detect() {
         enabledKeys = false;
+        myApp.speakText(R.string.dialog_explode_status_error);
         BaseApplication.customDialog(new AlertDialog.Builder(DetonateStep3Activity.this, R.style.AlertDialog)
                 .setTitle(R.string.progress_title)
                 .setMessage(R.string.dialog_explode_status_error)

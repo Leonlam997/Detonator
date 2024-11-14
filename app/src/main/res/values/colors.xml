@@ -49,5 +49,8 @@
     <color name="colorToastText">#FFFFFF</color>
     <color name="colorToastBackground">#4d56fe</color>
     <color name="colorCountDown">#a62124</color>
+    <color name="colorGroupTitle">#ffffff</color>
+    <color name="colorTunnelGroupBackground">#331F9AD5</color>
+    <color name="colorOpenAirGroupBackground">#33FF984E</color>
 
 </resources>

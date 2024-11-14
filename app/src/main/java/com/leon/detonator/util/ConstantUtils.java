@@ -8,13 +8,17 @@ import com.leon.detonator.base.BaseApplication;
 
 public class ConstantUtils {
     public final static String HOST_URL = "http://www.zhongbao360.com/open_service_v1";
-    //        public final static String HOST_URL = "http://192.168.0.2/open_service_v1";
+    //         public final static String HOST_URL = "http://192.168.0.2/open_service_v1";
     public final static String VERSION_URL = "http://www.zhongbao360.com/File/Client/General/update.json";
     public final static String UPLOAD_LOG_URL = "http://www.zhongbao360.com/Exploder/UploadLog";
-//    public final static String BAI_SE_UPLOAD_URL = "http://test.99mb.net:810/api/MbSystem/pda/uploadBlastRecord";
+    //    public final static String BAI_SE_UPLOAD_URL = "http://test.99mb.net:810/api/MbSystem/pda/uploadBlastRecord";
 //    public final static String BAI_SE_CHECK_URL = "http://test.99mb.net:810/api/MbSystem/pda/checkAllowDetonate";
     public final static String BAI_SE_UPLOAD_URL = "https://app.99mb.net/api/MbSystem/pda/uploadBlastRecord";
     public final static String BAI_SE_CHECK_URL = "https://app.99mb.net/api/MbSystem/pda/checkAllowDetonate";
+    //    public final static String DAN_LIN_DOWNLOAD_URL = "http://qq.mbdzlg.com/mbdzlgtxzx/servlet/DzlgMmlxxzJsonServlert";
+//    public final static String DAN_LIN_UPLOAD_URL = "http://qq.mbdzlg.com/mbdzlgtxzx/servlet/DzlgSysbJsonServlert";
+    public final static String DAN_LIN_DOWNLOAD_URL = "http://test.mbdzlg.com/mbdzlgtxzx/servlet/DzlgMmlxxzJsonServlert";
+    public final static String DAN_LIN_UPLOAD_URL = "http://test.mbdzlg.com/mbdzlgtxzx/servlet/DzlgSysbJsonServlert";
     public final static String ACCESS_TOKEN = "B23294542Z3A0990AB837C2C";
     public final static String[][] UPLOAD_HOST = {{"丹灵网", ""},
             {"广西民爆", "119.29.111.172:6088"},

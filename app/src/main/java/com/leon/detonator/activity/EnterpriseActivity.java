@@ -120,7 +120,7 @@ public class EnterpriseActivity extends BaseActivity {
             } else if (!Pattern.matches(ConstantUtils.ID_PATTERN, etId.getText())) {
                 myApp.myToast(EnterpriseActivity.this, R.string.message_input_id_error);
                 etId.requestFocus();
-            } else if (cbCommercial.isChecked() && etContract.getText().toString().isEmpty()) {
+            } else if (cbCommercial.isChecked() && (etContract.getText().toString().isEmpty() && etProject.getText().toString().isEmpty())) {
                 myApp.myToast(EnterpriseActivity.this, R.string.message_input_contract_code);
                 etContract.requestFocus();
             } else {
@@ -140,7 +140,7 @@ public class EnterpriseActivity extends BaseActivity {
 
     private void checkButton() {
         btnClear.setEnabled(!etCode.getText().toString().isEmpty() || !etId.getText().toString().isEmpty() || !etContract.getText().toString().isEmpty() || !etProject.getText().toString().isEmpty());
-        btnSave.setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !etContract.getText().toString().isEmpty()));
+        btnSave.setEnabled(!etCode.getText().toString().isEmpty() && !etId.getText().toString().isEmpty() && (!cbCommercial.isChecked() || !(etContract.getText().toString().isEmpty() && etProject.getText().toString().isEmpty())));
     }
 
     @Override

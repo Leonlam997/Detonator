@@ -6,8 +6,8 @@ android {
         applicationId "com.leon.detonator"
         minSdk 28
         targetSdkVersion 33
-        versionCode 80
-        versionName "2.0.2"
+        versionCode 81
+        versionName "2.0.10"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
@@ -29,6 +29,11 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            android.applicationVariants.all { variant ->
+                variant.outputs.all {
+                    outputFileName = "APK_${variant.versionName}.apk"
+                }
+            }
         }
     }
     sourceSets {

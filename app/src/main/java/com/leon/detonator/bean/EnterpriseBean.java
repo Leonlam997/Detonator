@@ -2,12 +2,34 @@ package com.leon.detonator.bean;
 
 public class EnterpriseBean {
     private long id;
+    /**
+     * 是否选中
+     **/
     private boolean selected;
+    /**
+     * 单位代码
+     **/
     private String code;
+    /**
+     * 起爆员身份证号
+     **/
     private String blasterId;
+    /**
+     * 是否营业性起爆单位
+     **/
     private boolean commercial;
+    /**
+     * 合同编号
+     **/
     private String contract;
+    /**
+     * 项目编号
+     **/
     private String project;
+    /**
+     * 是否已删除
+     **/
+    private boolean deleted;
 
     public String getCode() {
         return code;
@@ -63,5 +85,13 @@ public class EnterpriseBean {
 
     public void setSelected(boolean selected) {
         this.selected = selected;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 }

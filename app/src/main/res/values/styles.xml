@@ -20,6 +20,10 @@
         <item name="android:button">@drawable/cb_settings</item>
     </style>
 
+    <style name="SwitchBoxTheme" parent="@android:style/Widget.CompoundButton.CheckBox">
+        <item name="android:button">@drawable/cb_switch</item>
+    </style>
+
     <style name="popup_window_anim">
         <item name="android:windowEnterAnimation">@anim/popup_window_in</item>
         <item name="android:windowExitAnimation">@anim/popup_window_out</item>

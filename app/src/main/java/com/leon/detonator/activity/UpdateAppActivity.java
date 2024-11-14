@@ -183,7 +183,7 @@ public class UpdateAppActivity extends BaseActivity {
                 loader = new DownloadService(getApplicationContext(), versionBean.getUrl(), fileName);
                 loader.download(true, size -> {
                     int fileSize = loader.getFileSize();
-                    myHandler.obtainMessage(UPDATE_PROGRESS, (int) (size * 100f / fileSize), fileSize).sendToTarget();
+                    myHandler.obtainMessage(UPDATE_PROGRESS, size == fileSize ? 100 : (int) (size * 100f / fileSize), fileSize).sendToTarget();
                 });
             } catch (Exception e) {
                 BaseApplication.writeErrorLog(e);

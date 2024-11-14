@@ -2,6 +2,7 @@ package com.leon.detonator.bean;
 
 public class UploadDetonatorBean {
     private String DSC;
+    private String UID;
     private int BlastDelayTime;
     private int BlastRow;
     private int BlastHole;
@@ -13,6 +14,14 @@ public class UploadDetonatorBean {
 
     public void setDSC(String DSC) {
         this.DSC = DSC;
+    }
+
+    public String getUID() {
+        return UID;
+    }
+
+    public void setUID(String UID) {
+        this.UID = UID;
     }
 
     public int getBlastDelayTime() {

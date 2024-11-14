@@ -73,8 +73,9 @@ public class InfoAdapter<T> extends BaseAdapter {
         if (getItem(i) instanceof EnterpriseBean) {
             EnterpriseBean bean = (EnterpriseBean) getItem(i);
             viewHolder.info1.setText(String.format("%s %s", inflater.getContext().getString(R.string.enterprise_code), bean.getCode()));
-            viewHolder.info2.setText(String.format("%s %s", inflater.getContext().getString(R.string.enterprise_detector_id), bean.getBlasterId()));
-            viewHolder.info3.setText(inflater.getContext().getString(bean.isCommercial() ? R.string.enterprise_commercial : R.string.enterprise_not_commercial));
+            viewHolder.info2.setText(String.format("%s %s", inflater.getContext().getString(R.string.enterprise_contract_name), bean.getContract()));
+            viewHolder.info3.setText(String.format("%s %s", inflater.getContext().getString(R.string.enterprise_detector_id), bean.getBlasterId()));
+            //viewHolder.info3.setText(inflater.getContext().getString(bean.isCommercial() ? R.string.enterprise_commercial : R.string.enterprise_not_commercial));
             viewHolder.isSelected.setChecked(bean.isSelected());
         } else if (getItem(i) instanceof BaiSeInfoBean) {
             BaiSeInfoBean bean = (BaiSeInfoBean) getItem(i);
@@ -94,7 +95,7 @@ public class InfoAdapter<T> extends BaseAdapter {
             SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_PART, Locale.getDefault());
             viewHolder.info1.setText(String.format("%s %s", inflater.getContext().getString(R.string.text_scheme_name), bean.getName()));
             viewHolder.info2.setText(String.format("%s %s", inflater.getContext().getString(R.string.text_create_date), formatter.format(bean.getCreateTime())));
-            viewHolder.info2.setTextSize(ConstantUtils.ITEM_TEXT_SIZE-2);
+            viewHolder.info2.setTextSize(ConstantUtils.ITEM_TEXT_SIZE - 2);
             viewHolder.info3.setText(String.format(Locale.getDefault(), "%s %d", inflater.getContext().getString(R.string.text_amount), bean.getAmount()));
             viewHolder.isSelected.setChecked(bean.isSelected());
         }

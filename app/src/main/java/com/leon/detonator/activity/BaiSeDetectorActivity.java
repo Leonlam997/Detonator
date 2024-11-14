@@ -90,7 +90,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
                 }
             }
         });
-        btnSave =findViewById(R.id.btn_save);
+        btnSave = findViewById(R.id.btn_save);
         btnSave.setOnClickListener(view -> {
             if (etId.getText() == null || etId.getText().toString().isEmpty()) {
                 etId.requestFocus();
@@ -116,7 +116,7 @@ public class BaiSeDetectorActivity extends BaseActivity {
             }
             myApp.myToast(BaiSeDetectorActivity.this, R.string.message_data_input_error);
         });
-        btnClear =findViewById(R.id.btn_clear);
+        btnClear = findViewById(R.id.btn_clear);
         btnClear.setOnClickListener(view -> {
             etName.setText("");
             etId.setText("");

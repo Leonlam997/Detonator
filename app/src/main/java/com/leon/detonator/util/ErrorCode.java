@@ -6,6 +6,7 @@ import java.util.Map;
 public class ErrorCode {
     public static final Map<String, String> downloadErrorCode;
     public static final Map<String, String> detonatorErrorCode;
+    public static final Map<String, String> uploadErrorCode;
 
     static {
         downloadErrorCode = new HashMap<>();
@@ -28,6 +29,8 @@ public class ErrorCode {
         detonatorErrorCode.put("1", "雷管在黑名单中");
         detonatorErrorCode.put("2", "雷管已使用");
         detonatorErrorCode.put("3", "申请的雷管UID不存在");
-
+        uploadErrorCode = new HashMap<>();
+        uploadErrorCode.put("1", "非法的申请信息");
+        uploadErrorCode.put("2", "起爆器未备案或未设置作业任务");
     }
 }

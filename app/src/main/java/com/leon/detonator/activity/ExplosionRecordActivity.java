@@ -15,6 +15,7 @@ import com.leon.detonator.R;
 import com.leon.detonator.adapter.ExplosionRecordAdapter;
 import com.leon.detonator.base.BaseActivity;
 import com.leon.detonator.base.BaseApplication;
+import com.leon.detonator.base.SynchronizeExplodeRecord;
 import com.leon.detonator.base.UploadExplodeRecord;
 import com.leon.detonator.bean.ExplosionRecordBean;
 import com.leon.detonator.component.MyButton;
@@ -56,6 +57,8 @@ public class ExplosionRecordActivity extends BaseActivity {
                         }
                     successCount++;
                     adapter.updateList(list);
+                    if (!SynchronizeExplodeRecord.uploading)
+                        new SynchronizeExplodeRecord(myApp).start();
                 } else {
                     if (successCount >= selectedList.size())
                         myApp.myToast(ExplosionRecordActivity.this, R.string.message_upload_all_success);
@@ -87,8 +90,7 @@ public class ExplosionRecordActivity extends BaseActivity {
         myApp = (BaseApplication) getApplication();
         list = DbUtil.getExplosionRecordList();
         if (list.size() > 0)
-            list.removeIf(bean -> BaseApplication.settings.isTunnel() != bean.isTunnel());
-
+            list.removeIf(bean -> BaseApplication.settings.isTunnel() != bean.isTunnel() || bean.isDeleted());
         listView = findViewById(R.id.lv_record_list);
         adapter = new ExplosionRecordAdapter(this, list);
         listView.setAdapter(adapter);
@@ -182,7 +184,7 @@ public class ExplosionRecordActivity extends BaseActivity {
                     }
                     if (forceDelete != 4) {
                         for (ExplosionRecordBean bean : list) {
-                            if (bean.isSelected() && bean.getUploadServer() == -1) {
+                            if (bean.isSelected() && bean.getUploadTime() == null) {
                                 myApp.myToast(ExplosionRecordActivity.this, R.string.message_cannot_delete_not_upload);
                                 canDelete = false;
                                 break;
@@ -205,8 +207,8 @@ public class ExplosionRecordActivity extends BaseActivity {
                                             it.remove();
                                         }
                                     }
-                                    if (ids.size()>0)
-                                        DbUtil.deleteScheme(ids);
+                                    if (ids.size() > 0)
+                                        DbUtil.deleteRecord(ids);
                                     adapter.updateList(list);
                                 })
                                 .setNegativeButton(R.string.button_cancel, null)

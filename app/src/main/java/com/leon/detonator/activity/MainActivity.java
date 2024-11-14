@@ -160,7 +160,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void initSettings() {
-        runOnUiThread(() -> findViewById(R.id.tv_auth).setEnabled(0 == BaseApplication.settings.getServerHost() || 3 == BaseApplication.settings.getServerHost()));
+        runOnUiThread(() -> findViewById(R.id.tv_auth).setEnabled(isDanLin()));
     }
 
     private void trimFile(String fileName) {
@@ -231,7 +231,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private void launchActivity(int num) {
         keyCount = 0;
-        if (2 == num && 0 != BaseApplication.settings.getServerHost() && 3 != BaseApplication.settings.getServerHost())
+        if (2 == num && !isDanLin())
             return;
         if (num >= 0 && num <= 5) {
             Intent intent = new Intent();

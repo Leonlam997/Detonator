@@ -148,6 +148,14 @@ public abstract class BaseActivity extends AppCompatActivity {
         initActionBar();
     }
 
+    protected boolean isBaiSe() {
+        return 2 == BaseApplication.settings.getServerHost();
+    }
+
+    protected boolean isDanLin() {
+        return 0 == BaseApplication.settings.getServerHost() || 3 == BaseApplication.settings.getServerHost();
+    }
+
     private void initActionBar() {
         tvTitle = findViewById(R.id.tv_title);
         tvSubtitle = findViewById(R.id.tv_subtitle);

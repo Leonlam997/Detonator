@@ -1,5 +1,8 @@
 package com.leon.detonator.bean;
 
+import com.leon.detonator.base.BaseApplication;
+
+import java.util.Locale;
 import java.util.Map;
 
 public class LocalSettingBean {
@@ -9,6 +12,7 @@ public class LocalSettingBean {
     private String mtMac;
     private String exploderID;
     private String IMEI;
+    private String mac;
     private int row;
     private int hole;
     private int holeInside;
@@ -25,10 +29,26 @@ public class LocalSettingBean {
     private double latitude;
     private double longitude;
     private boolean scanMode;
+    private boolean ttsSpeak;
+    private boolean countDown;
     private Map<Float, Integer> dacMap;
 
     public LocalSettingBean() {
+        updateHint = true;
+        ttsSpeak = true;
+        countDown = true;
         serverHost = 1;
+        mac = generateMAC();
+    }
+
+    private String generateMAC() {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            if (i != 0)
+                result.append("-");
+            result.append(String.format(Locale.getDefault(), "%02X", (int) (Math.random() * 256)));
+        }
+        return result.toString();
     }
 
     public String getSerialNum() {
@@ -213,5 +233,33 @@ public class LocalSettingBean {
 
     public void setDacMap(Map<Float, Integer> dacMap) {
         this.dacMap = dacMap;
+    }
+
+    public boolean isTtsSpeak() {
+        return ttsSpeak;
+    }
+
+    public void setTtsSpeak(boolean ttsSpeak) {
+        this.ttsSpeak = ttsSpeak;
+    }
+
+    public boolean isCountDown() {
+        return countDown;
+    }
+
+    public void setCountDown(boolean countDown) {
+        this.countDown = countDown;
+    }
+
+    public String getMac() {
+        if (mac == null || mac.isEmpty()) {
+            BaseApplication.settings.setMac(generateMAC());
+            BaseApplication.saveSettings();
+        }
+        return mac;
+    }
+
+    public void setMac(String mac) {
+        this.mac = mac;
     }
 }

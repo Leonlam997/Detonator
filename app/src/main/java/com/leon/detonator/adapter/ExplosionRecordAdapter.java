@@ -75,21 +75,22 @@ public class ExplosionRecordAdapter extends BaseAdapter {
             convertView.setTag(viewHolder);
         } else
             viewHolder = (ViewHolder) convertView.getTag();
+        boolean uploaded = bean.getUploadTime() != null;
         SimpleDateFormat formatter = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_PART, Locale.getDefault());
         viewHolder.name.setText(String.format("%s %s", inflater.getContext().getString(R.string.text_scheme_name), bean.getName()));
         viewHolder.name.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
-        viewHolder.name.setTextColor(inflater.getContext().getColor(bean.getUploadServer() != -1 ? R.color.colorDownloaded : R.color.colorNotDownloaded));
+        viewHolder.name.setTextColor(inflater.getContext().getColor(uploaded ? R.color.colorDownloaded : R.color.colorNotDownloaded));
         viewHolder.serialNo.setText(String.format(Locale.getDefault(), "%d", position + 1));
         viewHolder.serialNo.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
-        viewHolder.serialNo.setTextColor(inflater.getContext().getColor(bean.getUploadServer() != -1 ? R.color.colorDownloaded : R.color.colorNotDownloaded));
+        viewHolder.serialNo.setTextColor(inflater.getContext().getColor(uploaded ? R.color.colorDownloaded : R.color.colorNotDownloaded));
         viewHolder.explodeDate.setText(String.format("%s %s", inflater.getContext().getString(R.string.text_explode_date), formatter.format(bean.getExplodeTime())));
-        viewHolder.explodeDate.setTextColor(inflater.getContext().getColor(bean.getUploadServer() != -1 ? R.color.colorDownloaded : R.color.colorNotDownloaded));
+        viewHolder.explodeDate.setTextColor(inflater.getContext().getColor(uploaded ? R.color.colorDownloaded : R.color.colorNotDownloaded));
         viewHolder.explodeDate.setTextSize(ConstantUtils.ITEM_TEXT_SIZE - 2);
         viewHolder.amount.setTextSize(ConstantUtils.ITEM_TEXT_SIZE);
         viewHolder.amount.setText(String.format(Locale.getDefault(), "%s %d", inflater.getContext().getString(R.string.text_amount), bean.getAmount()));
-        viewHolder.amount.setTextColor(inflater.getContext().getColor(bean.getUploadServer() != -1 ? R.color.colorDownloaded : R.color.colorNotDownloaded));
-        viewHolder.uploaded.setText(bean.getUploadServer() != -1 ? R.string.text_uploaded : R.string.text_no_uploaded);
-        viewHolder.uploaded.setTextColor(inflater.getContext().getColor(bean.getUploadServer() != -1 ? R.color.colorDownloaded : R.color.colorNotDownloaded));
+        viewHolder.amount.setTextColor(inflater.getContext().getColor(uploaded ? R.color.colorDownloaded : R.color.colorNotDownloaded));
+        viewHolder.uploaded.setText(uploaded ? R.string.text_uploaded : R.string.text_no_uploaded);
+        viewHolder.uploaded.setTextColor(inflater.getContext().getColor(uploaded ? R.color.colorDownloaded : R.color.colorNotDownloaded));
         viewHolder.uploaded.setTextSize(ConstantUtils.ITEM_TEXT_SIZE - 2);
         viewHolder.isSelected.setChecked(bean.isSelected());
         viewHolder.isSelected.setClickable(false);

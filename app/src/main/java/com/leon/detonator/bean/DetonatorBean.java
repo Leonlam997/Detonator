@@ -28,18 +28,55 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
             return new DetonatorBean[size];
         }
     };
+    /**
+     * 方案编号
+     */
     private long schemeId;
+    /**
+     * 雷管编号
+     */
     private int id;
-    private String address;      //管壳码
-    private int delayTime;      //延期
-    private int row;             //排号
-    private int hole;            //孔号或段号
-    private int inside;         //孔内或段内
-    private boolean selected;   //是否选中
-    private boolean downloaded; //是否已下载
+    /**
+     * 雷管管壳码
+     */
+    private String address;
+    /**
+     * 雷管UID码
+     */
+    private String uID;
+    /**
+     * 雷管延期
+     */
+    private int delayTime;
+    /**
+     * 雷管排号
+     * 离线下载时用于记录错误代码
+     * 0 雷管正常
+     * 1 雷管在黑名单中
+     * 2 雷管已使用
+     * 3 申请的雷管UID不存在
+     */
+    private int row;
+    /**
+     * 雷管孔号或段号
+     */
+    private int hole;
+    /**
+     * 雷管孔内或段内号
+     */
+    private int inside;
+    /**
+     * 是否选中
+     */
+    private boolean selected;
+    /**
+     * 是否已下载
+     */
+    private boolean downloaded;
 
     public DetonatorBean() {
         address = "";
+        uID = "";
         row = 1;
         hole = 1;
         inside = 1;
@@ -50,6 +87,7 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
         schemeId = bean.getSchemeId();
         address = bean.getAddress();
         delayTime = bean.getDelayTime();
+        uID = bean.getUID();
         row = bean.getRow();
         hole = bean.getHole();
         inside = bean.getInside();
@@ -59,6 +97,7 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
 
     public DetonatorBean(String address) {
         this.address = address;
+        this.uID = "";
         this.downloaded = true;
     }
 
@@ -66,6 +105,7 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
         this.schemeId = schemeId;
         this.address = address;
         this.delayTime = delay;
+        this.uID = "";
         this.row = row;
         this.hole = hole;
         this.inside = inside;
@@ -77,6 +117,7 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
         this.schemeId = source.readLong();
         this.id = source.readInt();
         this.address = source.readString();
+        this.uID = source.readString();
         this.delayTime = source.readInt();
         this.row = source.readInt();
         this.hole = source.readInt();
@@ -89,6 +130,7 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
         dest.writeLong(schemeId);
         dest.writeInt(id);
         dest.writeString(address);
+        dest.writeString(uID);
         dest.writeInt(delayTime);
         dest.writeInt(row);
         dest.writeInt(hole);
@@ -168,10 +210,19 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
         this.downloaded = downloaded;
     }
 
+    public String getUID() {
+        return uID;
+    }
+
+    public void setUID(String uID) {
+        this.uID = uID;
+    }
+
     @NonNull
     public String toString() {
         return this.address + "," +
                 this.delayTime + "," +
+                this.uID + "," +
                 this.row + "," +
                 this.hole + "," +
                 this.inside;
@@ -187,6 +238,7 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("address", this.address);
         jsonObject.put("delayTime", this.delayTime);
+//        jsonObject.put("uID", this.uID);
         jsonObject.put("row", this.row);
         jsonObject.put("hole", this.hole);
         jsonObject.put("inside", this.inside);
@@ -197,6 +249,7 @@ public class DetonatorBean implements Parcelable, BaseJSONBean, Comparable<Deton
     @Override
     public void fromJSON(JSONObject jsonObject) throws JSONException {
         this.address = jsonObject.getString("address");
+//        this.uID = jsonObject.getString("uID");
         this.delayTime = jsonObject.getInt("delayTime");
         this.row = jsonObject.getInt("row");
         this.hole = jsonObject.getInt("hole");

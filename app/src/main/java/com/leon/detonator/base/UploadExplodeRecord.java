@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.os.Handler;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -21,22 +22,25 @@ import com.leon.detonator.activity.InfoListActivity;
 import com.leon.detonator.bean.BaiSeBlasterBean;
 import com.leon.detonator.bean.BaiSeInfoBean;
 import com.leon.detonator.bean.BaiSeUploadResultBean;
+import com.leon.detonator.bean.DanLinUploadRequestBean;
+import com.leon.detonator.bean.DanLinUploadResultBean;
 import com.leon.detonator.bean.DetonatorBean;
 import com.leon.detonator.bean.EnterpriseBean;
 import com.leon.detonator.bean.ExplosionRecordBean;
-import com.leon.detonator.bean.UploadExplodeRecordsBean;
 import com.leon.detonator.component.MarqueeTextView;
 import com.leon.detonator.database.DbUtil;
 import com.leon.detonator.mina.client.MinaClient;
 import com.leon.detonator.mina.client.MinaHandler;
 import com.leon.detonator.util.ConstantUtils;
+import com.leon.detonator.util.ErrorCode;
 import com.leon.detonator.util.KeyUtils;
-import com.leon.detonator.util.MethodUtils;
+import com.leon.detonator.util.TripleDESUtil;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.callback.Callback;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -64,7 +68,6 @@ public class UploadExplodeRecord extends Thread {
     public static boolean uploading;
     private int uploadIndex;
     private int receiveCount;
-    private boolean cancel;
 
     public UploadExplodeRecord(BaseActivity activity, List<ExplosionRecordBean> list, Handler handler, ActivityResultLauncher<Intent> launcher) {
         this.list = list;
@@ -92,7 +95,7 @@ public class UploadExplodeRecord extends Thread {
                         if (((String) msg.obj).startsWith("#") && ((String) msg.obj).endsWith("$"))
                             receiveCount++;
                         if (receiveCount >= 3) {
-                            if (BaseApplication.settings.getServerHost() == 2)
+                            if (this.activity.isBaiSe())
                                 uploadBaiSe();
                             else if (BaseApplication.settings.getServerHost() == 3)
                                 uploadDanLing();
@@ -104,7 +107,7 @@ public class UploadExplodeRecord extends Thread {
                 case MinaHandler.MINA_NORMAL:
                     if (null != msg.obj) {
                         BaseApplication.writeFile((String) msg.obj);
-                        myApp.myToast(activity, (String) msg.obj);
+                        myApp.myToast(this.activity, (String) msg.obj);
                     }
                     break;
                 case MinaHandler.MINA_ERROR:
@@ -114,7 +117,7 @@ public class UploadExplodeRecord extends Thread {
                     uploadFail(false);
                     break;
                 case HANDLER_TIMEOUT:
-                    myApp.myToast(activity, R.string.message_check_network);
+                    myApp.myToast(this.activity, R.string.message_check_network);
                     uploadFail(false);
                     break;
             }
@@ -133,7 +136,7 @@ public class UploadExplodeRecord extends Thread {
                 prepareUpload();
         } else {
             myApp.myToast(activity, R.string.message_check_network);
-            handler.obtainMessage(HANDLER_FAIL, -1).sendToTarget();
+            handler.obtainMessage(HANDLER_FAIL, -1L).sendToTarget();
         }
         while (uploading) {
             try {
@@ -236,6 +239,7 @@ public class UploadExplodeRecord extends Thread {
         activity.runOnUiThread(() -> BaseApplication.customDialog(new AlertDialog.Builder(activity, R.style.AlertDialog)
                 .setTitle(R.string.settings_enterprise)
                 .setView(layout)
+                .setCancelable(false)
                 .setNegativeButton(R.string.button_cancel, null)
                 .setPositiveButton(R.string.button_confirm, (dialogInterface, i) -> uploadNextRecord())
                 .setNeutralButton(R.string.button_modify, (dialogInterface, i) -> launcher.launch(new Intent(activity, EnterpriseActivity.class)))
@@ -280,72 +284,80 @@ public class UploadExplodeRecord extends Thread {
         for (DetonatorBean bean : detonators)
             str.append(bean.getAddress()).append(",");
         str.deleteCharAt(str.length() - 1);
-        String token = myApp.makeToken();
-        Map<String, String> params = myApp.makeParams(token, MethodUtils.METHOD_UPLOAD_RECORDS);
-        if (null != params) {
-            params.put("dsc", str.toString());
-            params.put("dwdm", enterpriseBean.getCode());
-            params.put("bprysfz", enterpriseBean.getBlasterId());
-            SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
-            params.put("bpsj", df.format(list.get(uploadIndex).getExplodeTime()));
-            params.put("jd", list.get(uploadIndex).getLng() + "");
-            params.put("wd", list.get(uploadIndex).getLat() + "");
 
-            if (enterpriseBean.isCommercial()) {
-                params.put("htid", enterpriseBean.getContract());
-                params.put("xmbh", enterpriseBean.getProject());
-            }
-            params.put("signature", myApp.signature(params));
-            OkHttpUtils.post()
-                    .url(ConstantUtils.HOST_URL)
-                    .params(params)
-                    .build().execute(new Callback<UploadExplodeRecordsBean>() {
-                        @Override
-                        public UploadExplodeRecordsBean parseNetworkResponse(Response response, int i) throws Exception {
-                            if (response.body() != null) {
-                                String string = Objects.requireNonNull(response.body()).string();
-                                return BaseApplication.jsonFromString(string, UploadExplodeRecordsBean.class);
+        Map<String, String> params = new HashMap<>();
+        DanLinUploadRequestBean bean = new DanLinUploadRequestBean();
+        bean.setUid(str.toString());
+        bean.setDwdm(enterpriseBean.getCode());
+        bean.setBprysfz(enterpriseBean.getBlasterId());
+        SimpleDateFormat df = new SimpleDateFormat(ConstantUtils.DATE_FORMAT_FULL, Locale.getDefault());
+        bean.setBpsj(df.format(list.get(uploadIndex).getExplodeTime()));
+        bean.setJd(list.get(uploadIndex).getLng() + "");
+        bean.setWd(list.get(uploadIndex).getLat() + "");
+        bean.setSbbh(BaseApplication.settings.getExploderID());
+        if (enterpriseBean.isCommercial()) {
+            bean.setHtid(enterpriseBean.getContract());
+            bean.setXmbh(enterpriseBean.getProject());
+        }
+        try {
+            BaseApplication.writeFile(new Gson().toJson(bean));
+            String param = Base64.encodeToString(TripleDESUtil.encrypt(new Gson().toJson(bean).getBytes(), TripleDESUtil.KEY_DAN_LIN.getBytes()), Base64.NO_WRAP);
+            params.put("param", param);
+            BaseApplication.writeFile(param);
+        } catch (Exception e) {
+            BaseApplication.writeErrorLog(e);
+            uploadFail(false);
+            return;
+        }
+        OkHttpUtils.post()
+                .url(ConstantUtils.DAN_LIN_UPLOAD_URL)
+                .params(params)
+                .build().execute(new Callback<String>() {
+
+                    @Override
+                    public String parseNetworkResponse(Response response, int i) throws Exception {
+                        if (response.body() != null)
+                            return Objects.requireNonNull(response.body()).string();
+                        return null;
+                    }
+
+                    @Override
+                    public void onError(Call call, Exception e, int i) {
+                        if (uploading)
+                            myApp.myToast(activity, R.string.message_check_network);
+                        uploadFail(false);
+                    }
+
+                    @Override
+                    public void onResponse(String s, int i) {
+                        if (null != s) {
+                            BaseApplication.writeFile(s);
+                            try {
+                                DanLinUploadResultBean danLinUploadResultBean = new Gson().fromJson(s, DanLinUploadResultBean.class);
+                                if (danLinUploadResultBean.getSuccess().equals(DanLinUploadResultBean.SUCCESS)) {
+                                    uploadSuccess();
+                                    return;
+                                } else if (uploading) {
+                                    String code = ErrorCode.uploadErrorCode.get(danLinUploadResultBean.getCwxx());
+                                    if (code == null)
+                                        code = activity.getString(R.string.message_return_data_error);
+                                    myApp.myToast(activity, code);
+                                    handler.obtainMessage(HANDLER_FAIL, list.get(uploadIndex).getId()).sendToTarget();
+                                }
+                            } catch (Exception e) {
+                                BaseApplication.writeErrorLog(e);
+                                if (uploading)
+                                    handler.obtainMessage(HANDLER_FAIL, list.get(uploadIndex).getId()).sendToTarget();
                             }
-                            return null;
-                        }
-
-                        @Override
-                        public void onError(Call call, Exception e, int i) {
+                            uploadNextRecord();
+                        } else {
                             if (uploading)
-                                myApp.myToast(activity, R.string.message_check_network);
+                                myApp.myToast(activity, R.string.message_return_data_error);
                             uploadFail(false);
                         }
 
-                        @Override
-                        public void onResponse(UploadExplodeRecordsBean uploadExplodeRecordsBean, int i) {
-                            if (null != uploadExplodeRecordsBean) {
-                                if (uploadExplodeRecordsBean.getToken().equals(token)) {
-                                    if (uploadExplodeRecordsBean.isStatus()) {
-                                        if (null != uploadExplodeRecordsBean.getResult()) {
-                                            if (uploadExplodeRecordsBean.getResult().isSuccess()) {
-                                                uploadSuccess();
-                                                return;
-                                            } else if (uploading)
-                                                handler.obtainMessage(HANDLER_FAIL, list.get(uploadIndex).getId()).sendToTarget();
-                                        }
-                                    } else if (uploading) {
-                                        myApp.myToast(activity, uploadExplodeRecordsBean.getDescription());
-                                        handler.obtainMessage(HANDLER_FAIL, list.get(uploadIndex).getId()).sendToTarget();
-                                    }
-                                    uploadNextRecord();
-                                } else {
-                                    if (uploading)
-                                        myApp.myToast(activity, R.string.message_token_error);
-                                    uploadFail(false);
-                                }
-                            } else {
-                                if (uploading)
-                                    myApp.myToast(activity, R.string.message_return_data_error);
-                                uploadFail(false);
-                            }
-                        }
-                    });
-        }
+                    }
+                });
     }
 
     private void uploadZBao() {
@@ -444,7 +456,7 @@ public class UploadExplodeRecord extends Thread {
     private void uploadFail(boolean cancel) {
         if (uploading) {
             if (cancel)
-                handler.obtainMessage(HANDLER_FAIL, -1).sendToTarget();
+                handler.obtainMessage(HANDLER_FAIL, -1L).sendToTarget();
             else
                 handler.sendEmptyMessage(HANDLER_FAIL);
             uploading = false;

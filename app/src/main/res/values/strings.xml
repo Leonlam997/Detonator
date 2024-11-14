@@ -11,6 +11,7 @@
     <string name="button_delete">删除</string>
     <string name="button_detail">查看</string>
     <string name="title_add_detonator">扫码注册雷管</string>
+    <string name="button_scan_detonator">扫码注册</string>
     <string name="detonator_list">雷管列表</string>
     <string name="check_schedule">修改延期方案</string>
     <string name="check_locate">定位检测</string>
@@ -59,6 +60,9 @@
     <string name="settings_clear">清除数据</string>
     <string name="settings_info">系统信息</string>
     <string name="settings_local">本机设置</string>
+    <string name="settings_other">其他设置</string>
+    <string name="other_settings_sound">语音提示</string>
+    <string name="other_settings_count_down">起爆前倒数提示</string>
     <string name="upgrade_version">版本管理</string>
     <string name="bai_se_detector">现场人员信息</string>
     <string name="bai_se_modify_detector">编辑人员信息</string>
@@ -78,6 +82,10 @@
     <string name="text_last_delay">上一发延期:</string>
     <string name="text_tube_num">管壳码:</string>
     <string name="text_delay">延期:</string>
+    <string name="text_on_line">在线数量:%1$d发</string>
+    <string name="text_off_line">离线数量:%1$d发</string>
+    <string name="text_unregister">未注册数量:%1$d发</string>
+    <string name="text_group_title">第%1$d%2$s 起始:%3$dms 结束:%4$dms 共%5$d发</string>
     <string name="edit_interval">间隔:</string>
     <string name="delay_interval">间隔</string>
     <string name="number_increase">递增</string>
@@ -216,6 +224,7 @@
     <string name="message_check_network">请检查网络！</string>
     <string name="message_open_module_fail">模块打开失败！</string>
     <string name="message_delete_fail">文件删除失败！</string>
+    <string name="message_delete_database_fail">数据库清除失败！</string>
     <string name="message_delete_success">清除成功！</string>
     <string name="message_create_folder_fail">创建工作目录失败！</string>
     <string name="message_transfer_error">格式转换错误！</string>
@@ -225,6 +234,7 @@
     <string name="message_detonator_not_found">列表中未发现%1$s！</string>
     <string name="message_detonator_found">雷管位于列表序号%1$d！</string>
     <string name="message_list_not_found">未发现延期列表！</string>
+    <string name="message_offline_list_not_found">请先离线授权雷管！</string>
     <string name="message_detonator_duplicate">发现重复雷管：%1$s！\n方案\"%2$s\"第%3$d发\n方案\"%4$s\"第%5$d发</string>
     <string name="message_scheme_empty_list">方案\"%1$s\"列表为空！</string>
     <string name="message_current_detonator_exist">雷管%1$s已存在！列表序号:%2$d。</string>
@@ -242,6 +252,7 @@
     <string name="message_download_unknown_error">未知错误:</string>
     <string name="message_token_error">Token错误！</string>
     <string name="message_return_data_error">返回数据错误！</string>
+    <string name="message_generate_data_error">生成数据错误！</string>
     <string name="message_online_check_finished">在线雷管检查完毕！</string>
     <string name="message_offline_check_finished">离线雷管检查完毕！</string>
     <string name="message_not_registered">起爆器未注册！</string>
@@ -250,11 +261,12 @@
     <string name="message_upload_log_fail">日志上传失败！</string>
     <string name="message_upload_success">上传成功！</string>
     <string name="message_upload_fail">爆破记录上传失败！</string>
-    <string name="message_not_allow_area">当前定位不在准爆区域内！</string>
+    <string name="message_not_allow_area">当前定位不处于准爆区域内！</string>
+    <string name="message_forbidden_area">当前定位处于禁爆区域内！</string>
     <string name="message_input_enterprise_code">请输入单位代码！</string>
     <string name="message_input_id">请输入身份证号码！</string>
     <string name="message_input_id_error">身份证号码输入有误！</string>
-    <string name="message_input_contract_code">请输入合同编号！</string>
+    <string name="message_input_contract_code">请输入合同编号或项目编号！</string>
     <string name="message_name_input_error">名称不能为空！</string>
     <string name="message_data_input_error">数据不能为空！</string>
     <string name="message_bai_se_check_success">现场人员检验成功！</string>
@@ -325,7 +337,7 @@
     <string name="dialog_exit_explode">是否退出起爆？</string>
     <string name="dialog_exit_detect">是否退出检测？</string>
     <string name="dialog_exit_download">下载未完成，是否继续退出？</string>
-    <string name="dialog_exit_delete">删除后数据不可恢复，是否删除？</string>
+    <string name="dialog_confirm_clear_all_data">清除数据后不可恢复，包括所有延期方案、爆破记录及离线下载数据，是否确定？</string>
     <string name="dialog_confirm_online_download">是否确定在线下载？</string>
     <string name="dialog_confirm_delete_detonator">是否确定删除雷管？</string>
     <string name="dialog_confirm_delete_record">是否确定删除记录？</string>
@@ -347,7 +359,7 @@
     <string name="dialog_found_new_version">发现新版本:%1$s，是否立即更新？</string>
     <string name="menu_send_list">发送列表</string>
     <string name="menu_delete_detonator">删除雷管</string>
-    <string name="menu_modify">修改延期</string>
+    <string name="menu_modify">修改雷管</string>
     <string name="menu_tunnel_section_insert">段间插入</string>
     <string name="menu_tunnel_hole_insert">段内插入</string>
     <string name="menu_open_air_hole_insert">孔间插入</string>

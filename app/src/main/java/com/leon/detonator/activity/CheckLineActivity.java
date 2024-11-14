@@ -54,7 +54,7 @@ public class CheckLineActivity extends BaseActivity {
         final int STEP_SCAN_CODE = 6;
         final int STEP_END = 7;
         switch (msg.what) {
-           case DETECT_SUCCESS: //检测成功
+            case DETECT_SUCCESS: //检测成功
                 msg.getTarget().removeCallbacksAndMessages(null);
                 myApp.playSoundVibrate(soundPool, soundSuccess);
                 enableButton(true);

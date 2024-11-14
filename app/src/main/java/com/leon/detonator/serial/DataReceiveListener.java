@@ -105,6 +105,8 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
     }
 
     public void setStartAutoDetect(boolean startAutoDetect) {
+        if (myHandler == null)
+            return;
         myHandler.removeMessages(HANDLE_STATUS);
         this.startAutoDetect = startAutoDetect;
         recordCurrentCount = 0;
@@ -143,8 +145,10 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
         if (serialPortUtil.checkData(rcvData)) {
             byte code = rcvData[SerialCommand.CODE_CHAR_AT];
             if (code == SerialCommand.CODE_ERROR) {
-                if ((rcvData[SerialCommand.CODE_CHAR_AT + 1] & (1 << 2)) != 0)
+                if ((rcvData[SerialCommand.CODE_CHAR_AT + 1] & (1 << 2)) != 0) {
                     handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT}).sendToTarget();
+                    ((BaseApplication) activity.getApplication()).speakText(R.string.dialog_short_circuit);
+                }
             } else if (initFinished) {
                 if (!startAutoDetect) {
                     handler.obtainMessage(HANDLER_RECEIVED_DATA, rcvData.clone()).sendToTarget();
@@ -164,8 +168,10 @@ public class DataReceiveListener implements SerialPortUtil.OnDataReceiveListener
                             if (startDetectShort) {
                                 if (data > ConstantUtils.SHORT_CIRCUIT_CURRENT) {
                                     BaseApplication.writeFile(String.format(Locale.getDefault(), "短路电流:%.2f, 电压:%.2f", data, voltage));
-                                    if (largeCurrentCount++ > ConstantUtils.CURRENT_DETECT_COUNT)
+                                    if (largeCurrentCount++ > ConstantUtils.CURRENT_DETECT_COUNT) {
                                         handler.obtainMessage(HANDLER_RECEIVED_DATA, new byte[]{SerialCommand.ALERT_SHORT_CIRCUIT}).sendToTarget();
+                                        ((BaseApplication) activity.getApplication()).speakText(R.string.dialog_short_circuit);
+                                    }
                                 } else {
                                     if (detonatorAmount > 0) {
 //                                    if (data > ConstantUtils.CURRENT_PER_DETONATOR * detonatorAmount * ConstantUtils.CURRENT_OVER_PERCENTAGE) {

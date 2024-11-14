@@ -29,6 +29,7 @@ public class SettingsActivity extends BaseActivity {
     private List<SettingsBean> list;
     private SettingsAdapter adapter;
     private long lastClickTime;
+    private final int MAX_SIZE = 8;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,14 +51,14 @@ public class SettingsActivity extends BaseActivity {
             switch (BaseApplication.settings.getServerHost()) {
                 case 2:
                     if (which == 2 || which == 3)
-                        which += 3;
+                        which += MAX_SIZE - 4;
                     else if (which > 3)
                         which -= 2;
                     break;
                 case 0:
                 case 3:
                     if (which == 2)
-                        which = 5;
+                        which = MAX_SIZE - 2;
                     else if (which > 2)
                         which -= 1;
             }
@@ -79,7 +80,7 @@ public class SettingsActivity extends BaseActivity {
                 case 3:
                     new AlertDialog.Builder(this, R.style.AlertDialog)
                             .setTitle(R.string.progress_title)
-                            .setMessage(R.string.dialog_exit_delete)
+                            .setMessage(R.string.dialog_confirm_clear_all_data)
                             .setPositiveButton(R.string.button_confirm, (dialog, which1) -> {
                                 try {
                                     File[] files = new File(FilePath.APP_PATH + "/").listFiles();
@@ -88,7 +89,7 @@ public class SettingsActivity extends BaseActivity {
                                             if ((file.getName().endsWith("lst") || file.getName().endsWith("log")) && !file.delete())
                                                 myApp.myToast(SettingsActivity.this, R.string.message_delete_fail);
                                         }
-                                    myApp.myToast(SettingsActivity.this, R.string.message_delete_success);
+                                    myApp.myToast(SettingsActivity.this, DbUtil.clearDatabase(SettingsActivity.this) ? R.string.message_delete_success : R.string.message_delete_database_fail);
                                 } catch (Exception e) {
                                     BaseApplication.writeErrorLog(e);
                                 }
@@ -97,16 +98,20 @@ public class SettingsActivity extends BaseActivity {
                             .show();
                     break;
                 case 4:
-                    intent.setClass(SettingsActivity.this, SystemInfoActivity.class);
+                    intent.setClass(SettingsActivity.this, OtherSettingsActivity.class);
                     startActivity(intent);
                     break;
                 case 5:
-                    intent.setClass(SettingsActivity.this, InfoListActivity.class);
-                    intent.putExtra(KeyUtils.KEY_INFO_TYPE, 2 == BaseApplication.settings.getServerHost() ? ConstantUtils.INFO_PROJECT : ConstantUtils.INFO_ENTERPRISE);
+                    intent.setClass(SettingsActivity.this, SystemInfoActivity.class);
                     startActivity(intent);
                     break;
                 case 6:
-                    if (2 == BaseApplication.settings.getServerHost()) {
+                    intent.setClass(SettingsActivity.this, InfoListActivity.class);
+                    intent.putExtra(KeyUtils.KEY_INFO_TYPE, isBaiSe() ? ConstantUtils.INFO_PROJECT : ConstantUtils.INFO_ENTERPRISE);
+                    startActivity(intent);
+                    break;
+                case 7:
+                    if (isBaiSe()) {
                         intent.setClass(SettingsActivity.this, InfoListActivity.class);
                         intent.putExtra(KeyUtils.KEY_INFO_TYPE, ConstantUtils.INFO_BLASTER);
                         startActivity(intent);
@@ -131,13 +136,15 @@ public class SettingsActivity extends BaseActivity {
                 R.mipmap.ic_settings_server,
                 R.mipmap.ic_settings_upgrade,
                 R.mipmap.ic_settings_clear,
+                R.mipmap.ic_settings_other,
                 R.mipmap.ic_settings_info};
         final int[] menuTextID = {R.string.settings_local,
                 R.string.settings_server,
                 R.string.settings_upgrade,
                 R.string.settings_clear,
+                R.string.settings_other,
                 R.string.settings_info};
-        boolean[] subMenu = {true, true, true, false, true};
+        boolean[] subMenu = {true, true, true, false, true, true};
         for (int i = 0; i < iconRes.length; i++) {
             SettingsBean bean = new SettingsBean();
             bean.setIcon(iconRes[i]);
@@ -153,9 +160,9 @@ public class SettingsActivity extends BaseActivity {
             list.get(1).setSubtitle(ConstantUtils.UPLOAD_HOST[BaseApplication.settings.getServerHost()][0]);
             switch (BaseApplication.settings.getServerHost()) {
                 case 2:
-                    if (list.size() == 5 || list.size() == 6) {
+                    if (list.size() == MAX_SIZE - 2 || list.size() == MAX_SIZE - 1) {
                         SettingsBean bean = new SettingsBean();
-                        if (list.size() == 5) {
+                        if (list.size() == MAX_SIZE - 2) {
                             bean.setIcon(R.mipmap.ic_settings_enterprise);
                             bean.setTitle("3. " + getString(R.string.settings_enterprise));
                             bean.setMore(true);
@@ -178,7 +185,7 @@ public class SettingsActivity extends BaseActivity {
                     break;
                 case 0:
                 case 3:
-                    if (list.size() == 5) {
+                    if (list.size() == MAX_SIZE - 2) {
                         SettingsBean bean = new SettingsBean();
                         bean.setIcon(R.mipmap.ic_settings_enterprise);
                         bean.setTitle("3. " + getString(R.string.settings_enterprise));
@@ -191,7 +198,7 @@ public class SettingsActivity extends BaseActivity {
                     }
                     EnterpriseBean enterpriseBean = DbUtil.getCurrentEnterprise();
                     list.get(2).setSubtitle(enterpriseBean == null ? "" : String.format("%s %s", getString(R.string.enterprise_code), enterpriseBean.getCode()));
-                    if (list.size() == 7) {
+                    if (list.size() == MAX_SIZE) {
                         list.remove(3);
                         for (int i = 3; i < list.size(); i++) {
                             list.get(i).setTitle((i + 1) + list.get(i).getTitle().substring(1));
@@ -200,8 +207,8 @@ public class SettingsActivity extends BaseActivity {
                     }
                     break;
                 default:
-                    if (list.size() == 6 || list.size() == 7) {
-                        if (list.size() == 7)
+                    if (list.size() == MAX_SIZE - 1 || list.size() == MAX_SIZE) {
+                        if (list.size() == MAX_SIZE)
                             list.remove(3);
                         list.remove(2);
                         for (int i = 2; i < list.size(); i++) {

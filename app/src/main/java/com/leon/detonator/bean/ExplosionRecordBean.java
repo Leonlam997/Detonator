@@ -18,6 +18,7 @@ public class ExplosionRecordBean {
     private boolean synchronize;
     private boolean selected;
     private boolean tunnel;
+    private boolean deleted;
 
     public ExplosionRecordBean() {
     }
@@ -108,5 +109,13 @@ public class ExplosionRecordBean {
 
     public void setTunnel(boolean tunnel) {
         this.tunnel = tunnel;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 }
